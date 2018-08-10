@@ -69,7 +69,7 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
     interpreter_pointer->compiled_call->code(global, thread);
   }
   if(!thread->interpreter_pointer) {
-    if(af_word_wait(global, thread, ' ')) {
+    if(af_word_available(global, thread, ' ')) {
       uint8_t* text = af_word(global, thread, ' ');
       af_word_t* word = af_lookup(global, text);
       if(word) {
@@ -85,10 +85,30 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
       } else {
 	int64_t result;
 	if(af_parse_number(global, text, &result)) {
+	  if(thread->is_compiling) {
+	    af_compiled_t* slot = af_allot_compile(global, thread, 2);
+	    if(slot) {
+	      (slot - 1)->compiled_call = global->builtin_literal;
+	      slot->compiled_int64 = result;
+	      (slot + 1)->compiled_call = global->builtin_exit;
+	    }
+	  } else {
+	    if(--thread->data_stack_current >= thread->data_stack_top) {
+	      *thread->data_stack_current = (uint64_t)result;
+	    } else {
+	      af_handle_data_stack_overflow(global, thread);
+	    }
+	  }
 	} else {
 	  af_handle_parse_error(global, thread);
 	}
       }
+    } else if(!thread->input_source_closed) {
+      af_sleep(global, thread);
+    } else if(thread->return_stack_current < thread->return_stack_base) {
+      thread->interpreter_pointer = *thread->return_stack_current++;
+    } else {
+      af_kill(global, thread);
     }
   }
 }
@@ -110,7 +130,7 @@ void af_yield(af_global_t* global, af_thread_t* thread) {
   thread->current_cycles_left = 0;
 }
 
-void af_sleep(af_thread_t* thread) {
+void af_sleep(af_global_t* global, af_thread_t* thread) {
   thread->current_cycles_before_yield = 0;
   thread->current_cycles_left = 0;
   global->threads_active_count--;
@@ -298,7 +318,7 @@ af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
 
 af_bool_t af_word_wait(af_global_t* global, af_thread_t* thread,
 		       uint8_t delimiter) {
-  if(!af_thread_available(global, thread, delimiter)) {
+  if(!af_word_available(global, thread, delimiter)) {
     if(!thread->input_source_closed) {
       af_sleep(global, thread);
     } else {

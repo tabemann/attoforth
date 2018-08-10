@@ -48,8 +48,8 @@ typedef void (*af_prim_t)(af_global_t* global, af_thread_t* thread);
 
 typedef union af_compiled_t {
   af_word_t* compiled_call;
-  uint64_t compiled_uint64_t;
-  int64_t compiled_int64_t;
+  uint64_t compiled_uint64;
+  int64_t compiled_int64;
   double compiled_double;
 } af_compiled_t;
 
@@ -116,11 +116,11 @@ typedef struct af_thread_t {
 
 void af_thread_loop(af_global_t* global);
 
-void af_kill(af_thread_t* thread);
+void af_kill(af_global_t* global, af_thread_t* thread);
 
-void af_yield(af_thread_t* thread);
+void af_yield(af_global_t* global, af_thread_t* thread);
 
-void af_sleep(af_thread_t* thread);
+void af_sleep(af_global_t* global, af_thread_t* thread);
 
 void af_reset(af_global_t* global, af_thread_t* thread);
 
