@@ -33,6 +33,44 @@
 #include <stddef.h>
 #include "af/common.h"
 #include "af/inner.h"
+#include "af/prim.h"
+
+/* Register primitives */
+void af_register_prims(af_global_t* global, af_thread_t* thread) {
+  global->builtin_literal_runtime =
+    af_register_prim(global, thread, NULL, af_prim_literal_runtime, FALSE);
+  global->builtin_exit =
+    af_register_prim(global, thread, NULL, af_prim_exit, FALSE);
+  af_register_prim(global, thread, "LITERAL", af_prim_literal, TRUE);
+  af_register_prim(global, thread, "CREATE", af_prim_create, FALSE);
+  af_register_prim(global, thread, ":", af_prim_colon, TRUE);
+  af_register_prim(global, thread, ";", af_prim_semi, TRUE);
+  af_register_prim(global, thread, "IMMEDIATE", af_prim_immediate, TRUE);
+  af_register_prim(global, thread, "DUP", af_prim_dup, FALSE);
+  af_register_prim(global, thread, "DROP", af_prim_drop, FALSE);
+  af_register_prim(global, thread, "SWAP", af_prim_swap, FALSE);
+  af_register_prim(global, thread, "OVER", af_prim_over, FALSE);
+  af_register_prim(global, thread, "ROT", af_prim_rot, FALSE);
+  af_register_prim(global, thread, "PICK", af_prim_pick, FALSE);
+  af_register_prim(global, thread, "ROLL", af_prim_roll, FALSE);
+  af_register_prim(global, thread, "2DUP", af_prim_2dup, FALSE);
+  af_register_prim(global, thread, "2DROP", af_prim_2drop, FALSE);
+  af_register_prim(global, thread, "2SWAP", af_prim_2swap, FALSE);
+  af_register_prim(global, thread, "2OVER", af_prim_2drop, FALSE);
+  af_register_prim(global, thread, "2ROT", af_prim_2drop, FALSE);
+  af_register_prim(global, thread, "+", af_prim_add, FALSE);
+  af_register_prim(global, thread, "-", af_prim_sub, FALSE);
+  af_register_prim(global, thread, "*", af_prim_mul, FALSE);
+  af_register_prim(global, thread, "/", af_prim_div, FALSE);
+  af_register_prim(global, thread, "@", af_prim_load, FALSE);
+  af_register_prim(global, thread, "!", af_prim_store, FALSE);
+  af_register_prim(global, thread, "C@", af_prim_c_load, FALSE);
+  af_register_prim(global, thread, "C!", af_prim_c_store, FALSE);
+  af_register_prim(global, thread, ">R", af_prim_to_r, FALSE);
+  af_register_prim(global, thread, "R>", af_prim_from_r, FALSE);
+  af_register_prim(global, thread, "R@", af_prim_r_load, FALSE);
+  af_register_prim(global, thread, "HERE", af_prim_here, FALSE);
+}
 
 /* Next primitive */
 void af_prim_next(af_global_t* global, af_thread_t* thread) {
@@ -56,34 +94,59 @@ void af_prim_exit(af_global_t* global, af_thread_t* thread) {
   }
 }
 
-/* Literal primitive */
-void af_prim_literal(af_global_t* global, af_thread_t* thread) {
+/* Literal runtime primitive */
+void af_prim_literal_runtime(af_global_t* global, af_thread_t* thread) {
   if(--thread->data_stack_current >= thread->data_stack_top) {
     *thread->data_stack_current =
       (uint64_t)(*(thread->interpreter_pointer + 1));
-    thread->interpreter_pointer += 2;
+    AF_ADVANCE_IP(thread, 2);
   } else {
     af_handle_data_stack_overflow(global, thread);
   }
 }
 
-/* Create primitive */
+/* LITERAL primitive - immediate */
+void af_prim_literal(af_global_t* global, af_thread_t* thread) {
+  af_compiled_t* slot;
+  if(!thread->is_compiling) {
+    af_handle_compile_only(global, thread);
+    return;
+  }
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_space_underflow(global, thread);
+    return;
+  }
+  slot = af_allot_compile(global, thread, 2);
+  if(slot) {
+    (slot - 1)->compiled_call = global->builtin_literal_runtime;
+    slot->compiled_uint64 = *thread->data_stack_current++;
+    (slot + 1)->compiled_call = global->builtin_exit;
+    AF_ADVANCE_IP(thread, 1);
+  }
+}
+
+/* CREATE primitive */
 void af_prim_create(af_global_t* global, af_thread_t* thread) {
+  uint8_t* name;
+  size_t name_size;
+  void* word_space;
+  af_word_t* word;
+  af_compiled_t* secondary;
   if(!af_word_wait(global, thread, ' ')) {
     return;
   }
-  uint8_t* name = af_word(global, thread, ' ');
-  size_t name_size = sizeof(uint8_t) * (*name + 1);
-  void* word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
+  name = af_word(global, thread, ' ');
+  name_size = sizeof(uint8_t) * (*name + 1);
+  word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
   memmove(word_space + sizeof(af_word_t), name, name_size);
-  af_word_t* word = word_space;
-  af_compiled_t* secondary = af_allocate_compile(global, thread, 3);
+  word = word_space;
+  secondary = af_allocate_compile(global, thread, 3);
   word->next_word = global->first_word;
   word->is_immediate = FALSE;
   word->name = word_space + sizeof(af_word_t);
   word->code = af_prim_next;
   word->secondary = secondary;
-  secondary->compiled_call = global->builtin_literal;
+  secondary->compiled_call = global->builtin_literal_runtime;
   (secondary + 1)->compiled_uint64_t = (uint64_t)thread->allot_space_current;
   (secondary + 2)->compiled_call = global->builtin_exit;
   thread->most_recent_word = word;
@@ -91,17 +154,22 @@ void af_prim_create(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
-/* Colon definition primitive */
+/* Colon definition primitive - immediate */
 void af_prim_colon(af_global_t* global, af_thread_t* thread) {
+  uint8_t* name;
+  size_t name_size;
+  void* word_space;
+  af_word_t* word;
+  af_compiled_t* secondary;
   if(!af_word_wait(global, thread, ' ')) {
     return;
   }
-  uint8_t* name = af_word(global, thread, ' ');
-  size_t name_size = sizeof(uint8_t) * (*name + 1);
-  void* word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
+  name = af_word(global, thread, ' ');
+  name_size = sizeof(uint8_t) * (*name + 1);
+  word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
   memmove(word_space + sizeof(af_word_t), name, name_size);
-  af_word_t* word = word_space;
-  af_compiled_t* secondary = af_allocate_compile(global, thread, 1);
+  word = word_space;
+  secondary = af_allocate_compile(global, thread, 1);
   word->next_word = global->first_word;
   word->is_immediate = FALSE;
   word->name = word_space + sizeof(af_word_t);
@@ -113,14 +181,373 @@ void af_prim_colon(af_global_t* global, af_thread_t* thread) {
   thread->is_compiling = true;
 }
 
-/* Semicolon definition primitive */
+/* Semicolon definition primitive - immediate */
 void af_prim_semi(af_global_t* global, af_thread_t* thread) {
-  thread->is_compiling = true;
+  if(!thread->is_compiling) {
+    af_handle_compile_only(global, thread);
+    return;
+  }
+  thread->is_compiling = false;
 }
 
-/* Immediate primitive */
+/* Immediate primitive - immediate */
 void af_prim_immediate(af_global_t* global, af_thread_t* thread) {
   if(thread->most_recent_word) {
     thread->most_recent_word->is_immediate = true;
   }
+}
+
+/* DUP primitive */
+void af_prim_dup(af_global_t* global, af_thread_t* thread) {
+  uint64_t value;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  value = *thread->data_stack_current--;
+  *thread->data_stack_current = value;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* DROP primitive */
+void af_prim_drop(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  thread->data_stack_current++;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* SWAP primitive */
+void af_prim_swap(af_global_t* global, af_thread_t* thread) {
+  uint64_t value;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value = *thread->data_stack_current;
+  *thread->data_stack_current = *(thread->data_stack_current + 1);
+  *(thread->data_stack_current + 1) = value;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OVER primitive */
+void af_prim_over(af_global_t* global, af_thread_t* thread) {
+  uint64_t value;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  value = *(thread->data_stack_current + 1);
+  *(--thread->data_stack_current) = value;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* ROT primitive */
+void af_prim_rot(af_global_t* global, af_thread_t* thread) {
+  uint64_t value;
+  if(thread->data_stack_current >= (thread->data_stack_base - 2)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  value = *(thread->data_stack_current + 2);
+  *(thread->data_stack_current + 2) = *(thread->data_stack_current + 1);
+  *(thread->data_stack_current + 1) = *thread->data_stack_current;
+  *thread->data_stack_current = value;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* PICK primitive */
+void af_prim_pick(af_global_t* global, af_thread_t* thread) {
+  uint64_t index;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  index = *thread->data_stack_current;
+  if(thread->data_stack_current >= (thread->data_stack_base - (index + 1))) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  *thread->data_stack_current = *(thread->data_stack_current + index + 1);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* ROLL primitive */
+void af_prim_roll(af_global_t* global, af_thread_t* thread) {
+  uint64_t index;
+  uint64_t value;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  index = *thread->data_stack_current++;
+  if(thread->data_stack_current >= (thread->data_stack_base - index)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value = *(thread->data_stack_current + index);
+  while(index > 0) {
+    *(thread->data_stack_current + index) =
+      *(thread->data_stack_current + (index - 1));
+    index--;
+  }
+  *thread->data_stack_current = value;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2DUP primitive */
+void af_prim_2dup(af_global_t* global, af_thread_t* thread) {
+  uint64_t value0;
+  uint64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= (thread->data_stack_top - 1)) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  value0 = *(thread->data_stack_current + 1);
+  value1 = *thread->data_stack_current;
+  *(--thread->data_stack_current) = value0;
+  *(--thread->data_stack_current) = value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2DROP primitive */
+void af_prim_2drop(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  thread->data_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2SWAP primitive */
+void af_prim_2swap(af_global_t* global, af_thread_t* thread) {
+  uint64_t value0;
+  uint64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 3)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value0 = *(thread->data_stack_current + 3);
+  value1 = *(thread->data_stack_current + 2);
+  *(thread->data_stack_current + 3) = *(thread->data_stack_current + 1);
+  *(thread->data_stack_current + 2) = *thread->data_stack_current;
+  *(thread->data_stack_current + 1) = value0;
+  *thread->data_stack_current = value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2OVER primitive */
+void af_prim_2over(af_global_t* global, af_thread_t* thread) {
+  uint64_t value0;
+  uint64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 3)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= (thread->data_stack_top - 1)) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  value0 = *(thread->data_stack_current + 3);
+  value1 = *(thread->data_stack_current + 2);
+  *(--thread->data_stack_current) = value0;
+  *(--thread->data_stack_current) = value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2ROT primitive */
+void af_prim_2rot(af_global_t* global, af_thread_t* thread) {
+  uint64_t value0;
+  uint64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 5)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  value0 = *(thread->data_stack_current + 5);
+  value1 = *(thread->data_stack_current + 4);
+  *(thread->data_stack_current + 5) = *(thread->data_stack_current + 3);
+  *(thread->data_stack_current + 4) = *(thread->data_stack_current + 2);
+  *(thread->data_stack_current + 3) = *(thread->data_stack_current + 1);
+  *(thread->data_stack_current + 2) = *thread->data_stack_current;
+  *(thread->data_stack_current + 1) = value0;
+  *thread->data_stack_current = value1;;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* + primitive */
+void af_prim_add(af_global_t* global, af_thread_t* thread) {
+  int64_t value0;
+  int64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value0 = *((int64_t*)thread->data_stack_current + 1);
+  value1 = *(int64_t*)thread->data_stack_current;
+  *(++(int64_t*)thread->data_stack_current) = value0 + value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* - primitive */
+void af_prim_sub(af_global_t* global, af_thread_t* thread) {
+  int64_t value0;
+  int64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value0 = *((int64_t*)thread->data_stack_current + 1);
+  value1 = *(int64_t*)thread->data_stack_current;
+  *(++(int64_t*)thread->data_stack_current) = value0 - value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* * primitive */
+void af_prim_mul(af_global_t* global, af_thread_t* thread) {
+  int64_t value0;
+  int64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value0 = *((int64_t*)thread->data_stack_current + 1);
+  value1 = *(int64_t*)thread->data_stack_current;
+  *(++(int64_t*)thread->data_stack_current) = value0 * value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* / primitive */
+void af_prim_div(af_global_t* global, af_thread_t* thread) {
+  int64_t value0;
+  int64_t value1;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  value0 = *((int64_t*)thread->data_stack_current + 1);
+  value1 = *(int64_t*)thread->data_stack_current;
+  if(value1 == 0) {
+    af_handle_divide_by_zero(global, thread);
+    return;
+  }
+  *(++(int64_t*)thread->data_stack_current) = value0 * value1;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* @ primitive */
+void af_prim_load(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  *thread->data_stack_current = *(uint64_t*)(*thread->data_stack_current);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* ! primitive */
+void af_prim_store(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  *(uint64_t*)(*thread->data_stack_current) = *(thread->data_stack_current + 1);
+  thread->data_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* C@ primitive */
+void af_prim_c_load(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  *thread->data_stack_current = *(uint8_t*)(*thread->data_stack_current);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* C! primitive */
+void af_prim_c_store(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  *(uint8_t*)(*thread->data_stack_current) =
+    *(thread->data_stack_current + 1) & 0xFF;
+  thread->data_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >R primitive */
+void af_prim_to_r(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->return_stack_current <= thread->return_stack_top) {
+    af_handle_return_stack_overflow(global, thread);
+    return;
+  }
+  *(--thread->return_stack_current) = (uint64_t*)*thread->data_stack_current++;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* R> primitive */
+void af_prim_from_r(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  if(thread->return_stack_current >= thread->return_stack_base) {
+    af_handle_return_stack_underflow(global, thread);
+    return;
+  }
+  *(--thread->data_stack_current) = (uint64_t)*thread->return_stack_current++;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* R@ primitive */
+void af_prim_r_load(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  if(thread->return_stack_current >= thread->return_stack_base) {
+    af_handle_return_stack_underflow(global, thread);
+    return;
+  }
+  *(--thread->data_stack_current) = (uint64_t)*thread->return_stack_current;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* HERE primitive */
+void af_prim_here(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  *(--thread->data_stack_current) = (uint64_t)thread->data_space_current;
+  AF_ADVANCE_IP(thread, 1);
 }

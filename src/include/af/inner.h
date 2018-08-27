@@ -38,9 +38,10 @@
 /* Forward declarations of types */
 
 typedef union af_compiled_t af_compiled_t;
-typedef struct af_dict_t af_dict_t;
+typedef struct af_word_t af_word_t;
 typedef struct af_global_t af_global_t;
 typedef struct af_thread_t af_thread_t;
+typedef struct af_input_t af_input_t;
 
 /* Type declarations */
 
@@ -66,12 +67,14 @@ typedef struct af_global_t {
   uint64_t threads_active_count;
   af_cond_t cond;
   af_word_t* first_word;
+  uint64_t default_data_stack_count;
+  uint64_t default_return_stack_count;
   size_t min_guaranteed_data_space_size;
   size_t default_data_space_size;
   size_t min_guaranteed_compile_space_count;
   size_t default_compile_space_count;
   uint64_t default_cycles_before_yield;
-  af_word_t* builtin_literal;
+  af_word_t* builtin_literal_runtime;
   af_word_t* builtin_exit;
 } af_global_t;
 
@@ -96,16 +99,19 @@ typedef struct af_thread_t {
   void* data_space_top;
   void* data_space_base;
   af_word_t* most_recent_word;
-  uint8_t* text_input_buffer;
-  uint64_t text_input_count;
-  uint64_t text_input_index;
-  af_bool_t text_input_closed;
-  uint8_t** input_source_buffer;
-  uint64_t* input_source_count;
-  uint64_t* input_source_index;
-  af_bool_t* input_source_closed;
+  af_input_t* console_input;
+  af_input_t* current_input;
   uint64_t base;
 } af_thread_t;
+
+typedef struct af_input_t {
+  af_input_t* next_input;
+  uint8_t* buffer;
+  uint64_t count;
+  uint64_t index;
+  af_bool_t is_closed;
+  af_bool_t is_freeable;
+} af_input_t;
 
 /* Macro to advance interpreter pointer */
 #define AF_ADVANCE_IP(thread, increment) \
@@ -116,13 +122,26 @@ typedef struct af_thread_t {
 
 void af_thread_loop(af_global_t* global);
 
+af_thread_t* af_spawn(af_global_t* global);
+
+void af_set_console(af_global_t* global, af_thread_t* thread,
+		    af_input_t* input);
+
+void af_interpret(af_global_t* global, af_thread_t* thread, af_input_t* input);
+
+void af_start(af_global_t* global, af_thread_t* thread);
+
 void af_kill(af_global_t* global, af_thread_t* thread);
 
 void af_yield(af_global_t* global, af_thread_t* thread);
 
 void af_sleep(af_global_t* global, af_thread_t* thread);
 
+void af_wake(af_global_t* global, af_thread_t* thread);
+
 void af_reset(af_global_t* global, af_thread_t* thread);
+
+void af_pop_input(af_global_t* global, af_thread_t* thread);
 
 void af_handle_data_stack_overflow(af_global_t* global, af_thread_t* thread);
 
@@ -140,6 +159,12 @@ void af_handle_data_space_overflow(af_global_t* global, af_thread_t* thread);
 void af_handle_compile_space_overflow(af_global_t* global, af_thread_t* thread);
 
 void af_handle_parse_error(af_global_t* global, af_thread_t* thread);
+
+void af_handle_out_of_memory(af_global_t* global, af_thread_t* thread);
+
+void af_handle_divide_by_zero(af_global_t* global, af_thread_t* thread);
+
+void af_handle_compile_only(af_global_t* global, af_thread_t* thread);
 
 void* af_guarantee(af_global_t* global, af_thread_t* thread, size_t size);
 
@@ -162,5 +187,14 @@ af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
 af_bool_t af_word_wait(af_global_t* global, af_thread_t*, uint8_t delimiter);
 
 uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter);
+
+af_input_t* af_new_string_input(uint8_t* text, uint64_t count);
+
+void af_evaluate(af_global_t* global, af_thread_t* thread, uint8_t* text,
+		 uint64_t count);
+
+af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
+			    uint8_t* name, af_prim_t prim,
+			    af_bool_t is_immediate);
 
 #endif /* AF_INNER_H */
