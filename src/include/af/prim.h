@@ -38,11 +38,17 @@
 /* Register primitves */
 void af_register_prims(af_global_t* global, af_thread_t* thread);
 
-/* Next primitive */
-void af_prim_next(af_global_t* global, af_thread_t* thread);
+/* Docol primitive */
+void af_prim_docol(af_global_t* global, af_thread_t* thread);
 
-/* Exit primitive */
+/* EXIT primitive */
 void af_prim_exit(af_global_t* global, af_thread_t* thread);
+
+/* Push the data address of a word primitive */
+void af_prim_push_data(af_global_t* global, af_thread_t* thread);
+
+/* Runtime of DOES> primitve */
+void af_prim_do_does(af_global_t* global, af_thread_t* thread);
 
 /* Literal runtime primitive */
 void af_prim_literal_runtime(af_global_t* global, af_thread_t* thread);
@@ -53,13 +59,16 @@ void af_prim_literal(af_global_t* global, af_thread_t* thread);
 /* CREATE primitive */
 void af_prim_create(af_global_t* global, af_thread_t* thread);
 
-/* Colon definition primitive - immediate */
+/* : primitive */
 void af_prim_colon(af_global_t* global, af_thread_t* thread);
 
-/* Semicolon definition primitive - immediate */
+/* :NONAME primitive */
+void af_prim_colon_noname(af_global_t* global, af_thread_t* thread);
+
+/* ; primitive - immediate */
 void af_prim_semi(af_global_t* global, af_thread_t* thread);
 
-/* Immediate primitive - immediate */
+/* IMMEDIATE primitive - immediate */
 void af_prim_immediate(af_global_t* global, af_thread_t* thread);
 
 /* DUP primitive */
@@ -110,6 +119,36 @@ void af_prim_mul(af_global_t* global, af_thread_t* thread);
 /* / primitive */
 void af_prim_div(af_global_t* global, af_thread_t* thread);
 
+/* NOT primitive */
+void af_prim_not(af_global_t* global, af_thread_t* thread);
+
+/* AND primitive */
+void af_prim_and(af_global_t* global, af_thread_t* thread);
+
+/* OR primitive */
+void af_prim_or(af_global_t* global, af_thread_t* thread);
+
+/* XOR primitive */
+void af_prim_xor(af_global_t* global, af_thread_t* thread);
+
+/* < primitive */
+void af_prim_lt(af_global_t* global, af_thread_t* thread);
+
+/* <= primitive */
+void af_prim_lte(af_global_t* global, af_thread_t* thread);
+
+/* > primitive */
+void af_prim_gt(af_global_t* global, af_thread_t* thread);
+
+/* >= primitive */
+void af_prim_gte(af_global_t* global, af_thread_t* thread);
+
+/* = primitive */
+void af_prim_eq(af_global_t* global, af_thread_t* thread);
+
+/* <> primitive */
+void af_prim_ne(af_global_t* global, af_thread_t* thread);
+
 /* @ primitive */
 void af_prim_load(af_global_t* global, af_thread_t* thread);
 
@@ -133,5 +172,29 @@ void af_prim_r_load(af_global_t* global, af_thread_t* thread);
 
 /* HERE primitive */
 void af_prim_here(af_global_t* global, af_thread_t* thread);
+
+/* DOES> primitive */
+void af_prim_does(af_global_t* global, af_thread_t* thread);
+
+/* >BODY primitive */
+void af_prim_to_body(af_global_t* global, af_thread_t* thread);
+
+/* ' primitve */
+void af_prim_tick(af_global_t* global, af_thread_t* thread);
+
+/* ['] primitive - immediate */
+void af_prim_bracket_tick(af_global_t* global, af_thread_t* thread);
+
+/* EXECUTE primitive */
+void af_prim_execute(af_global_t* global, af_thread_t* thread);
+
+/* LATESTXT primitive */
+void af_prim_latestxt(af_global_t* global, af_thread_t* thread);
+
+/* >IN primitive */
+void af_prim_to_in(af_global_t* global, af_thread_t* thread);
+
+/* SOURCE primitive */
+void af_prim_source(af_global_t* global, af_thread_t* thread);
 
 #endif /* AF_PRIM_H */

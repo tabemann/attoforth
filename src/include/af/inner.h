@@ -57,8 +57,8 @@ typedef union af_compiled_t {
 typedef struct af_word_t {
   af_word_t* next_word;
   af_bool_t is_immediate;
-  uint8_t* name;
   af_prim_t code;
+  uint64_t* data;
   af_compiled_t* secondary;
 } af_word_t;
 
@@ -92,9 +92,6 @@ typedef struct af_thread_t {
   af_compiled_t** return_stack_top;
   uint64_t* data_stack_base;
   af_compiled_t** return_stack_base;
-  af_compiled_t* compile_space_current;
-  af_compiled_t* compile_space_top;
-  af_compiled_t* compile_space_base;
   void* data_space_current;
   void* data_space_top;
   void* data_space_base;
@@ -102,6 +99,8 @@ typedef struct af_thread_t {
   af_input_t* console_input;
   af_input_t* current_input;
   uint64_t base;
+  af_word_t* current_interactive_word;
+  af_bool_t repeat_interactive;
 } af_thread_t;
 
 typedef struct af_input_t {
@@ -117,6 +116,14 @@ typedef struct af_input_t {
 #define AF_ADVANCE_IP(thread, increment) \
   { thread->interpreter_pointer = thread->interpreter_pointer ? \
       thread->interpreter_pointer + increment : NULL; }
+
+/* Macro to get name length of word */
+#define AF_WORD_NAME_LEN(word) \
+  (*(uint8_t*)((af_word_t*)word + sizeof(af_word_t)))
+
+/* Macro to get name data of word */
+#define AF_WORD_NAME_DATA(word) \
+  ((uint8_t*)((af_word_t*)word + sizeof(af_word_t)) + sizeof(uint8_t))
 
 /* Function declarations */
 
@@ -141,6 +148,8 @@ void af_wake(af_global_t* global, af_thread_t* thread);
 
 void af_reset(af_global_t* global, af_thread_t* thread);
 
+void af_repeat_interactive(af_global_t* global, af_thread_t* thread);
+
 void af_pop_input(af_global_t* global, af_thread_t* thread);
 
 void af_handle_data_stack_overflow(af_global_t* global, af_thread_t* thread);
@@ -156,9 +165,9 @@ void af_handle_unexpected_input_closure(af_global_t* global,
 
 void af_handle_data_space_overflow(af_global_t* global, af_thread_t* thread);
 
-void af_handle_compile_space_overflow(af_global_t* global, af_thread_t* thread);
-
 void af_handle_parse_error(af_global_t* global, af_thread_t* thread);
+
+void af_handle_word_not_found(af_global_t* global, af_thread_t* thread);
 
 void af_handle_out_of_memory(af_global_t* global, af_thread_t* thread);
 
@@ -166,20 +175,15 @@ void af_handle_divide_by_zero(af_global_t* global, af_thread_t* thread);
 
 void af_handle_compile_only(af_global_t* global, af_thread_t* thread);
 
+void af_handle_no_word_created(af_global_t* global, af_thread_t* thread);
+
+void af_handle_not_interactive(af_global_t* global, af_thread_t* thread);
+
 void* af_guarantee(af_global_t* global, af_thread_t* thread, size_t size);
 
 void* af_allocate(af_global_t* global, af_thread_t* thread, size_t size);
 
 void* af_allot(af_global_t* global, af_thread_t* thread, size_t size);
-
-af_compiled_t* af_guarantee_compile(af_global_t* global, af_thread_t* thread,
-				    uint64_t count);
-
-af_compiled_t* af_allocate_compile(af_global_t* global, af_thread_t* thread,
-				   uint64_t count);
-
-af_compiled_t* af_allot_compile(af_global_t* global, af_thread_t* thread,
-				uint64_t count);
 
 af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
 			    uint8_t delimiter);

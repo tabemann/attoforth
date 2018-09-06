@@ -73,33 +73,42 @@ void af_thread_loop(af_global_t* global) {
 
 void af_inner_loop(af_global_t* global, af_thread_t* thread) {
   thread->current_cycles_left = thread->current_cycles_before_yield;
+  if(thread->current_cycles_left && thread->interpreter_pointer) {
+    thread->current_interactive_word = NULL;
+    thread->repeat_interactive = FALSE;
+  }
   while(thread->current_cycles_left-- && thread->interpreter_pointer) {
     af_compiled_t* interpreter_pointer = thread->interpreter_pointer;
     interpreter_pointer->compiled_call->code(global, thread);
   }
   if(thread->current_cycles_before_yield && !thread->interpreter_pointer) {
-    if(af_word_available(global, thread, ' ')) {
+    if(thread->repeat_interactive) {
+      thread->current_interactive_word = thread->repeat_interactive_word;
+      thread->repeat_interactive = FALSE;
+      thread->current_interactive_word->code(global, thread);
+    } else if(af_word_available(global, thread, ' ')) {
       uint8_t* text = af_word(global, thread, ' ');
       af_word_t* word = af_lookup(global, text);
       if(word) {
-	if(thread->is_compiling) {
-	  af_compiled_t* slot = af_allot_compile(global, thread, 1);
+	if(thread->is_compiling && !word->is_immediate) {
+	  af_compiled_t* slot = af_allot(global, thread,
+					 sizeof(af_compiled_t));
 	  if(slot) {
-	    (slot - 1)->compiled_call = word;
-	    slot->compiled_call = global->builtin_exit;
+	    slot->compiled_call = word;
 	  }
 	} else {
+	  thread->current_interactive_word = word;
 	  word->code(global, thread);
 	}
       } else {
 	int64_t result;
 	if(af_parse_number(global, text, &result)) {
 	  if(thread->is_compiling) {
-	    af_compiled_t* slot = af_allot_compile(global, thread, 2);
+	    af_compiled_t* slot = af_allot(global, thread,
+					   sizeof(af_compiled_t) * 2);
 	    if(slot) {
-	      (slot - 1)->compiled_call = global->builtin_literal_runtime;
-	      slot->compiled_int64 = result;
-	      (slot + 1)->compiled_call = global->builtin_exit;
+	      slot->compiled_call = global->builtin_literal_runtime;
+	      (slot + 1)->compiled_int64 = result;
 	    }
 	  } else {
 	    if(--thread->data_stack_current >= thread->data_stack_top) {
@@ -145,22 +154,14 @@ af_thread_t* af_spawn(af_global_t* global) {
     free(data_stack_top);
     return NULL;
   }
-  if(!(compile_space_base = malloc(global->default_compile_space_count *
-				   sizeof(af_compiled_t)))) {
-    free(return_stack_top);
-    free(data_stack_top);
-    return NULL;
-  }
   if(!(data_space_base = malloc(global->default_data_space_count *
 				sizeof(uint64_t)))) {
-    free(compile_space_base);
     free(return_stack_top);
     free(data_stack_top);
     return NULL;
   }
   if(!(thread = malloc(sizeof(af_thread_t)))) {
     free(data_space_base);
-    free(compile_space_base);
     free(return_stack_top);
     free(data_stack_top);
     return NULL;
@@ -179,10 +180,6 @@ af_thread_t* af_spawn(af_global_t* global) {
     return_stack_top + global->default_return_stack_count;
   thread->data_stack_top = data_stack_top;
   thread->return_stack_top = return_stack_top;
-  thread->compile_space_current = thread->compile_space_base =
-    compile_space_base;
-  thread->compile_space_top =
-    compile_space_base + global->default_compile_space_count;
   thread->data_space_current = thread->data_space_base =
     data_space_base;
   thread->data_space_top =
@@ -191,6 +188,8 @@ af_thread_t* af_spawn(af_global_t* global) {
   thread->console_input = NULL;
   thread->current_input = NULL;
   thread->base = 10;
+  thread->current_interactive_word = NULL;
+  thread->repeat_interactive = FALSE
   return thread;
 }
 
@@ -261,11 +260,19 @@ void af_reset(af_global_t* global, af_thread_t* thread) {
   thread->text_input_count = 0;
   thread->text_input_index = 0;
   thread->text_input_closed = FALSE;
+  thread->current_interactive_word = NULL;
+  thread->repeat_interactive_word = NULL;
   while(thread->current_input &&
 	thread->current_input != thread->console_input) {
     af_pop_input(global, thread);
   }
   thread->base = 10;
+}
+
+void af_repeat_interactive(af_global_t* global, af_thread_t* thread) {
+  if(!thread->interpreter_pointer) {
+    thread->repeat_interactive = TRUE;
+  }
 }
 
 void af_pop_input(af_global_t* global, af_thread_t* thread) {
@@ -316,12 +323,11 @@ void af_handle_data_space_overflow(af_global_t* global, af_thread_t* thread) {
   af_reset(global, thread);
 }
 
-void af_handle_compile_space_overflow(af_global_t* global,
-				      af_thread_t* thread) {
+void af_handle_parse_error(af_global_t* global, af_thread_t* thread) {
   af_reset(global, thread);
 }
 
-void af_handle_parse_error(af_global_t* global, af_thread_t* thread) {
+void af_handle_word_not_found(af_global_t* global, af_thread_t* thread) {
   af_reset(global, thread);
 }
 
@@ -334,6 +340,14 @@ void af_handle_divide_by_zero(af_global_t* global, af_thread_t* thread) {
 }
 
 void af_handle_compile_only(af_global_t* global, af_thread_t* thread) {
+  af_reset(global, thread);
+}
+
+void af_handle_no_word_created(af_global_t* global, af_thread_t* thread) {
+  af_reset(global, thread);
+}
+
+void af_handle_not_interactive(af_global_t* global, af_thread_t* thread) {
   af_reset(global, thread);
 }
 
@@ -368,53 +382,14 @@ void* af_allot(af_global_t* global, af_thread_t* thread, size_t size) {
   }
 }
 
-af_compiled_t* af_guarantee_compile(af_global_t* global, af_thread_t* thread,
-				    uint64_t count) {
-  uint64_t count_remaining =
-    thread->compile_space_top - thread->compile_space_current;
-  if((count * <= count_remaining) &&
-     (global->min_guaranteed_compile_space_count <= count_remaining)) {
-    return thread->compile_space_current;
-  } else {
-    af_compiled_t* new_compile_space_base =
-      (af_compiled_t*)malloc(global->default_compile_space_count *
-			     sizeof(af_compiled_t));
-    thread->compile_space_base = new_compile_space_base;
-    thread->compile_space_current = new_compile_space_base;
-    thread->compile_space_top =
-      new_compile_space_base + global->default_compile_space_count;
-    return new_compile_space_base;
-  }
-}
-
-af_compiled_t* af_allocate_compile(af_global_t* global, af_thread_t* thread,
-				   uint64_t count) {
-  void* base = af_guarantee_compile(global, thread, count);
-  thread->compile_space_current += count;
-  return base;
-}
-
-af_compiled_t* af_allot_compile(af_global_t* global, af_thread_t* thread,
-				uint64_t count) {
-  uint64_t count_remaining =
-    thread->compile_space_top - thread->compile_space_current;
-  if(count_remaining >= count) {
-    void* current = thread->data_space_current;
-    thread->data_space_current += size;
-  } else {
-    af_handle_data_space_overflow(global, thread);
-    return NULL;
-  }
-}
-
 af_word_t* af_lookup(af_global_t* global, uint8_t* name) {
   uint8_t length = *name;
   af_word_t* current_word = global->first_word;
   while(current_word) {
-    uint8_t current_length = *current_word->name;
+    uint8_t current_length = AF_WORD_NAME_LEN(current_word);
     if(length == current_length) {
       uint8_t* current_name = name + 1;
-      uint8_t* current_word_name = current_word->name + 1;
+      uint8_t* current_word_name = AF_WORD_NAME_DATA(current_word);
       uint8_t current_length = length;
       af_bool_t differ = FALSE;
       while(current_length--) {
@@ -486,6 +461,7 @@ af_bool_t af_word_wait(af_global_t* global, af_thread_t* thread,
 		       uint8_t delimiter) {
   if(!af_word_available(global, thread, delimiter)) {
     if(thread->current_input && !thread->current_input->is_closed) {
+      af_repeat_interactive(global, thread);
       af_sleep(global, thread);
     } else {
       af_handle_unexpected_input_closure(global, thread);
