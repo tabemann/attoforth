@@ -150,16 +150,34 @@ void af_prim_eq(af_global_t* global, af_thread_t* thread);
 void af_prim_ne(af_global_t* global, af_thread_t* thread);
 
 /* @ primitive */
-void af_prim_load(af_global_t* global, af_thread_t* thread);
+void af_prim_fetch(af_global_t* global, af_thread_t* thread);
 
 /* ! primitive */
 void af_prim_store(af_global_t* global, af_thread_t* thread);
 
+/* +! primitive */
+void af_prim_add_store(af_global_t* global, af_thread_t* thread);
+
 /* C@ primitive */
-void af_prim_c_load(af_global_t* global, af_thread_t* thread);
+void af_prim_c_fetch(af_global_t* global, af_thread_t* thread);
 
 /* C! primitive */
 void af_prim_c_store(af_global_t* global, af_thread_t* thread);
+
+/* 2@ primitive */
+void af_prim_2_fetch(af_global_t* global, af_thread_t* thread);
+
+/* 2! primitive */
+void af_prim_2_store(af_global_t* global, af_thread_t* thread);
+
+/* , primitive */
+void af_prim_comma(af_global_t* global, af_thread_t* thread);
+
+/* C, primitive */
+void af_prim_c_comma(af_global_t* global, af_thread_t* thread);
+
+/* 2, primitive */
+void af_prim_2_comma(af_global_t* global, af_thread_t* thread);
 
 /* >R primitive */
 void af_prim_to_r(af_global_t* global, af_thread_t* thread);
@@ -168,7 +186,7 @@ void af_prim_to_r(af_global_t* global, af_thread_t* thread);
 void af_prim_from_r(af_global_t* global, af_thread_t* thread);
 
 /* R@ primitive */
-void af_prim_r_load(af_global_t* global, af_thread_t* thread);
+void af_prim_r_fetch(af_global_t* global, af_thread_t* thread);
 
 /* HERE primitive */
 void af_prim_here(af_global_t* global, af_thread_t* thread);
@@ -196,5 +214,32 @@ void af_prim_to_in(af_global_t* global, af_thread_t* thread);
 
 /* SOURCE primitive */
 void af_prim_source(af_global_t* global, af_thread_t* thread);
+
+/* EVALUATE primitive */
+void af_prim_evaluate(af_global_t* global, af_thread_t* thread);
+
+/* ALLOCATE primitive */
+void af_prim_allocate(af_global_t* global, af_thread_t* thread);
+
+/* FREE primitive */
+void af_prim_free(af_global_t* global, af_thread_t* thread);
+
+/* RESIZE primitive */
+void af_prim_resize(af_global_t* global, af_thread_t* thread);
+
+/* ALIGN primitive */
+void af_prim_align(af_global_t* global, af_thread_t* thread);
+
+/* ALLOT primitive */
+void af_prim_allot(af_global_t* global, af_thread_t* thread);
+
+/* UNUSED primitive */
+void af_prim_unused(af_global_t* global, af_thread_t* thread);
+
+/* WORD primitive */
+void af_prim_word(af_global_t* global, af_thread_t* thread);
+
+/* PARSE-NAME primitive */
+void af_prim_parse_name(af_global_t* global, af_thread_t* thread);
 
 #endif /* AF_PRIM_H */

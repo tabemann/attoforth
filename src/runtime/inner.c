@@ -371,28 +371,28 @@ void* af_allocate(af_global_t* global, af_thread_t* thread, size_t size) {
   return base;
 }
 
-void* af_allot(af_global_t* global, af_thread_t* thread, size_t size) {
-  size_t size_remaining = thread->data_space_top - thread->data_space_current;
+void* af_allot(af_global_t* global, af_thread_t* thread, ssize_t size) {
+  ssize_t size_remaining = thread->data_space_top - thread->data_space_current;
   if(size_remaining >= size) {
     void* current = thread->data_space_current;
     thread->data_space_current += size;
+    return current;
   } else {
     af_handle_data_space_overflow(global, thread);
     return NULL;
   }
 }
 
-af_word_t* af_lookup(af_global_t* global, uint8_t* name) {
-  uint8_t length = *name;
+af_word_t* af_lookup(af_global_t* global, uint8_t* name, uint64_t name_length) {
   af_word_t* current_word = global->first_word;
   while(current_word) {
-    uint8_t current_length = AF_WORD_NAME_LEN(current_word);
-    if(length == current_length) {
-      uint8_t* current_name = name + 1;
+    uint8_t current_word_length = AF_WORD_NAME_LEN(current_word);
+    if(name_length == current_word_length) {
+      uint8_t* current_name = name;
       uint8_t* current_word_name = AF_WORD_NAME_DATA(current_word);
-      uint8_t current_length = length;
+      uint8_t current_name_length = name_length;
       af_bool_t differ = FALSE;
-      while(current_length--) {
+      while(current_name_length--) {
 	if(toupper(*current_name++) != toupper(*current_word_name++)) {
 	  differ = TRUE;
 	  break;
@@ -436,19 +436,14 @@ af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
   count = thread->current_input->count;
   buffer = thread->current_input->buffer;
   current_char = *(buffer + current_index);
-  while(current_index < count &&
-	(current_char == delimiter ||
-	 current_char == ' ' ||
-	 current_char == '\n')) {
+  while(current_index < count && current_char == delimiter) {
     current_char = *(buffer + ++current_index);
   }
   if(current_index == count) {
     return FALSE;
   }
   if(!thread->current_input->is_closed) {
-    while(current_index < count &&
-	  current_char != delimiter &&
-	  current_char != '\n') {
+    while(current_index < count && current_char != delimiter) {
       current_char = *(buffer + ++current_index);
     }
     return current_index < count;
@@ -480,7 +475,7 @@ uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter) {
   uint64_t start_index;
   size_t bytes_copied;
   uint8_t* here;
-  if(thread->current_input) {
+  if(!thread->current_input) {
     here = *(uint8_t*)af_guarantee(global, thread, 1);
     *here = 0;
     return here;
@@ -489,10 +484,7 @@ uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter) {
   count = thread->current_input->count;
   buffer = thread->current_input->buffer;
   current_char = *(buffer + current_index);
-  while(current_index < count &&
-	(current_char == delimiter ||
-	 current_char == ' ' ||
-	 current_char == '\n')) {
+  while(current_index < count && current_char == delimiter) {
     current_char = *(buffer + ++current_index);
   }
   if(current_index == count) {
@@ -501,9 +493,7 @@ uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter) {
     return here;
   }
   start_index = current_index;
-  while(current_index < count &&
-        current_char != delimiter &&
-	current_char != '\n') {
+  while(current_index < count && current_char != delimiter) {
     current_char = *(buffer + ++current_index);
   }
   if(!thread->current_input->is_closed && current_index == count) {
@@ -521,6 +511,86 @@ uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter) {
   *here = (uint8_t)bytes_copied;
   memcpy(here, buffer + start_index, bytes_copied);
   return here;
+}
+
+af_bool_t af_parse_name_available(af_global_t* global, af_thread_t* thread) {
+  uint64_t current_index;
+  uint64_t count;
+  uint8_t* buffer;
+  uint8_t current_char;
+  if(!thread->current_input) {
+    return FALSE;
+  }
+  current_index = thread->current_input->index;
+  count = thread->current_input->count;
+  buffer = thread->current_input->buffer;
+  current_char = *(buffer + current_index);
+  while(current_index < count &&
+	(current_char == ' ' || current_char == '\n')) {
+    current_char = *(buffer + ++current_index);
+  }
+  if(current_index == count) {
+    return FALSE;
+  }
+  if(!thread->current_input->is_closed) {
+    while(current_index < count && current_char != '\n') {
+      current_char = *(buffer + ++current_index);
+    }
+    return current_index < count;
+  } else {
+    return TRUE;
+  }
+}
+
+af_bool_t af_parse_name_wait(af_global_t* global, af_thread_t* thread) {
+  if(!af_parse_name_available(global, thread)) {
+    if(thread->current_input && !thread->current_input->is_closed) {
+      af_repeat_interactive(global, thread);
+      af_sleep(global, thread);
+    } else {
+      af_handle_unexpected_input_closure(global, thread);
+    }
+    return FALSE;
+  } else {
+    return TRUE;
+  }
+}
+
+uint8_t* af_parse_name(af_global_t* global, af_thread_t* thread,
+		       uint64_t* length) {
+  uint64_t current_index;
+  uint64_t count;
+  uint8_t* buffer;
+  uint8_t current_char;
+  uint64_t start_index;
+  size_t bytes_copied;
+  if(!thread->current_input) {
+    *length = 0;
+    return NULL;
+  }
+  current_index = thread->current_input->index;
+  count = thread->current_input->count;
+  buffer = thread->current_input->buffer;
+  current_char = *(buffer + current_index);
+  while(current_index < count &&
+	(current_char == ' ' || current_char == '\n')) {
+    current_char = *(buffer + ++current_index);
+  }
+  if(current_index == count) {
+    *length = 0;
+    returnn NULL;
+  }
+  start_index = current_index;
+  while(current_index < count && current_char != '\n') {
+    current_char = *(buffer + ++current_index);
+  }
+  if(!thread->current_input->is_closed && current_index == count) {
+    *length = 0;
+    return NULL;
+  }
+  thread->current_input->index = current_index;
+  *length = current_index - start_index;
+  return buffer + start_index;
 }
 
 af_input_t* af_new_string_input(uint8_t* text, uint64_t count) {

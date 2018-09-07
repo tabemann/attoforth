@@ -188,9 +188,17 @@ void* af_allot(af_global_t* global, af_thread_t* thread, size_t size);
 af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
 			    uint8_t delimiter);
 
-af_bool_t af_word_wait(af_global_t* global, af_thread_t*, uint8_t delimiter);
+af_bool_t af_word_wait(af_global_t* global, af_thread_t* thread,
+		       uint8_t delimiter);
 
 uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter);
+
+af_bool_t af_parse_name_available(af_global_t* global, af_thread_t* thread);
+
+af_bool_t af_parse_name_wait(af_global_t* global, af_thread_t* thread);
+
+uint8_t* af_parse_name(af_global_t* global, af_thread_t* thread,
+		       uint64_t* length);
 
 af_input_t* af_new_string_input(uint8_t* text, uint64_t count);
 

@@ -73,13 +73,19 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, ">=", af_prim_gte, FALSE);
   af_register_prim(global, thread, "=", af_prim_eq, FALSE);
   af_register_prim(global, thread, "<>", af_prim_ne, FALSE);
-  af_register_prim(global, thread, "@", af_prim_load, FALSE);
+  af_register_prim(global, thread, "@", af_prim_fetch, FALSE);
   af_register_prim(global, thread, "!", af_prim_store, FALSE);
-  af_register_prim(global, thread, "C@", af_prim_c_load, FALSE);
+  af_register_prim(global, thread, "+!", af_prim_add_store, FALSE);
+  af_register_prim(global, thread, "C@", af_prim_c_fetch, FALSE);
   af_register_prim(global, thread, "C!", af_prim_c_store, FALSE);
+  af_register_prim(global, thread, "2@", af_prim_2_fetch, FALSE);
+  af_register_prim(global, thread, "2!", af_prim_2_store, FALSE);
+  af_register_prim(global, thread, ",", af_prim_comma, FALSE);
+  af_register_prim(global, thread, "C,", af_prim_c_comma, FALSE);
+  af_register_prim(global, thread, "2,", af_prim_2_comma, FALSE);
   af_register_prim(global, thread, ">R", af_prim_to_r, FALSE);
   af_register_prim(global, thread, "R>", af_prim_from_r, FALSE);
-  af_register_prim(global, thread, "R@", af_prim_r_load, FALSE);
+  af_register_prim(global, thread, "R@", af_prim_r_fetch, FALSE);
   af_register_prim(global, thread, "HERE", af_prim_here, FALSE);
   af_register_prim(global, thread, "DOES>", af_prim_does, FALSE);
   af_register_prim(global, thread, ">BODY", af_prim_to_body, FALSE);
@@ -88,7 +94,15 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "EXECUTE", af_prim_execute, FALSE);
   af_register_prim(global, thread, "LATESTXT", af_prim_latestxt, FALSE);
   af_register_prim(global, thread, ">IN", af_prim_to_in, FALSE);
-  af_register_prim(global, thread, "SOURCE" af_prim_source, FALSE);
+  af_register_prim(global, thread, "SOURCE", af_prim_source, FALSE);
+  af_register_prim(global, thread, "EVALUATE", af_prim_evaluate, FALSE);
+  af_register_prim(global, thread, "ALLOCATE", af_prim_allocate, FALSE);
+  af_register_prim(global, thread, "FREE", af_prim_free, FALSE);
+  af_register_prim(global, thread, "RESIZE", af_prim_resize, FALSE);
+  af_register_prim(global, thread, "ALIGN", af_prim_align, FALSE);
+  af_register_prim(global, thread, "ALLOT", af_prim_allot, FALSE);
+  af_register_prim(global, thread, "WORD", af_prim_word, FALSE);
+  af_register_prim(global, thread, "PARSE-NAME", af_prim_parse_name, FALSE);
 }
 
 /* Docol primitive */
@@ -174,22 +188,23 @@ void af_prim_literal(af_global_t* global, af_thread_t* thread) {
 /* CREATE primitive */
 void af_prim_create(af_global_t* global, af_thread_t* thread) {
   uint8_t* name;
+  uint64_t name_length;
   size_t name_size;
   void* word_space;
   af_word_t* word;
   af_compiled_t* secondary;
-  if(!af_word_wait(global, thread, ' ')) {
+  if(!af_parse_name_wait(global, thread)) {
     return;
   }
-  name = af_word(global, thread, ' ');
-  name_size = sizeof(uint8_t) * (*name + 1);
-  word_space = af_allocate(global, thread,
-			   sizeof(af_word_t) + name_size);
-  memmove(word_space + sizeof(af_word_t), name, name_size);
+  name = af_parse_name(global, thread, &name_length);
+  name_length = name_length < 256 ? name_length : 255;
+  name_size = (name_length + 1) * sizeof(uint8_t);
+  word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
+  *(uint8_t)(word_space + sizeof(af_word_t)) = (uint8_t)name_length;
+  memmove(word_space + sizeof(af_word_t) + sizeof(uint8_t), name,
+	  (size_t)name_length);
   word = word_space;
-  word->next_word = global->first_word;
   word->is_immediate = FALSE;
-  word->name = word_space + sizeof(af_word_t);
   word->code = af_prim_push_data;
   word->data = word_space + name_size;
   word->secondary = NULL;
@@ -201,20 +216,23 @@ void af_prim_create(af_global_t* global, af_thread_t* thread) {
 /* : primitive */
 void af_prim_colon(af_global_t* global, af_thread_t* thread) {
   uint8_t* name;
+  uint64_t name_length;
   size_t name_size;
   void* word_space;
   af_word_t* word;
-  if(!af_word_wait(global, thread, ' ')) {
+  if(!af_parse_name_wait(global, thread)) {
     return;
   }
-  name = af_word(global, thread, ' ');
-  name_size = sizeof(uint8_t) * (*name + 1);
+  name = af_parse_name(global, thread, &name_length);
+  name_length = name_length < 256 ? name_length : 255;
+  name_size = (name_length + 1) * sizeof(uint8_t);
   word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
-  memmove(word_space + sizeof(af_word_t), name, name_size);
+  *(uint8_t)(word_space + sizeof(af_word_t)) = (uint8_t)name_length;
+  memmove(word_space + sizeof(af_word_t) + sizeof(uint8_t), name,
+	  (size_t)name_length);
   word = word_space;
   word->next_word = global->first_word;
   word->is_immediate = FALSE;
-  word->name = word_space + sizeof(af_word_t);
   word->code = af_prim_docol;
   word->data = NULL;
   word->secondary = word_space + sizeof(af_word_t) + name_size;
@@ -226,25 +244,16 @@ void af_prim_colon(af_global_t* global, af_thread_t* thread) {
 
 /* :NONAME primitive - immediate */
 void af_prim_colon_noname(af_global_t* global, af_thread_t* thread) {
-  uint8_t* name;
-  size_t name_size;
   void* word_space;
   af_word_t* word;
   if(thread->data_stack_current <= thread->data_stack_top) {
     af_handle_data_stack_overflow(global, thread);
     return;
   }
-  if(!af_word_wait(global, thread, ' ')) {
-    return;
-  }
-  name = af_word(global, thread, ' ');
-  name_size = sizeof(uint8_t) * (*name + 1);
-  word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
-  memmove(word_space + sizeof(af_word_t), name, name_size);
+  word_space = af_allocate(global, thread, sizeof(af_word_t));
   word = word_space;
   word->next_word = NULL;
   word->is_immediate = FALSE;
-  word->name = word_space + sizeof(af_word_t);
   word->code = af_prim_docol;
   word->data = NULL;
   word->secondary = word_space + sizeof(af_word_t) + name_size;
@@ -669,7 +678,7 @@ void af_prim_ne(af_global_t* global, af_thread_t* thread) {
 }
 
 /* @ primitive */
-void af_prim_load(af_global_t* global, af_thread_t* thread) {
+void af_prim_fetch(af_global_t* global, af_thread_t* thread) {
   if(thread->data_stack_current >= thread->data_stack_base) {
     af_handle_data_stack_underflow(global, thread);
     return;
@@ -689,8 +698,20 @@ void af_prim_store(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
+/* +! primitive */
+void af_prim_add_store(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  *(uint64_t*)(*thread->data_stack_current) +=
+    *(thread->data_stack_current + 1);
+  thread->data_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
 /* C@ primitive */
-void af_prim_c_load(af_global_t* global, af_thread_t* thread) {
+void af_prim_c_fetch(af_global_t* global, af_thread_t* thread) {
   if(thread->data_stack_current >= thread->data_stack_base) {
     af_handle_data_stack_underflow(global, thread);
     return;
@@ -708,6 +729,77 @@ void af_prim_c_store(af_global_t* global, af_thread_t* thread) {
   *(uint8_t*)(*thread->data_stack_current) =
     *(thread->data_stack_current + 1) & 0xFF;
   thread->data_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2@ primitive */
+void af_prim_2_fetch(af_global_t* global, af_thread_t* thread) {
+  uint64_t* addr;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  addr = (uint64_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = *(addr + 1);
+  *(--thread->data_stack_current) = *addr;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2! primitive */
+void af_prim_2_store(af_global_t* global, af_thread_t* thread) {
+  uint64_t* addr;
+  if(thread->data_stack_current >= (thread->data_stack_base - 2)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  addr = (uint64_t*)(*thread->data_stack_current);
+  *addr = *(thread->data_stack_current + 1);
+  *(addr + 1) = *(thread->data_stack_current + 2);
+  thread->data_stack_current += 3;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* , primitive */
+void af_prim_comma(af_global_t* global, af_thread_t* thread) {
+  uint64_t* data;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if((data = (uint64_t*)af_allot(global, thread, sizeof(uint64_t)))) {
+    *data = *thread->data_stack_current++;
+  }
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* C, primitive */
+void af_prim_c_comma(af_global_t* global, af_thread_t* thread) {
+  uint8_t* data;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if((data = (uint8_t*)af_allot(global, thread, sizeof(uint8_t)))) {
+    *data = (uint8_t)(*thread->data_stack_current++ & 0xFF);
+  }
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2, primitive */
+void af_prim_2_comma(af_global_t* global, af_thread_t* thread) {
+  uint64_t* data;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if((data = (uint64_t*)af_allot(global, thread, sizeof(uint64_t) * 2))) {
+    *data = *thread->data_stack_current++;
+    *(data + 1) = *thread->data_stack_current++;
+  }
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -740,7 +832,7 @@ void af_prim_from_r(af_global_t* global, af_thread_t* thread) {
 }
 
 /* R@ primitive */
-void af_prim_r_load(af_global_t* global, af_thread_t* thread) {
+void af_prim_r_fetch(af_global_t* global, af_thread_t* thread) {
   if(thread->data_stack_current <= thread->data_stack_top) {
     af_handle_data_stack_overflow(global, thread);
     return;
@@ -796,15 +888,16 @@ void af_prim_to_body(af_global_t* global, af_thread_t* thread) {
 /* ' primitve */
 void af_prim_tick(af_global_t* global, af_thread_t* thread) {
   uint8_t* name;
+  uint64_t name_length;
   af_word_t* word;
   if(thread->data_stack_current <= thread->data_stack_top) {
     af_handle_data_stack_overflow(global, thread);
     return;
   }
-  if(!af_word_wait(global, thread, ' ')) {
+  if(!af_parse_name_wait(global, thread)) {
     return;
   }
-  name = af_word(global, thread, ' ');
+  name = af_parse_name(global, thread, &name_length);
   if(!(word = af_lookup(global, name))) {
     af_handle_word_not_found(global, thread);
     return;
@@ -816,6 +909,7 @@ void af_prim_tick(af_global_t* global, af_thread_t* thread) {
 /* ['] primitive - immediate */
 void af_prim_bracket_tick(af_global_t* global, af_thread_t* thread) {
   uint8_t* name;
+  uint64_t name_length;
   af_word_t* word;
   af_compiled_t* code;
   if(!thread->is_compiling) {
@@ -826,14 +920,14 @@ void af_prim_bracket_tick(af_global_t* global, af_thread_t* thread) {
     af_handle_no_word_created(global, thread);
     return;
   }
-  if(!af_word_wait(global, thread, ' ')) {
+  if(!af_parse_name_wait(global, thread)) {
     return;
   }
   if(!(code = af_allot(global, thread, sizeof(af_compiled_t) * 2))) {
     return;
   }
-  name = af_word(global, thread, ' ');
-  if(!(word = af_lookup(global, name))) {
+  name = af_parse_name(global, thread, &name_length);
+  if(!(word = af_lookup(global, name, name_length))) {
     af_handle_word_not_found(global, thread);
     return;
   }
@@ -880,5 +974,134 @@ void af_prim_source(af_global_t* global, af_thread_t* thread) {
   }
   *(--thread->data_stack_current) = (uint64_t)thread->current_input->buffer;
   *(--thread->data_stack_current) = thread->current_input->count;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* EVALUATE primitive */
+void af_prim_evaluate(af_global_t* global, af_thread_t* thread) {
+  uint8_t* text;
+  uint64_t count;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  count = *thread->data_stack_current++;
+  text = (uint8_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+  af_evaluate(global, thread, text, count);
+}
+
+/* ALLOCATE primitive */
+void af_prim_allocate(af_global_t* global, af_thread_t* thread) {
+  void* data;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  if(!(data = malloc((size_t)(*thread->data_stack_current)))) {
+    *thread->data_stack_current = NULL;
+    *(--thread->data_stack_current) = 1;
+    return;
+  }
+  *thread->data_stack_current = (uint64_t)data;
+  *(--thread->data_stack_current) = 0;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* FREE primitive */
+void af_prim_free(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  free((void*)(*thread->data_stack_current));
+  *thread->data_stack_current = 0;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* RESIZE primitive */
+void af_prim_resize(af_global_t* global, af_thread_t* thread) {
+  void* data;
+  if(thread->data_stack_current >= (thread->data_stack_base - 1)) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(!(data = realloc((void*)(*(thread->data_stack_current + 1)),
+		      (size_t)(*thread->data_stack_current)))) {
+    *(thread->data_stack_current + 1) = NULL;
+    *thread->data_stack_current = 1;
+    return;
+  }
+  *(thread->data_stack_current + 1) = (uint64_t)data;
+  *thread->data_stack_current = 0;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* ALIGN primitive */
+void af_prim_align(af_global_t* global, af_thread_t* thread) {
+  uint64_t extra = (uint64_t)thread->data_space_current % sizeof(uint64_t);
+  if(extra) {
+    if(!af_allot(global, thread, sizeof(uint64_t) - extra)) {
+      return;
+    }
+  }
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* ALLOT primitive */
+void af_prim_allot(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  if(!af_allot(global, thread, (ssize_t)(*thread->data_stack_current++))) {
+    return;
+  }
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* UNUSED primitive */
+void af_prim_unused(af_global_t* global, af_thread_t* thread) {
+  if(thread->data_stack_current <= thread->data_stack_top) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  *(--thread->data_stack_current) =
+    (uint64_t)(thread->data_stack_top - thread->data_stack_current);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* WORD primitive */
+void af_prim_word(af_global_t* global, af_thread_t* thread) {
+  uint8_t delimiter;
+  uint8_t* text;
+  if(thread->data_stack_current >= thread->data_stack_base) {
+    af_handle_data_stack_underflow(global, thread);
+    return;
+  }
+  delimiter = (uint8_t)(*thread->data_stack_current & 0xFF);
+  text = af_word(global, thread, delimiter);
+  *thread->data_stack_current = (uint64_t)text;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* PARSE-NAME primitive */
+void af_prim_parse_name(af_global_t* global, af_thread_t* thread) {
+  uint8_t* text;
+  uint64_t length;
+  if(thread->data_stack_current <= (thread->data_stack_top + 1)) {
+    af_handle_data_stack_overflow(global, thread);
+    return;
+  }
+  if(!af_parse_name_wait(global, thread)) {
+    return;
+  }
+  text = af_parse_name(global, thread, &length);
+  *(--thread->data_stack_current) = (uint64_t)text;
+  *(--thread->data_stack_current) = length;
   AF_ADVANCE_IP(thread, 1);
 }
