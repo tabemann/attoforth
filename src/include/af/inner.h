@@ -76,6 +76,7 @@ typedef struct af_global_t {
   uint64_t default_cycles_before_yield;
   af_word_t* builtin_literal_runtime;
   af_word_t* builtin_exit;
+  af_word_t* builtin_postpone_runtime;
 } af_global_t;
 
 typedef struct af_thread_t {
@@ -85,6 +86,7 @@ typedef struct af_thread_t {
   uint64_t current_cycles_left;
   af_bool_t is_compiling;
   af_bool_t is_to_be_freed;
+  af_word_t* init_word;
   af_compiled_t* interpreter_pointer;
   uint64_t* data_stack_current;
   af_compiled_t** return_stack_current;
@@ -114,8 +116,68 @@ typedef struct af_input_t {
 
 /* Macro to advance interpreter pointer */
 #define AF_ADVANCE_IP(thread, increment) \
-  { thread->interpreter_pointer = thread->interpreter_pointer ? \
-      thread->interpreter_pointer + increment : NULL; }
+  { (thread)->interpreter_pointer = (thread)->interpreter_pointer ?	\
+      (thread)->interpreter_pointer + (increment) : NULL; }
+
+/* Verify data stack has room to read */
+#define AF_VERIFY_DATA_STACK_READ(global, thread, cells) \
+  { if((thread)->data_stack_current >=		    \
+       ((thread)->data_stack_base - ((cells) - 1))) { \
+      af_handle_data_stack_underflow((global), (thread));	\
+      return; \
+    } }
+
+/* Verify data stack has room to expand */
+#define AF_VERIFY_DATA_STACK_EXPAND(global, thread, cells) \
+  { if((thread)->data_stack_current <=		      \
+       ((thread)->data_stack_top + ((cells) - 1))) {  \
+      af_handle_data_stack_overflow((global), (thread));	\
+      return; \
+    } }
+
+/* Verify return stack has room to read */
+#define AF_VERIFY_RETURN_STACK_READ(global, thread, cells) \
+  { if((thread)->return_stack_current >=		    \
+       ((thread)->return_stack_base - ((cells) - 1))) { \
+      af_handle_return_stack_underflow((global), (thread));	\
+      return; \
+    } }
+
+/* Verify return stack has room to expand */
+#define AF_VERIFY_RETURN_STACK_EXPAND(global, thread, cells) \
+  { if((thread)->return_stack_current <=		      \
+       ((thread)->return_stack_top + ((cells) - 1))) {  \
+      af_handle_return_stack_overflow((global), (thread));	\
+      return; \
+    } }
+
+/* Verify that a thread is compiling */
+#define AF_VERIFY_COMPILING(global, thread) \
+  { if(!(thread)->is_compiling) {	    \
+      af_handle_compile_only((global), (thread)); \
+      return; \
+    } }
+
+/* Verify that a thread is interpreting */
+#define AF_VERIFY_INTERPRETING(global, thread) \
+  { if(!(thread)->is_compiling) {	    \
+      af_handle_interpret_only((global), (thread)); \
+      return; \
+    } }
+
+/* Verify that a thread is not interactive */
+#define AF_VERIFY_NOT_INTERACTIVE(global, thread) \
+  { if(!(thread)->interpreter_pointer) {	    \
+      af_handle_compile_only((global), (thread)); \
+      return; \
+    } }
+
+/* Verify that a word has been created in the current thread */
+#define AF_VERIFY_WORD_CREATED(global, thread) \
+  { if(!(thread)->most_recent_word) {	    \
+      af_handle_no_word_created((global), (thread)); \
+      return; \
+    } }
 
 /* Macro to get name length of word */
 #define AF_WORD_NAME_LEN(word) \
@@ -133,6 +195,9 @@ af_thread_t* af_spawn(af_global_t* global);
 
 void af_set_console(af_global_t* global, af_thread_t* thread,
 		    af_input_t* input);
+
+void af_set_init_word(af_global_t* global, af_thread_t* thread,
+		      af_word_t* word);
 
 void af_interpret(af_global_t* global, af_thread_t* thread, af_input_t* input);
 
@@ -174,6 +239,8 @@ void af_handle_out_of_memory(af_global_t* global, af_thread_t* thread);
 void af_handle_divide_by_zero(af_global_t* global, af_thread_t* thread);
 
 void af_handle_compile_only(af_global_t* global, af_thread_t* thread);
+
+void af_handle_interpret_only(af_global_t* global, af_thread_t* thread);
 
 void af_handle_no_word_created(af_global_t* global, af_thread_t* thread);
 

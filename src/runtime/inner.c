@@ -77,6 +77,13 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
     thread->current_interactive_word = NULL;
     thread->repeat_interactive = FALSE;
   }
+  if(thread->init_word) {
+    init_word->code(global, thread);
+  }
+  if(thread->current_cycles_left ||
+     (thread->current_cycles_before_yield && !thread->interpreter_pointer)) {
+    thread->init_word = NULL;
+  }
   while(thread->current_cycles_left-- && thread->interpreter_pointer) {
     af_compiled_t* interpreter_pointer = thread->interpreter_pointer;
     interpreter_pointer->compiled_call->code(global, thread);
@@ -205,6 +212,13 @@ void af_set_console(af_global_t* global, af_thread_t* thread,
     current_input = current_input->next_input;
   }
   current_input->next_input = input;
+}
+
+void af_set_init_word(af_global_t* global, af_thread_t* thread,
+		      af_word_t* word) {
+  if(!thread->base_cycles_before_yield && !thread->is_to_be_freed) {
+    thread->init_word = word;
+  }
 }
 
 void af_interpret(af_global_t* global, af_thread_t* thread, af_input_t* input) {
@@ -340,6 +354,10 @@ void af_handle_divide_by_zero(af_global_t* global, af_thread_t* thread) {
 }
 
 void af_handle_compile_only(af_global_t* global, af_thread_t* thread) {
+  af_reset(global, thread);
+}
+
+void af_handle_interpret_only(af_global_t* global, af_thread_t* thread) {
   af_reset(global, thread);
 }
 

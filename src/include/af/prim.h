@@ -68,7 +68,7 @@ void af_prim_colon_noname(af_global_t* global, af_thread_t* thread);
 /* ; primitive - immediate */
 void af_prim_semi(af_global_t* global, af_thread_t* thread);
 
-/* IMMEDIATE primitive - immediate */
+/* IMMEDIATE primitive */
 void af_prim_immediate(af_global_t* global, af_thread_t* thread);
 
 /* DUP primitive */
@@ -119,8 +119,8 @@ void af_prim_mul(af_global_t* global, af_thread_t* thread);
 /* / primitive */
 void af_prim_div(af_global_t* global, af_thread_t* thread);
 
-/* NOT primitive */
-void af_prim_not(af_global_t* global, af_thread_t* thread);
+/* INVERT primitive */
+void af_prim_invert(af_global_t* global, af_thread_t* thread);
 
 /* AND primitive */
 void af_prim_and(af_global_t* global, af_thread_t* thread);
@@ -241,5 +241,47 @@ void af_prim_word(af_global_t* global, af_thread_t* thread);
 
 /* PARSE-NAME primitive */
 void af_prim_parse_name(af_global_t* global, af_thread_t* thread);
+
+/* THIS-THREAD primitive */
+void af_prim_this_thread(af_global_t* global, af_thread_t* thread);
+
+/* SPAWN-EXECUTE primitive */
+void af_prim_spawn_execute(af_global_t* global, af_thread_t* thread);
+
+/* SPAWN-EVALUATE primitive */
+void af_prim_spawn_evaluate(af_global_t* global, af_thread_t* thread);
+
+/* KILL primitive */
+void af_prim_kill(af_global_t* global, af_thread_t* thread);
+
+/* YIELD primitive */
+void af_prim_yield(af_global_t* global, af_thread_t* thread);
+
+/* SLEEP primitive */
+void af_prim_sleep(af_global_t* global, af_thread_t* thread);
+
+/* WAKE primitive */
+void af_prim_wake(af_global_t* global, af_thread_t* thread);
+
+/* RESET primitive */
+void af_prim_reset(af_global_t* global, af_thread_t* thread);
+
+/* [ primitive - immediate */
+void af_prim_open_bracket(af_global_t* global, af_thread_t* thread);
+
+/* ] primitive */
+void af_prim_close_bracket(af_global_t* global, af_thread_t* thread);
+
+/* POSTPONE primitive - immediate */
+void af_prim_postpone(af_global_t* global, af_thread_t* thread);
+
+/* POSTPONE runtime primitive */
+void af_prim_postpone_runtime(af_global_t* global, af_thread_t* thread);
+
+/* BRANCH primitive */
+void af_prim_branch(af_global_t* global, af_thread_t* thread);
+
+/* 0BRANCH primitive */
+void af_prim_0branch(af_global_t* global, af_thread_t* thread);
 
 #endif /* AF_PRIM_H */
