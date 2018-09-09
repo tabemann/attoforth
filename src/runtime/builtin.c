@@ -52,6 +52,8 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     ": CELLS 8 * ; "
     ": COMPILE, , ; "
     ": LITERAL POSTPONE (LITERAL) , ; IMMEDIATE "
+    ": VARIABLE CREATE 0 , ; "
+    ": CONSTANT CREATE , DOES> @ ; "
     ": IF POSTPONE 0BRANCH HERE 0 , ; IMMEDIATE "
     ": ELSE POSTPONE BRANCH HERE 0 , SWAP HERE SWAP ! ; IMMEDIATE "
     ": THEN HERE SWAP ! ; IMMEDIATE "
