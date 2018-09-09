@@ -271,9 +271,6 @@ void af_reset(af_global_t* global, af_thread_t* thread) {
   thread->data_stack_current = thread->data_stack_base;
   thread->return_stack_current = thread->return_stack_base;
   thread->most_recent_word = NULL;
-  thread->text_input_count = 0;
-  thread->text_input_index = 0;
-  thread->text_input_closed = FALSE;
   thread->current_interactive_word = NULL;
   thread->repeat_interactive_word = NULL;
   while(thread->current_input &&
@@ -281,6 +278,26 @@ void af_reset(af_global_t* global, af_thread_t* thread) {
     af_pop_input(global, thread);
   }
   thread->base = 10;
+  if(thread->current_input) {
+    thread->current_input->count = 0;
+    thread->current_input->index = 0;
+  }
+}
+
+void af_quit(af_global_t* global, af_thread_t* thread) {
+  thread->is_compiling = FALSE;
+  thread->interpreter_pointer = NULL;
+  thread->return_stack_current = thread->return_stack_base;
+  thread->current_interactive_word = NULL;
+  thread->repeat_interactive_word = NULL;
+  while(thread->current_input &&
+	thread->current_input != thread->console_input) {
+    af_pop_input(global, thread);
+  }
+  if(thread->current_input) {
+    thread->current_input->count = 0;
+    thread->current_input->index = 0;
+  }
 }
 
 void af_repeat_interactive(af_global_t* global, af_thread_t* thread) {

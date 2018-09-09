@@ -213,6 +213,8 @@ void af_wake(af_global_t* global, af_thread_t* thread);
 
 void af_reset(af_global_t* global, af_thread_t* thread);
 
+void af_quit(af_global_t* global, af_thread_t* thread);
+
 void af_repeat_interactive(af_global_t* global, af_thread_t* thread);
 
 void af_pop_input(af_global_t* global, af_thread_t* thread);

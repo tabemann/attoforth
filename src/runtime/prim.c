@@ -38,12 +38,11 @@
 /* Register primitives */
 void af_register_prims(af_global_t* global, af_thread_t* thread) {
   global->builtin_literal_runtime =
-    af_register_prim(global, thread, NULL, af_prim_literal_runtime, FALSE);
+    af_register_prim(global, thread, "(LITERAL)", af_prim_literal_runtime, FALSE);
   global->builtin_exit =
     af_register_prim(global, thread, "EXIT", af_prim_exit, FALSE);
   global->builtin_postpone_runtime =
     af_register_prim(global, thread, NULL, af_prim_postpone_runtime, FALSE);
-  af_register_prim(global, thread, "LITERAL", af_prim_literal, TRUE);
   af_register_prim(global, thread, "CREATE", af_prim_create, FALSE);
   af_register_prim(global, thread, ":", af_prim_colon, FALSE);
   af_register_prim(global, thread, ":NONAME", af_prim_colon_noname, FALSE);
@@ -88,6 +87,9 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, ">R", af_prim_to_r, FALSE);
   af_register_prim(global, thread, "R>", af_prim_from_r, FALSE);
   af_register_prim(global, thread, "R@", af_prim_r_fetch, FALSE);
+  af_register_prim(global, thread, "2>R", af_prim_two_to_r, FALSE);
+  af_register_prim(global, thread, "2R>", af_prim_two_from_r, FALSE);
+  af_register_prim(global, thread, "2R@", af_prim_two_r_fetch, FALSE);
   af_register_prim(global, thread, "HERE", af_prim_here, FALSE);
   af_register_prim(global, thread, "DOES>", af_prim_does, FALSE);
   af_register_prim(global, thread, ">BODY", af_prim_to_body, FALSE);
@@ -115,11 +117,16 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "SLEEP", af_prim_sleep, FALSE);
   af_register_prim(global, thread, "WAKE", af_prim_wake, FALSE);
   af_register_prim(global, thread, "RESET", af_prim_reset, FALSE);
+  af_register_prim(global, thread, "QUIT", af_prim_quit, FALSE);
+  af_register_prim(global, thread, "ABORT", af_prim_abort, FALSE);
   af_register_prim(global, thread, "[", af_prim_open_bracket, TRUE);
   af_register_prim(global, thread, "]", af_prim_close_bracket, FALSE);
   af_register_prim(global, thread, "POSTPONE", af_prim_postpone, TRUE);
   af_register_prim(global, thread, "BRANCH", af_prim_branch, FALSE);
   af_register_prim(global, thread, "0BRANCH", af_prim_0branch, FALSE);
+  af_register_prim(global, thread, "STATE", af_prim_state, FALSE);
+  af_register_prim(global, thread, "MOVE", af_prim_move, FALSE);
+  af_register_prim(global, thread, "DEPTH", af_prim_depth, FALSE);
 }
 
 /* Docol primitive */
@@ -172,7 +179,7 @@ void af_prim_do_does(af_global_t* global, af_thread_t* thread) {
   }
 }
 
-/* Literal runtime primitive */
+/* (LITERAL) primitive */
 void af_prim_literal_runtime(af_global_t* global, af_thread_t* thread) {
   if(--thread->data_stack_current >= thread->data_stack_top) {
     *thread->data_stack_current =
@@ -694,6 +701,35 @@ void af_prim_r_fetch(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
+/* 2>R primitive */
+void af_prim_two_to_r(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  AF_VERIFY_RETURN_STACK_EXPAND(global, thread, 2);
+  *(--thread->return_stack_current) = *(thread->data_stack_current + 1);
+  *(--thread->return_stack_current) = *thread->data_stack_current;
+  thread->data_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2R> primitve */
+void af_prim_two_from_r(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 2);
+  AF_VERIFY_RETURN_STACK_READ(global, thread, 2);
+  *(--thread->data_stack_current) = *(thread->return_stack_current + 1);
+  *(--thread->data_stack_current) = *thread->return_stack_current;
+  thread->return_stack_current += 2;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* 2R@ primitive */
+void af_prim_two_r_fetch(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 2);
+  AF_VERIFY_RETURN_STACK_READ(global, thread, 2);
+  *(--thread->data_stack_current) = *(thread->return_stack_current + 1);
+  *(--thread->data_stack_current) = *thread->return_stack_current;
+  AF_ADVANCE_IP(thread, 1);
+}
+
 /* HERE primitive */
 void af_prim_here(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
@@ -972,6 +1008,15 @@ void af_prim_reset(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
+/* QUIT primitive */
+void af_prim_quit(af_global_t* global, af_thread_t* thread) {
+  af_quit(global, thread);
+}
+
+/* ABORT primitive */
+void af_prim_abort(af_global_t* global, af_thread_t* thread) {
+  af_reset(global, thread);
+}
 
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_thread_t* thread) {
@@ -1050,4 +1095,30 @@ void af_prim_0branch(af_global_t* global, af_thread_t* thread) {
   } else {
     af_handle_not_interactive(global, thread);
   }
+}
+
+/* STATE primitive */
+void af_prim_state(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)(&thread->is_compiling);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* MOVE primitive */
+void af_prim_move(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 3);
+  memmove((void*)(*(thread->data_stack_current + 1)),
+	  (void*)(*(thread->data_stack_current + 2)),
+	  (size_t)(*thread->data_stack_current));
+  thread->data_stack_current += 3;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* DEPTH primitive */
+void af_prim_depth(af_global_t* global, af_thread_t* thread) {
+  uint64_t count;
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  count = thread->data_stack_base - thread->data_stack_current;
+  *(--thread->data_stack_current) = count;
+  AF_ADVANCE_IP(thread, 1);
 }

@@ -50,11 +50,8 @@ void af_prim_push_data(af_global_t* global, af_thread_t* thread);
 /* Runtime of DOES> primitve */
 void af_prim_do_does(af_global_t* global, af_thread_t* thread);
 
-/* Literal runtime primitive */
+/* (LITERAL) primitive */
 void af_prim_literal_runtime(af_global_t* global, af_thread_t* thread);
-
-/* LITERAL primitive - immediate */
-void af_prim_literal(af_global_t* global, af_thread_t* thread);
 
 /* CREATE primitive */
 void af_prim_create(af_global_t* global, af_thread_t* thread);
@@ -188,6 +185,15 @@ void af_prim_from_r(af_global_t* global, af_thread_t* thread);
 /* R@ primitive */
 void af_prim_r_fetch(af_global_t* global, af_thread_t* thread);
 
+/* 2>R primitive */
+void af_prim_two_to_r(af_global_t* global, af_thread_t* thread);
+
+/* 2R> primitve */
+void af_prim_two_from_r(af_global_t* global, af_thread_t* thread);
+
+/* 2R@ primitive */
+void af_prim_two_r_fetch(af_global_t* global, af_thread_t* thread);
+
 /* HERE primitive */
 void af_prim_here(af_global_t* global, af_thread_t* thread);
 
@@ -266,6 +272,12 @@ void af_prim_wake(af_global_t* global, af_thread_t* thread);
 /* RESET primitive */
 void af_prim_reset(af_global_t* global, af_thread_t* thread);
 
+/* QUIT primitive */
+void af_prim_quit(af_global_t* global, af_thread_t* thread);
+
+/* ABORT primitive */
+void af_prim_abort(af_global_t* global, af_thread_t* thread);
+
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_thread_t* thread);
 
@@ -283,5 +295,14 @@ void af_prim_branch(af_global_t* global, af_thread_t* thread);
 
 /* 0BRANCH primitive */
 void af_prim_0branch(af_global_t* global, af_thread_t* thread);
+
+/* STATE primitive */
+void af_prim_state(af_global_t* global, af_thread_t* thread);
+
+/* MOVE primitive */
+void af_prim_move(af_global_t* global, af_thread_t* thread);
+
+/* DEPTH primitive */
+void af_prim_depth(af_global_t* global, af_thread_t* thread);
 
 #endif /* AF_PRIM_H */
