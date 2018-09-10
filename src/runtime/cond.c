@@ -32,6 +32,7 @@
 #include <stddef.h>
 #include <pthread.h>
 #include "af/common.h"
+#include "af/types.h"
 #include "af/cond.h"
 #include "af/inner.h"
 

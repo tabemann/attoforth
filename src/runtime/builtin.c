@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "af/common.h"
+#include "af/types.h"
 #include "af/inner.h"
 
 void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
@@ -58,7 +59,7 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     ": ELSE POSTPONE BRANCH HERE 0 , SWAP HERE SWAP ! ; IMMEDIATE "
     ": THEN HERE SWAP ! ; IMMEDIATE "
     ": ENDIF POSTPONE THEN ; IMMEDIATE "
-    ": DEFER CREATE ['] ABORT DOES> @ EXECUTE ; "
+    ": DEFER CREATE ['] ABORT , DOES> @ EXECUTE ; "
     ": DEFER! >BODY ! ; "
     ": DEFER@ >BODY @ ; "
     ": ACTION-OF STATE @ IF POSTPONE ['] POSTPONE DEFER@ ELSE ' DEFER@ THEN ; "

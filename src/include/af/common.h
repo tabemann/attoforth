@@ -32,13 +32,9 @@
 
 #include <stdint.h>
 
-/* A boolean type */
-
-typedef int64_t af_bool_t;
-
 /* Some definitions */
 
-#define TRUE -1
-#define FALSE 0
+#define TRUE (-1);
+#define FALSE (0);
 
 #endif /* AF_COMMON_H */

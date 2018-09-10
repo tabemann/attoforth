@@ -33,6 +33,7 @@
 #include <stddef.h>
 #include <ctype.h>
 #include "af/common.h"
+#include "af/types.h"
 #include "af/cond.h"
 #include "af/inner.h"
 
@@ -45,6 +46,7 @@ void af_pop_all_inputs(af_thread_t* thread);
 /* Definitions */
 
 void af_thread_loop(af_global_t* global) {
+  pthread_mutex_lock(&global->mutex);
   while(global->first_thread) {
     while(global->threads_active_count) {
       af_thread_t* thread = global->first_thread;
@@ -60,15 +62,20 @@ void af_thread_loop(af_global_t* global) {
 	  }
 	  af_free_thread(old_thread);
 	} else {
+	  pthread_mutex_unlock(&global->mutex);
+	  pthread_mutex_lock(&global->mutex);
 	  af_inner_loop(global, thread);
 	  thread = thread->next_thread;
 	}
       }
     }
     if(global->first_thread) {
+      pthread_mutex_unlock(&global->mutex);
       af_cond_wait(&global->cond);
+      pthread_mutex_lock(&global->mutex);
     }
   }
+  pthread_mutex_unlock(&global->mutex);
 }
 
 void af_inner_loop(af_global_t* global, af_thread_t* thread) {
@@ -144,6 +151,14 @@ void af_free_thread(af_thread_t* thread) {
   free(thread->data_stack_top);
   free(thread->return_stack_top);
   free(thread);
+}
+
+void af_lock(af_global_t* global) {
+  pthread_mutex_lock(&global->mutex);
+}
+
+void af_unlock(af_global_t* global) {
+  pthread_mutex_unlock(&global->mutex);
 }
 
 af_thread_t* af_spawn(af_global_t* global) {

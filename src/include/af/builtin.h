@@ -33,9 +33,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "af/common.h"
-#include "af/inner.h"
+#include "af/types.h"
 
-/* Declarations */
+/* Function declarations */
 
 void af_compile_builtin(af_global_t* global, af_thread_t* thread);
 

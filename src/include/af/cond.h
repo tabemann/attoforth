@@ -33,18 +33,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <pthread.h>
-#include "af/common.h"
-
-/* Note that these condition variables are only meant to wake up a single thread
- * and thus have a simplified API. */
-
-/* A condition variable type */
-
-typedef struct af_cond_t {
-  pthread_mutex_t mutex;
-  pthread_cond_t cond;
-  uint64_t count;
-} af_cond_t;
+#include "af/types.h"
 
 /* Functions to act on condition variables */
 
