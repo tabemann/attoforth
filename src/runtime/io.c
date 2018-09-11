@@ -50,7 +50,7 @@ void af_io_wake(af_io_t* io);
 void af_io_add(af_io_t* io, af_io_action_t* action);
 
 /* Check whether a given file descriptor is currently active */
-af_bool_t af_io_is_active(af_io_t* io, int fd, af_io_type_t type)
+af_bool_t af_io_is_active(af_io_t* io, af_io_fd_t fd);
 
 /* Set or unset non-blocking on a file; return TRUE on success */
 af_bool_t af_fd_set_blocking(int fd, af_bool_t blocking);
@@ -62,7 +62,7 @@ void* af_io_main(void* arg);
 
 /* Initialize IO manager */
 void af_io_init(af_io_t* io, af_global_t* global) {
-  int pipefd[2];
+  af_io_fd_t pipefd[2];
   if(pthread_mutex_init(&io->mutex, NULL)) {
     return NULL;
   }
@@ -168,14 +168,91 @@ uint64_t af_io_state_get_count(af_io_state_t* state) {
   return state->count;
 }
 
+/* Open a file */
+af_io_fd_t af_io_open(uint8_t* path, uint64_t count, af_io_flags_t flags,
+		      af_io_mode_t mode, af_io_error_t* error) {
+  uint8_t* path_buffer = malloc(sizeof(uint8_t) * (count + 1));
+  af_io_fd_t fd;
+  memcpy(path_buffer, path, count);
+  path_buffer[count] = 0;
+  if((fd = open(path_buffer, flags, mode)) >= 0) {
+    *error = 0;
+    free(path_buffer);
+    return fd;
+  } else {
+    *error = errno;
+    free(path_buffer);
+    return -1;
+  }
+}
+
+/* Open a pipe */
+af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error) {
+  af_io_fd_t fds[2];
+  if(!pipe(fds)) {
+    *out = fds[0];
+    *in = fds[1];
+    *error = 0;
+    return TRUE;
+  } else {
+    *error = errno;
+    return FALSE;
+  }
+}
+
+/* Blocking close of file descriptor */
+af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
+				  af_thread_t* thread_to_wake) {
+  af_io_action_t* action;
+  if(!(action = malloc(sizeof(af_io_action_t)))) {
+    return NULL;
+  }
+  action->type = AF_IO_TYPE_CLOSE;
+  action->to_be_destroyed = FALSE;
+  action->fd = fd;
+  action->buffer = NULL;
+  action->count = 0;
+  action->index = 0;
+  action->is_buffer_freeable = FALSE;
+  action->thread_to_wake = thread_to_wake;
+  action->is_done = FALSE;
+  action->is_closed = FALSE;
+  action->has_hangup = FALSE;
+  action->has_error = FALSE;
+  af_io_add(io, action);
+  return action;
+}
+
+/* Asynchronous close of file descriptor */
+af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd) {
+  af_io_action_t* action;
+  if(!(action = malloc(sizeof(af_io_action_t)))) {
+    return NULL;
+  }
+  action->type = AF_IO_TYPE_CLOSE;
+  action->to_be_destroyed = FALSE;
+  action->fd = fd;
+  action->buffer = NULL;
+  action->count = 0;
+  action->index = 0;
+  action->is_buffer_freeable = FALSE;
+  action->thread_to_wake = NULL;
+  action->is_done = FALSE;
+  action->is_closed = FALSE;
+  action->has_hangup = FALSE;
+  action->has_error = FALSE;
+  af_io_add(io, action);
+  return action;
+}
+
 /* Start blocking read */
-af_io_action_t* af_io_read_block(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				 uint64_t count, af_thread_t* thread_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
   }
-  action->type = AF_IO_READ;
+  action->type = AF_IO_TYPE_READ;
   action->to_be_destroyed = FALSE;
   action->fd = fd;
   action->buffer = buffer;
@@ -193,13 +270,13 @@ af_io_action_t* af_io_read_block(af_io_t* io, int fd, uint8_t* buffer,
 }
 
 /* Start blocking write */
-af_io_action_t* af_io_write_block(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				  uint64_t count, af_thread_t* thread_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
   }
-  action->type = AF_IO_WRITE;
+  action->type = AF_IO_TYPE_WRITE;
   action->to_be_destroyed = FALSE;
   action->fd = fd;
   action->buffer = buffer;
@@ -217,13 +294,13 @@ af_io_action_t* af_io_write_block(af_io_t* io, int fd, uint8_t* buffer,
 }
 
 /* Start asynchronous read */
-af_io_action_t* af_io_read_async(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				 uint64_t count) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
   }
-  action->type = AF_IO_READ;
+  action->type = AF_IO_TYPE_READ;
   action->to_be_destroyed = FALSE;
   action->fd = fd;
   action->buffer = buffer;
@@ -241,7 +318,7 @@ af_io_action_t* af_io_read_async(af_io_t* io, int fd, uint8_t* buffer,
 }
 
 /* Start asynchronous write */
-af_io_action_t* af_io_write_async(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				  uint64_t count) {
   af_io_action_t* action;
   uint8_t* buffer_copy;
@@ -253,7 +330,7 @@ af_io_action_t* af_io_write_async(af_io_t* io, int fd, uint8_t* buffer,
     return NULL;
   }
   memcpy(buffer_copy, buffer, sizeof(uint8_t) * count);
-  action->type = AF_IO_WRITE;
+  action->type = AF_IO_TYPE_WRITE;
   action->to_be_destroyed = FALSE;
   action->fd = fd;
   action->buffer = buffer_copy;
@@ -315,10 +392,10 @@ void af_io_wake(af_io_t* io) {
 }
 
 /* Check whether a given file descriptor is currently active */
-af_bool_t af_io_is_active(af_io_t* io, int fd, af_io_type_t type) {
+af_bool_t af_io_is_active(af_io_t* io, af_io_fd_t fd) {
   af_io_action_t* current_action = io->first_active_action;
   while(current_action) {
-    if(current_action->type == type && current_action->fd == fd) {
+    if(current_action->fd == fd) {
       return TRUE;
     }
     current_action = current_action->next_action;
@@ -332,7 +409,7 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
   pthread_mutex_lock(&io->mutex);
   action->io = io;
   if(count > 0) {
-    if(af_io_is_active(io, fd, action->type)) {
+    if(af_io_is_active(io, fd)) {
       action->prev_action = io->last_waiting_action;
       action->next_action = NULL;
       if(action->prev_action) {
@@ -369,166 +446,120 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
 void* af_io_main(void* arg) {
   af_io_t* io = arg;
   while(!io->to_be_destroyed) {
-    int* fds;
-    af_io_action_t** read_actions;
-    af_io_action_t** write_actions;
     af_io_action_t* current_action;
-    uint64_t current_index = 0;
     uint64_t active_fd_count;
-    struct pollfd* pollfds
+    struct pollfd* fds;
+    af_io_action_t* actions;
     pthread_mutex_lock(&io->mutex);
-    if(!(fds = malloc(sizeof(int) * io->active_action_count))) {
+    current_action = io->first_active_action;
+    while(current_action) {
+      if(current_action->type == AF_IO_TYPE_CLOSE) {
+	current_action->is_done = TRUE;
+	close(current_action->fd);
+      }
+      current_action = current_action->next_action;
+    }
+    af_io_remove_done(io);
+    if(!(fds = malloc(sizeof(struct pollfd) * (io->active_action_count + 1)))) {
       close(io->break_fd_out);
       close(io->break_fd_in);
       pthread_mutex_destroy(&io->mutex);
       return;
     }
-    if(!(read_actions = malloc(sizeof(af_io_action_t*) *
-			       io->active_action_count))) {
+    if(!(actions = malloc(sizeof(af_io_t) * io->active_action_count))) {
       free(fds);
       close(io->break_fd_out);
       close(io->break_fd_in);
       pthread_mutex_destroy(&io->mutex);
       return;
     }
-    memset(read_actions, 0, sizeof(af_io_action_t*) * io->active_action_count);
-    if(!(write_actions = malloc(sizeof(af_io_action_t*) *
-				io->active_action_count))) {
-      free(read_actions);
-      close(io->break_fd_out);
-      close(io->break_fd_in);
-      pthread_mutex_destroy(&io->mutex);
-      return;
-    }
-    memset(write_actions, 0, sizeof(af_io_action_t*) * io->active_action_count);
     current_action = io->first_active_action;
     while(current_action) {
-      uint64_t current_search_index = 0;
-      af_bool_t found = FALSE;
-      while(current_search_index < current_index) {
-	if(current_action->fd == fds[current_search_index]) {
-	  if(current_action->type == AF_IO_READ) {
-	    read_actions[current_search_index] = current_action;
-	  } else {
-	    write_actions[current_search_index] = current_action;
-	  }
-	  found = TRUE;
-	  break;
+      if(current_action->type != AF_IO_TYPE_CLOSE) {
+	fds[current_index]->fd; = current_action->fd;
+	if(current_action->type == AF_IO_TYPE_READ) {
+	  fds[current_index]->events = POLLIN;
 	} else {
-	  current_search_index++;
+	  fds[current_index]->events = POLLOUT;
 	}
-      }
-      if(!found) {
-	fds[current_index] = current_action->fd;
-	if(current_action->type == AF_IO_READ) {
-	  read_actions[current_index] = current_action;
-	} else {
-	  write_actions[current_index] = current_action;
-	}
-	current_index++;
+	actions[current_index] = current_action;
+	fds[current_index++]->revents = 0;
+      } else {
+	current_action->is_done = TRUE;
+	close(current_action->fd);
       }
       current_action = current_action->next_action;
     }
-    if(!(pollfds = malloc(sizeof(struct pollfd) * (current_index + 1)))) {
-      free(write_actions);
-      free(read_actions);
-      close(io->break_fd_out);
-      close(io->break_fd_in);
-      pthread_mutex_destroy(&io->mutex);
-      return;
-    }
-    for(int i = 0; i < current_index; i++) {
-      pollfds[i].fd = fds[i];
-      if(read_actions[i] && write_actions[i]) {
-	pollfds[i].events = POLLIN | POLLOUT;
-      } else if(read.actions[i]) {
-	pollfds[i].events = POLLIN;
-      } else {
-	pollfds[i].events = POLLOUT;
-      }
-      pollfds[i].revents = 0;
-    }
-    pollfds[current_index].fd = io->break_fd_out;
-    pollfds[current_index].events = POLLIN;
-    pollfds[current_index].revents = 0;
+    fds[current_index].fd = io->break_fd_out;
+    fds[current_index].events = POLLIN;
+    fds[current_index].revents = 0;
     pthread_mutex_unlock(&io->mutex);
-    if((active_fd_count = poll(pollfds, current_index + 1, -1)) != -1) {
+    if((active_fd_count = poll(fds, current_index + 1, -1)) != -1) {
       pthread_mutex_lock(&io->mutex);
       uint64_t current_active_index = 0;
       while(active_fd_count && current_active_index < current_index) {
 	af_bool_t has_event = FALSE;
-	if(pollfds[current_active_index].revents & POLLHUP) {
-	  if(read_actions[current_active_index]) {
-	    read_actions[current_active_index]->has_hangup = TRUE;
-	  }
-	  if(write_actions[current_active_index]) {
-	    write_actions[current_active_index]->has_hangup = TRUE;
-	  }
+	if(fds[current_active_index].revents & POLLHUP) {
+	  actions[current_active_index]->has_hangup = TRUE;
 	  has_event = TRUE;
 	}
-	if(pollfds[current_active_index].revents & POLLERR) {
-	  if(read_actions[current_active_index]) {
-	    read_actions[current_active_index]->is_done = TRUE;
-	    read_actions[current_active_index]->has_error = TRUE;
-	  }
-	  if(write_actions[current_active_index]) {
-	    write_actions[current_active_index]->is_done = TRUE;
-	    write_actions[current_active_index]->has_error = TRUE;
-	  }
+	if(fds[current_active_index].revents & POLLERR) {
+	  actions[current_active_index]->is_done = TRUE;
+	  actions[current_active_index]->has_error = TRUE;
 	  has_event = TRUE;
 	}
-	if(pollfds[current_active_index].revents & POLLIN) {
-	  if(read_action[current_active_index]) {
+	if(fds[current_active_index].revents & POLLIN) {
+	  if(action[current_active_index]->type = AF_IO_TYPE_READ) {
 	    ssize_t size = read(read_action[current_active_index]->fd,
 				read_action[current_active_index]->buffer +
 				read_action[current_active_index]->index,
 				read_action[current_active_index]->count -
 				read_action[current_active_index]->index);
 	    if(size > 0) {
-	      read_action[current_active_index]->index += size;
-	      if(read_action[current_active_index]->index >=
-		 read_action[current_active_index]->count) {
-		read_action[current_active_index]->is_done = TRUE;
+	      action[current_active_index]->index += size;
+	      if(action[current_active_index]->index >=
+		 action[current_active_index]->count) {
+		action[current_active_index]->is_done = TRUE;
 	      }
 	    } else if (!size) {
-	      read_action[current_active_index]->is_done = TRUE;
-	      read_action[current_active_index]->is_closed = TRUE;
+	      action[current_active_index]->is_done = TRUE;
+	      action[current_active_index]->is_closed = TRUE;
 	    } else if(errno == EAGAIN ||
 		      errno == EWOULDBLOCK ||
 		      errno == EINTR) {
 	      /* Do nothing */
 	    } else {
-	      read_action[current_active_index]->is_done = TRUE;
-	      read_action[current_active_index]->is_closed = TRUE
-	      read_action[current_active_index]->has_error = TRUE;
+	      action[current_active_index]->is_done = TRUE;
+	      action[current_active_index]->is_closed = TRUE
+	      action[current_active_index]->has_error = TRUE;
 	    }
 	  }
 	  has_event = TRUE;
 	}
-	if(pollfds[current_active_index].revents & POLLOUT) {
-	  if(write_action[current_active_index]) {
-	    ssize_t size = write(write_action[current_active_index]->fd,
-				 write_action[current_active_index]->buffer +
-				 write_action[current_active_index]->index,
-				 write_action[current_active_index]->count -
-				 write_action[current_active_index]->index);
+	if(fds[current_active_index].revents & POLLOUT) {
+	  if(action[current_active_index]->type = AF_IO_TYPE_WRITE) {
+	    ssize_t size = write(action[current_active_index]->fd,
+				 action[current_active_index]->buffer +
+				 action[current_active_index]->index,
+				 action[current_active_index]->count -
+				 action[current_active_index]->index);
 	    if(size > 0) {
-	      write_action[current_active_index]->index += size;
-	      if(write_action[current_active_index]->index >=
-		 write_action[current_active_index]->count) {
-		write_action[current_active_index]->is_done = TRUE;
+	      action[current_active_index]->index += size;
+	      if(action[current_active_index]->index >=
+		 action[current_active_index]->count) {
+		action[current_active_index]->is_done = TRUE;
 	      }
 	    } else if (!size) {
-	      write_action[current_active_index]->is_done = TRUE;
-	      write_action[current_active_index]->is_closed = TRUE;
+	      action[current_active_index]->is_done = TRUE;
+	      action[current_active_index]->is_closed = TRUE;
 	    } else if(errno == EAGAIN ||
 		      errno == EWOULDBLOCK ||
 		      errno == EINTR) {
 	      /* Do nothing */
 	    } else {
-	      write_action[current_active_index]->is_done = TRUE;
-	      write_action[current_active_index]->is_closed = TRUE
-	      write_action[current_active_index]->has_error = TRUE;
+	      action[current_active_index]->is_done = TRUE;
+	      action[current_active_index]->is_closed = TRUE
+	      action[current_active_index]->has_error = TRUE;
 	    }
 	  }
 	  has_event = TRUE;
@@ -539,25 +570,25 @@ void* af_io_main(void* arg) {
 	current_active_index++;
       }
       if(active_fd_count) {
-	if(pollfds[current_index].revents & POLLERR ||
-	   pollfds[current_index].revents & POLLHUP) {
-	    free(pollfds);
-	    free(write_actions);
-	    free(read_actions);
-	    close(io->break_fd_out);
-	    close(io->break_fd_in);
-	    pthread_mutex_destroy(&io->mutex);
-	    return;
+	if(fds[current_index].revents & POLLERR ||
+	   fds[current_index].revents & POLLHUP) {
+	  free(actions);
+	  free(fds);
+	  close(io->break_fd_out);
+	  close(io->break_fd_in);
+	  pthread_mutex_destroy(&io->mutex);
+	  return;
 	}
-	if(pollfds[current_index].revents & POLLIN) {
+	if(fds[current_index].revents & POLLIN) {
 	  uint8_t buffer;
 	  ssize_t size = read(io->break_fd_out, &buffer, sizeof(uint8_t));
 	  if(size > 0) {
 	    /* Do nothing */
+	  } (size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+	    /* Do nothing */
 	  } else {
-	    free(pollfds);
-	    free(write_actions);
-	    free(read_actions);
+	    free(actions);
+	    free(fds);
 	    close(io->break_fd_out);
 	    close(io->break_fd_in);
 	    pthread_mutex_destroy(&io->mutex);
@@ -565,13 +596,12 @@ void* af_io_main(void* arg) {
 	  }
 	}
       }
-      free(pollfds);
-      free(write_actions);
-      free(read_actions);
+      free(actions);
+      free(fds);
       af_io_remove_done(io);
       pthread_mutex_unlock(&io->mutex);
     } else {
-      free(pollfds);
+      free(fds);
       free(write_actions);
       free(read_actions);
       close(io->break_fd_out);
@@ -613,12 +643,11 @@ void af_io_remove_done(af_io_t* io) {
       }
       io->first_done_action = current_action;
       while(current_waiting_action) {
-	if(current_waiting_action->fd == current_action->fd &&
-	   current_waiting_action->type == current_action->type) {
+	if(current_waiting_action->fd == current_action->fd) {
 	  found = TRUE;
 	  break;
 	}
-	current_waiting_action = current_waiting_action->next_acction;
+	current_waiting_action = current_waiting_action->next_action;
       }
       if(found) {
 	if(current_waiting_action->prev_action) {
@@ -640,6 +669,8 @@ void af_io_remove_done(af_io_t* io) {
 	    current_waiting_action;
 	}
 	io->first_active_action = current_waiting_action;
+      } else {
+	io->active_action_count--;
       }
       if(current_action->thread_to_wake) {
 	af_lock(io->global);

@@ -32,12 +32,36 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <fcntl.h>
 #include "af/types.h"
 
 /* Constants */
 
-#define AF_IO_READ ((af_io_type_t)0);
-#define AF_IO_WRITE ((af_io_type_t)1);
+#define AF_IO_TYPE_READ ((af_io_type_t)0)
+#define AF_IO_TYPE_WRITE ((af_io_type_t)1)
+#define AF_IO_TYPE_CLOSE ((af_io_type_t)2)
+#define AF_IO_RDONLY ((af_io_flags_t)O_RDONLY)
+#define AF_IO_WRONLY ((af_io_flags_t)O_WRONLY)
+#define AF_IO_RDWR ((af_io_flags_t)O_RDWR)
+#define AF_IO_APPEND ((af_io_flags_t)O_APPEND)
+#define AF_IO_TRUNC ((af_io_flags_t)O_TRUNC)
+#define AF_IO_CREAT ((af_io_flags_t)O_CREAT)
+#define AF_IO_EXCL ((af_io_flags_t)O_EXCL)
+#define AF_IO_IRWXU ((af_io_mode_t)00700)
+#define AF_IO_IRUSR ((af_io_mode_t)00400)
+#define AF_IO_IWUSR ((af_io_mode_t)00200)
+#define AF_IO_IXUSR ((af_io_mode_t)00100)
+#define AF_IO_IRWXG ((af_io_mode_t)00070)
+#define AF_IO_IRGRP ((af_io_mode_t)00040)
+#define AF_IO_IWGRP ((af_io_mode_t)00020)
+#define AF_IO_IXGRP ((af_io_mode_t)00010)
+#define AF_IO_IRWXO ((af_io_mode_t)00007)
+#define AF_IO_IROTH ((af_io_mode_t)00004)
+#define AF_IO_IWOTH ((af_io_mode_t)00002)
+#define AF_IO_IXOTH ((af_io_mode_t)00001)
+#define AF_IO_ISUID ((af_io_mode_t)0004000)
+#define AF_IO_ISGID ((af_io_mode_t)0002000)
+#define AF_IO_ISVTX ((af_io_mode_t)0001000)
 
 /* Function declarations */
 
@@ -74,28 +98,42 @@ uint64_t af_io_state_get_index(af_io_state_t* state);
 /* Get IO action buffer count */
 uint64_t af_io_state_get_count(af_io_state_t* state);
 
+/* Open a file */
+af_io_fd_t af_io_open(uint8_t* path, uint64_t count, af_io_flags_t flags,
+		      af_io_mode_t mode, af_io_error_t* error);
+
+/* Open a pipe */
+af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error);
+
+/* Blocking close of file descriptor */
+af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
+				  af_thread_t* thread_to_wake);
+
+/* Asynchronous close of file descriptor */
+af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd);
+
 /* Start blocking read */
-af_io_action_t* af_io_read_block(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				 uint64_t count, af_thread_t* thread_to_wake);
 
 /* Start blocking write */
-af_io_action_t* af_io_write_block(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				  uint64_t count, af_thread_t* thread_to_wake);
 
 /* Start asynchronous read */
-af_io_action_t* af_io_read_async(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				 uint64_t count);
 
 /* Start asynchronous write */
-af_io_action_t* af_io_write_async(af_io_t* io, int fd, uint8_t* buffer,
+af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 				  uint64_t count);
 
 /* Carry out non-blocking read */
-ssize_t af_io_read_nonblock(int fd, uint8_t* buffer, uint64_t count,
+ssize_t af_io_read_nonblock(af_io_fd_t fd, uint8_t* buffer, uint64_t count,
 			    af_bool_t* again);
 
 /* Carry out non-blocking read */
-ssize_t af_io_write_nonblock(int fd, uint8_t* buffer, uint64_t count,
+ssize_t af_io_write_nonblock(af_io_fd_t fd, uint8_t* buffer, uint64_t count,
 			     af_bool_t* again);
 
 #endif /* AF_IO_H */

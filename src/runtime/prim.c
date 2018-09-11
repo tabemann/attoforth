@@ -336,6 +336,18 @@ void af_prim_io_state_get_index(af_global_t* global, af_thread_t* thread);
 /* IO-STATE-GET-COUNT primitive */
 void af_prim_io_state_get_count(af_global_t* global, af_thread_t* thread);
 
+/* IO-OPEN primitive */
+void af_prim_io_open(af_global_t* global, af_thread_t* thread);
+
+/* IO-PIPE primitive */
+void af_prim_io_pipe(af_global_t* global, af_thread_t* thread);
+
+/* IO-CLOSE-BLOCK primitive */
+void af_prim_io_close_block(af_global_t* global, af_thread_t* thread);
+
+/* IO-CLOSE-ASYNC primitive */
+void af_prim_io_close_async(af_global_t* global, af_thread_t* thread);
+
 /* IO-READ-BLOCK primitive */
 void af_prim_io_read_block(af_global_t* global, af_thread_t* thread);
 
@@ -353,6 +365,72 @@ void af_prim_io_read_nonblock(af_global_t* global, af_thread_t* thread);
 
 /* IO-WRITE-NONBLOCK primitive */
 void af_prim_io_write_nonblock(af_global_t* global, af_thread_t* thread);
+
+/* IO-RDONLY primitive */
+void af_prim_io_rdonly(af_global_t* global, af_thread_t* thread);
+
+/* IO-WRONLY primitive */
+void af_prim_io_wronly(af_global_t* global, af_thread_t* thread);
+
+/* IO-RDWR primitive */
+void af_prim_io_rdwr(af_global_t* global, af_thread_t* thread);
+
+/* IO-APPEND primitive */
+void af_prim_io_append(af_global_t* global, af_thread_t* thread);
+
+/* IO-TRUNC primitive */
+void af_prim_io_trunc(af_global_t* global, af_thread_t* thread);
+
+/* IO-CREAT primitive */
+void af_prim_io_creat(af_global_t* global, af_thread_t* thread);
+
+/* IO-EXCL primitive */
+void af_prim_io_excl(af_global_t* global, af_thread_t* thread);
+
+/* IO-IRWXU primitive */
+void af_prim_io_irwxu(af_global_t* global, af_thread_t* thread);
+
+/* IO-IRUSR primitive */
+void af_prim_io_irusr(af_global_t* global, af_thread_t* thread);
+
+/* IO-IWUSR primitive */
+void af_prim_io_iwusr(af_global_t* global, af_thread_t* thread);
+
+/* IO-IXUSR primitive */
+void af_prim_io_ixusr(af_global_t* global, af_thread_t* thread);
+
+/* IO-IRWXG primitive */
+void af_prim_io_irwxg(af_global_t* global, af_thread_t* thread);
+
+/* IO-IRGRP primitive */
+void af_prim_io_irgrp(af_global_t* global, af_thread_t* thread);
+
+/* IO-IWGRP primitive */
+void af_prim_io_iwgrp(af_global_t* global, af_thread_t* thread);
+
+/* IO-IXGRP primitive */
+void af_prim_io_ixgrp(af_global_t* global, af_thread_t* thread);
+
+/* IO-IRWXO primitive */
+void af_prim_io_irwxo(af_global_t* global, af_thread_t* thread);
+
+/* IO-IROTH primitive */
+void af_prim_io_iroth(af_global_t* global, af_thread_t* thread);
+
+/* IO-IWOTH primitive */
+void af_prim_io_iwoth(af_global_t* global, af_thread_t* thread);
+
+/* IO-IXOTH primitive */
+void af_prim_io_ixoth(af_global_t* global, af_thread_t* thread);
+
+/* IO-ISUID primitive */
+void af_prim_io_isuid(af_global_t* global, af_thread_t* thread);
+
+/* IO-ISGID primitive */
+void af_prim_io_isgid(af_global_t* global, af_thread_t* thread);
+
+/* IO-ISVTX primitive */
+void af_prim_io_isvtx(af_global_t* global, af_thread_t* thread);
 
 /* Function definitions */
 
@@ -469,6 +547,12 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
 		   af_prim_io_state_get_index, FALSE);
   af_register_prim(global, thread, "IO-STATE-GET-COUNT",
 		   af_prim_io_state_get_count, FALSE);
+  af_register_prim(global, thread, "IO-OPEN", af_prim_io_open, FALSE);
+  af_register_prim(global, thread, "IO-PIPE", af_prim_io_pipe, FALSE);
+  af_register_prim(global, thread, "IO-CLOSE-BLOCK", af_prim_io_close_block,
+		   FALSE);
+  af_register_prim(global, thread, "IO-CLOSE-ASYNC", af_prim_io_close_async,
+		   FALSE);
   af_register_prim(global, thread, "IO-READ-BLOCK", af_prim_io_read_block,
 		   FALSE);
   af_register_prim(global, thread, "IO-WRITE-BLOCK", af_prim_io_write_block,
@@ -481,6 +565,28 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
 		   FALSE);
   af_register_prim(global, thread, "IO-WRITE-NONBLOCK",
 		   af_prim_io_write_nonblock, FALSE);
+  af_register_prim(global, thread, "IO-RDONLY", af_prim_io_rdonly, FALSE);
+  af_register_prim(global, thread, "IO-WRONLY", af_prim_io_wronly, FALSE);
+  af_register_prim(global, thread, "IO-RDWR", af_prim_io_rdwr, FALSE);
+  af_register_prim(global, thread, "IO-APPEND", af_prim_io_append, FALSE);
+  af_register_prim(global, thread, "IO-TRUNC", af_prim_io_trunc, FALSE);
+  af_register_prim(global, thread, "IO-CREAT", af_prim_io_creat, FALSE);
+  af_register_prim(global, thread, "IO-EXCL", af_prim_io_excl, FALSE);
+  af_register_prim(global, thread, "IO-IRWXU", af_prim_io_irwxu, FALSE);
+  af_register_prim(global, thread, "IO-IRUSR", af_prim_io_irusr, FALSE);
+  af_register_prim(global, thread, "IO-IWUSR", af_prim_io_iwusr, FALSE);
+  af_register_prim(global, thread, "IO-IXUSR", af_prim_io_ixusr, FALSE);
+  af_register_prim(global, thread, "IO-IRWXG", af_prim_io_irwxg, FALSE);
+  af_register_prim(global, thread, "IO-IRGRP", af_prim_io_irgrp, FALSE);
+  af_register_prim(global, thread, "IO-IWGRP", af_prim_io_iwgrp, FALSE);
+  af_register_prim(global, thread, "IO-IXGRP", af_prim_io_ixgrp, FALSE);
+  af_register_prim(global, thread, "IO-IRWXO", af_prim_io_irwxo, FALSE);
+  af_register_prim(global, thread, "IO-IROTH", af_prim_io_iroth, FALSE);
+  af_register_prim(global, thread, "IO-IWOTH", af_prim_io_iwoth, FALSE);
+  af_register_prim(global, thread, "IO-IXOTH", af_prim_io_ixoth, FALSE);
+  af_register_prim(global, thread, "IO-ISUID", af_prim_io_isuid, FALSE);
+  af_register_prim(global, thread, "IO-ISGID", af_prim_io_isgid, FALSE);
+  af_register_prim(global, thread, "IO-ISVTX", af_prim_io_isvtx, FALSE);
 }
 
 /* Docol primitive */
@@ -1560,12 +1666,63 @@ void af_prim_io_state_get_count(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
+/* IO-OPEN primitive */
+void af_prim_io_open(af_global_t* global, af_thread_t* thread) {
+  af_io_fd_t fd;
+  af_io_error_t error;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 4);
+  fd = af_io_open((uint8_t*)(*(thread->data_stack_current + 3)),
+		  *(thread->data_stack_current + 2),
+		  (af_io_flags_t)(*(thread->data_stack_current + 1)),
+		  (af_io_mode_t)(*thread->data_stack_current),
+		  &error);
+  thread->data_stack_current += 2;
+  *(thread->data_stack_current + 1) = (uint64_t)fd;
+  *thread->data_stack_current = (uint64_t)error;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-PIPE primitive */
+void af_prim_io_pipe(af_global_t* global, af_thread_t* thread) {
+  af_io_fd_t in;
+  af_io_fd_t out;
+  af_io_error_t error;
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 3);
+  af_io_pipe(&in, &out, &error);
+  *(--thread->data_stack_current) = (uint64_t)in;
+  *(--thread->data_stack_current) = (uint64_t)out;
+  *(--thread->data_stack_current) = (uint64_t)error;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-CLOSE-BLOCK primitive */
+void af_prim_io_close_block(af_global_t* global, af_thread_t* thread) {
+  af_io_action_t* action;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  action = af_io_close_block(&global->io,
+			     (af_io_fd_t)(*thread->data_stack_current),
+			     thread);
+  *thread->data_stack_current = (uint64_t)action;
+  AF_ADVANCE_IP(thread, 1);
+  af_sleep(global, thread);
+}
+
+/* IO-CLOSE-ASYNC primitive */
+void af_prim_io_close_async(af_global_t* global, af_thread_t* thread) {
+  af_io_action_t* action;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  action = af_io_close_async(&global->io,
+			     (af_io_fd_t)(*thread->data_stack_current));
+  *thread->data_stack_current = (uint64_t)action;
+  AF_ADVANCE_IP(thread, 1);
+}
+
 /* IO-READ-BLOCK primitive */
 void af_prim_io_read_block(af_global_t* global, af_thread_t* thread) {
   af_io_action_t* action;
   AF_VERIFY_DATA_STACK_READ(global, thread, 3);
   action = af_io_read_block(&global->io,
-			    (int)(*thread->data_stack_current),
+			    (af_io_fd_t)(*thread->data_stack_current),
 			    (uint8_t*)(*(thread->data_stack_current + 2)),
 			    *(thread->data_stack_current + 1),
 			    thread);
@@ -1580,7 +1737,7 @@ void af_prim_io_write_block(af_global_t* global, af_thread_t* thread) {
   af_io_action_t* action;
   AF_VERIFY_DATA_STACK_READ(global, thread, 3);
   action = af_io_write_block(&global->io,
-			     (int)(*thread->data_stack_current),
+			     (af_io_fd_t)(*thread->data_stack_current),
 			     (uint8_t*)(*(thread->data_stack_current + 2)),
 			     *(thread->data_stack_current + 1),
 			     thread);
@@ -1595,7 +1752,7 @@ void af_prim_io_read_async(af_global_t* global, af_thread_t* thread) {
   af_io_action_t* action;
   AF_VERIFY_DATA_STACK_READ(global, thread, 3);
   action = af_io_read_async(&global->io,
-			    (int)(*thread->data_stack_current),
+			    (af_io_fd_t)(*thread->data_stack_current),
 			    (uint8_t*)(*(thread->data_stack_current + 2)),
 			    *(thread->data_stack_current + 1));
   thread->data_stack_current += 2;
@@ -1608,7 +1765,7 @@ void af_prim_io_write_async(af_global_t* global, af_thread_t* thread) {
   af_io_action_t* action;
   AF_VERIFY_DATA_STACK_READ(global, thread, 3);
   action = af_io_write_async(&global->io,
-			     (int)(*thread->data_stack_current),
+			     (af_io_fd_t)(*thread->data_stack_current),
 			     (uint8_t*)(*(thread->data_stack_current + 2)),
 			     *(thread->data_stack_current + 1));
   thread->data_stack_current += 2;
@@ -1621,7 +1778,7 @@ void af_prim_io_read_nonblock(af_global_t* global, af_thread_t* thread) {
   af_bool_t again;
   ssize_t size;
   AF_VERIFY_DATA_STACK_READ(global, thread, 3);
-  size = af_io_read_nonblock((int)(*thread->data_stack_current),
+  size = af_io_read_nonblock((af_io_fd_t)(*thread->data_stack_current),
 			     (uint8_t*)(*(thread->data_stack_current + 2)),
 			     *(thread->data_stack_current + 1),
 			     &again);
@@ -1636,12 +1793,166 @@ void af_prim_io_write_nonblock(af_global_t* global, af_thread_t* thread) {
   af_bool_t again;
   ssize_t size;
   AF_VERIFY_DATA_STACK_READ(global, thread, 3);
-  size = af_io_write_nonblock((int)(*thread->data_stack_current),
+  size = af_io_write_nonblock((af_io_fd_t)(*thread->data_stack_current),
 			      (uint8_t*)(*(thread->data_stack_current + 2)),
 			      *(thread->data_stack_current + 1),
 			      &again);
   thread->data_stack_current++;
   *(int64_t*)(thread->data_stack_current + 1) = (int64_t)size;
   *(af_bool_t*)thread->data_stack_current = again;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-RDONLY primitive */
+void af_prim_io_rdonly(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_RDONLY;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-WRONLY primitive */
+void af_prim_io_wronly(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_WRONLY;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-RDWR primitive */
+void af_prim_io_rdwr(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_RDWR;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-APPEND primitive */
+void af_prim_io_append(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_APPEND;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-TRUNC primitive */
+void af_prim_io_trunc(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_TRUNC;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-CREAT primitive */
+void af_prim_io_creat(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_CREAT;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-EXCL primitive */
+void af_prim_io_excl(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_EXCL;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IRWXU primitive */
+void af_prim_io_irwxu(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IRWXU;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IRUSR primitive */
+void af_prim_io_irusr(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IRUSR;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IWUSR primitive */
+void af_prim_io_iwusr(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IWUSR;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IXUSR primitive */
+void af_prim_io_ixusr(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IXUSR;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IRWXG primitive */
+void af_prim_io_irwxg(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IRWXG;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IRGRP primitive */
+void af_prim_io_irgrp(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IRGRP;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IWGRP primitive */
+void af_prim_io_iwgrp(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IWGRP;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IXGRP primitive */
+void af_prim_io_ixgrp(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IXGRP;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IRWXO primitive */
+void af_prim_io_irwxo(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IRWXO;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IROTH primitive */
+void af_prim_io_iroth(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IROTH;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IWOTH primitive */
+void af_prim_io_iwoth(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IWOTH;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-IXOTH primitive */
+void af_prim_io_ixoth(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_IXOTH;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-ISUID primitive */
+void af_prim_io_isuid(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_ISUID;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-ISGID primitive */
+void af_prim_io_isgid(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_ISGID;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* IO-ISVTX primitive */
+void af_prim_io_isvtx(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (uint64_t)AF_IO_ISVTX;
   AF_ADVANCE_IP(thread, 1);
 }

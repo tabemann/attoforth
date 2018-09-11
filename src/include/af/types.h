@@ -42,7 +42,6 @@ typedef struct af_global_t af_global_t;
 typedef struct af_thread_t af_thread_t;
 typedef struct af_input_t af_input_t;
 typedef struct af_io_t af_io_t;
-typedef struct uint64_t af_io_type_t;
 typedef struct af_io_action_t af_io_action_t;
 typedef struct af_io_state_t af_io_state_t;
 typedef struct af_cond_t af_cond_t;
@@ -50,6 +49,16 @@ typedef struct af_cond_t af_cond_t;
 /* Type definitions */
 
 typedef int64_t af_bool_t;
+
+typedef uint64_t af_io_type_t;
+
+typedef int af_io_fd_t;
+
+typedef int af_io_flags_t;
+
+typedef mode_t af_io_mode_t;
+
+typedef int af_io_error_t;
 
 typedef void (*af_prim_t)(af_global_t* global, af_thread_t* thread);
 
