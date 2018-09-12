@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "af/types.h"
 
 /* Constants */
@@ -40,6 +41,9 @@
 #define AF_IO_TYPE_READ ((af_io_type_t)0)
 #define AF_IO_TYPE_WRITE ((af_io_type_t)1)
 #define AF_IO_TYPE_CLOSE ((af_io_type_t)2)
+#define AF_IO_STDIN ((af_io_fd_t)STDIN_FILENO)
+#define AF_IO_STDOUT ((af_io_fd_t)STDOUT_FILENO)
+#define AF_IO_STDERR ((af_io_fd_t)STDERR_FILENO)
 #define AF_IO_RDONLY ((af_io_flags_t)O_RDONLY)
 #define AF_IO_WRONLY ((af_io_flags_t)O_WRONLY)
 #define AF_IO_RDWR ((af_io_flags_t)O_RDWR)

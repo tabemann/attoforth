@@ -13,7 +13,7 @@
  * 
  * 3. Neither the name of the copyright holder nor the names of its
  *    contributors may be used to endorse or promote products derived from
- *    this sopppppftware without specific prior written permission.
+ *    this software without specific prior written permission.
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -105,11 +105,11 @@
 
 /* Macro to get name length of word */
 #define AF_WORD_NAME_LEN(word) \
-  (*(uint8_t*)((af_word_t*)word + sizeof(af_word_t)))
+  (*(af_byte_t*)((af_word_t*)word + sizeof(af_word_t)))
 
 /* Macro to get name data of word */
 #define AF_WORD_NAME_DATA(word) \
-  ((uint8_t*)((af_word_t*)word + sizeof(af_word_t)) + sizeof(uint8_t))
+  ((af_byte_t*)((af_word_t*)word + sizeof(af_word_t)) + sizeof(af_byte_t))
 
 /* Function declarations */
 
@@ -155,8 +155,7 @@ void af_handle_data_stack_underflow(af_global_t* global, af_thread_t* thread);
 
 void af_handle_return_stack_underflow(af_global_t* global, af_thread_t* thread);
 
-void af_handle_unexpected_input_closure(af_global_t* global,
-					af_thread_t* thread);
+void af_handle_word_expected(af_global_t* global, af_thread_t* thread);
 
 void af_handle_data_space_overflow(af_global_t* global, af_thread_t* thread);
 
@@ -183,27 +182,24 @@ void* af_allocate(af_global_t* global, af_thread_t* thread, size_t size);
 void* af_allot(af_global_t* global, af_thread_t* thread, size_t size);
 
 af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
-			    uint8_t delimiter);
+			    af_byte_t delimiter);
 
-af_bool_t af_word_wait(af_global_t* global, af_thread_t* thread,
-		       uint8_t delimiter);
-
-uint8_t* af_word(af_global_t* global, af_thread_t* thread, uint8_t delimiter);
+af_byte_t* af_word(af_global_t* global, af_thread_t* thread, af_byte_t delimiter);
 
 af_bool_t af_parse_name_available(af_global_t* global, af_thread_t* thread);
 
-af_bool_t af_parse_name_wait(af_global_t* global, af_thread_t* thread);
+af_byte_t* af_parse_name(af_global_t* global, af_thread_t* thread,
+		       af_cell_t* length);
 
-uint8_t* af_parse_name(af_global_t* global, af_thread_t* thread,
-		       uint64_t* length);
+af_bool_t af_refill(af_global_t* global, af_thread_t* thread);
 
-af_input_t* af_new_string_input(uint8_t* text, uint64_t count);
+af_input_t* af_new_string_input(af_byte_t* text, af_cell_t count);
 
-void af_evaluate(af_global_t* global, af_thread_t* thread, uint8_t* text,
-		 uint64_t count);
+void af_evaluate(af_global_t* global, af_thread_t* thread, af_byte_t* text,
+		 af_cell_t count);
 
 af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
-			    uint8_t* name, af_prim_t prim,
+			    af_byte_t* name, af_prim_t prim,
 			    af_bool_t is_immediate);
 
 #endif /* AF_INNER_H */
