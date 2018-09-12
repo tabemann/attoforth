@@ -312,6 +312,9 @@ void af_prim_depth(af_global_t* global, af_thread_t* thread);
 /* CELL-SIZE primitive */
 void af_prim_cell_size(af_global_t* global, af_thread_t* thread);
 
+/* REFILL primitive */
+void af_prim_refill(af_global_t* global, af_thread_t* thread);
+
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_thread_t* thread);
 
@@ -574,6 +577,7 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "MOVE", af_prim_move, FALSE);
   af_register_prim(global, thread, "DEPTH", af_prim_depth, FALSE);
   af_register_prim(global, thread, "CELL-SIZE", af_prim_cell_size, FALSE);
+  af_register_prim(global, thread, "REFILL", af_prim_refill, FALSE);
   af_register_prim(global, thread, "IO-ACTION-DESTROY",
 		   af_prim_io_action_destroy, FALSE);
   af_register_prim(global, thread, "IO-ACTION-GET-STATE",
@@ -1673,6 +1677,14 @@ void af_prim_cell_size(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
   *(--thread->data_stack_current) = (af_cell_t)sizeof(af_cell_t);
   AF_ADVANCE_IP(thread, 1);
+}
+
+/* REFILL primitive */
+void af_prim_refill(af_global_t* global, af_thread_t* thread) {
+  if(!af_refill(global, thread)) {
+    AF_VERIFY_DATA_STACK(global, thread, 1);
+    *(--thread->data_stack_current) = (af_cell_t)FALSE;
+  }
 }
 
 /* IO-ACTION-DESTROY primitive */
