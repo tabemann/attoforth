@@ -36,6 +36,7 @@
 #include "af/inner.h"
 
 void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
+  af_input_t* input;
   uint8_t* code =
     ": TRUE -1 ; "
     ": FALSE 0 ; "
@@ -114,10 +115,49 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     ": ABS DUP 0< IF NEGATE THEN ; "
     ": MIN 2DUP > IF SWAP THEN DROP ; "
     ": MAX 2DUP < IF SWAP THEN DROP ; "
-    ": EMIT HERE C! HERE 1 IO-STDOUT IO-WRITE-ASYNC ; "
-    ": TYPE IO-STDOUT IO-WRITE-ASYNC ; "
+    ": CLEANUP-INPUT DUP INPUT> BEGIN "
+    "    DUP 0 <> 2 PICK CONSOLE-INPUT> 2 PICK <> AND WHILE "
+    "      DUP INPUT-CLEANUP @ OVER INPUT-NEXT-INPUT @ ROT ROT EXECUTE "
+    "    REPEAT SWAP >INPUT ; "
+    ": CLEANUP-OUTPUT DUP OUTPUT> BEGIN "
+    "    DUP 0 <> 2 PICK CONSOLE-OUTPUT> 2 PICK <> AND WHILE "
+    "      DUP OUTPUT-CLEANUP @ OVER OUTPUT-NEXT-OUTPUT @ ROT ROT EXECUTE "
+    "    REPEAT SWAP >OUTPUT ; "
+    ": CLEANUP-ERROR DUP ERROR> BEGIN "
+    "    DUP 0 <> 2 PICK CONSOLE-ERROR> 2 PICK <> AND WHILE "
+    "      DUP OUTPUT-CLEANUP @ OVER OUTPUT-NEXT-OUTPUT @ ROT ROT EXECUTE "
+    "    REPEAT SWAP >ERROR ; "
+    ": CLEANUP DUP CLEANUP-INPUT DUP CLEANUP-OUTPUT CLEANUP-ERROR ; "
+    "' CLEANUP DUP >DEFAULT-CLEANUP THIS-THREAD >CLEANUP "
+    ": DROP-INPUT DUP INPUT> DUP 0 <> 2 PICK CONSOLE-INPUT> 2 PICK <> AND IF "
+    "    DUP INPUT-CLEANUP @ OVER INPUT-NEXT-INPUT @ ROT ROT EXECUTE "
+    "  THEN SWAP >INPUT ; "
+    ": DROP-OUTPUT DUP OUTPUT> DUP 0 <> "
+    "  2 PICK CONSOLE-OUTPUT> 2 PICK <> AND IF "
+    "    DUP OUTPUT-CLEANUP @ OVER OUTPUT-NEXT-OUTPUT @ ROT ROT EXECUTE "
+    "  THEN SWAP >OUTPUT ; "
+    ": DROP-ERROR DUP ERROR> DUP 0 <> 2 PICK CONSOLE-ERROR> 2 PICK <> AND IF "
+    "    DUP OUTPUT-CLEANUP @ OVER OUTPUT-NEXT-OUTPUT @ ROT ROT EXECUTE "
+    "  THEN SWAP >ERROR ; "
+    "' DROP-INPUT DUP >DEFAULT-DROP-INPUT THIS-THREAD >DROP-INPUT "
+    ": TYPE THIS-THREAD CONSOLE-OUT> OUTPUT-WRITE @ EXECUTE ; "
+    ": EMIT HERE C! HERE 1 TYPE ; "
     ": .\" SKIP-WHITESPACE [CHAR] \" PARSE DUP ALLOCATE 2DUP POSTPONE "
     "  (LITERAL) , POSTPONE (LITERAL) , SWAP MOVE POSTPONE TYPE ; IMMEDIATE "
-    ": .( SKIP-WHITESPACE [CHAR] ) PARSE TYPE ; IMMEDIATE ";
-  af_evaluate(global, thread, code, (uint64_t)strlen(code));
+    ": .( SKIP-WHITESPACE [CHAR] ) PARSE TYPE ; IMMEDIATE "
+    ": INTERPRET THIS-THREAD >INTERPRET ; "
+    ": STRING>SOURCE ( count addr -- input ) DUP ALLOCATE DUP 3 ROLL SWAP "
+    "  3 PICK MOVE ( count addr ) INPUT-SIZE ALLOCATE DUP 3 ROLL SWAP "
+    "  INPUT-COUNT ! ( addr input )  DUP ROT SWAP INPUT-BUFFER ! ( input ) "
+    "  0 OVER INPUT-INDEX ! TRUE OVER INPUT-IS-CLOSED ! TRUE OVER "
+    "  INPUT-IS-FREEABLE ! TRUE OVER INPUT-IS-BUFFER-FREEABLE ! 0 OVER "
+    "  INPUT-REFILL ! 0 OVER INPUT-ARG ! 0 OVER INPUT-NEXT-INPUT ! ( input ) ; "
+    ": EVALUATE ( count addr -- ? ) STRING>SOURCE >SOURCE INTERPRET ; "
+    "
+  if(!(input = af_new_string_input(code, (af_cell_t)strlen(code)))) {
+    af_handle_out_of_memory(global, thread);
+    return;
+  }
+  af_push_input(global, thread, input);
+  af_interpret(global, thread);
 }

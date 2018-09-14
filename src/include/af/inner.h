@@ -121,13 +121,17 @@ void af_unlock(af_global_t* global);
 
 af_thread_t* af_spawn(af_global_t* global);
 
-void af_set_console(af_global_t* global, af_thread_t* thread,
-		    af_input_t* input);
-
 void af_set_init_word(af_global_t* global, af_thread_t* thread,
 		      af_word_t* word);
 
-void af_interpret(af_global_t* global, af_thread_t* thread, af_input_t* input);
+void af_interpret(af_global_t* global, af_thread_t* thread);
+
+void af_push_data(af_global_t* global, af_thread_t* thread, af_cell_t data);
+
+void af_push_return(af_global_t* global, af_thread_t* thread,
+		    af_compiled_t* pointer);
+
+void af_drop_input(af_global_t* global, af_thread_t* thread);
 
 void af_start(af_global_t* global, af_thread_t* thread);
 
@@ -193,10 +197,7 @@ af_byte_t* af_parse_name(af_global_t* global, af_thread_t* thread,
 
 af_bool_t af_refill(af_global_t* global, af_thread_t* thread);
 
-af_input_t* af_new_string_input(af_byte_t* text, af_cell_t count);
-
-void af_evaluate(af_global_t* global, af_thread_t* thread, af_byte_t* text,
-		 af_cell_t count);
+af_input_t* af_new_string_input(af_byte_t* buffer, af_cell_t count);
 
 af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
 			    af_byte_t* name, af_prim_t prim,

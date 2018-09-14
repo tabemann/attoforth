@@ -41,6 +41,7 @@ typedef struct af_word_t af_word_t;
 typedef struct af_global_t af_global_t;
 typedef struct af_thread_t af_thread_t;
 typedef struct af_input_t af_input_t;
+typedef struct af_output_t af_output_t;
 typedef struct af_io_t af_io_t;
 typedef struct af_io_action_t af_io_action_t;
 typedef struct af_io_state_t af_io_state_t;
@@ -100,6 +101,8 @@ typedef struct af_global_t {
   af_word_t* builtin_literal_runtime;
   af_word_t* builtin_exit;
   af_word_t* builtin_postpone_runtime;
+  af_word_t* default_cleanup;
+  af_word_t* default_drop_input;
 } af_global_t;
 
 typedef struct af_thread_t {
@@ -122,10 +125,16 @@ typedef struct af_thread_t {
   void* data_space_base;
   af_word_t* most_recent_word;
   af_input_t* console_input;
+  af_output_t* console_output;
+  af_output_t* console_error;
   af_input_t* current_input;
+  af_output_t* current_output;
+  af_output_t* current_error;
   af_cell_t base;
   af_word_t* current_interactive_word;
   af_bool_t repeat_interactive;
+  af_word_t* cleanup;
+  af_word_t* drop_input;
 } af_thread_t;
 
 typedef struct af_input_t {
@@ -134,11 +143,17 @@ typedef struct af_input_t {
   af_cell_t count;
   af_cell_t index;
   af_bool_t is_closed;
-  af_bool_t is_freeable;
-  af_bool_t is_buffer_freeable;
+  af_word_t* cleanup;
   af_word_t* refill;
   af_cell_t arg;
 } af_input_t;
+
+typedef struct af_output_t {
+  af_output_t* next_output;
+  af_word_t* write;
+  af_word_t* cleanup;
+  af_cell_t arg;
+} af_output_t;
 
 typedef struct af_io_t {
   pthread_t pthread;

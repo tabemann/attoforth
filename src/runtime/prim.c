@@ -225,8 +225,53 @@ void af_prim_to_in(af_global_t* global, af_thread_t* thread);
 /* SOURCE primitive */
 void af_prim_source(af_global_t* global, af_thread_t* thread);
 
-/* EVALUATE primitive */
-void af_prim_evaluate(af_global_t* global, af_thread_t* thread);
+/* >INPUT primitive */
+void af_prim_to_input(af_global_t* global, af_thread_t* thread);
+
+/* INPUT> primitive */
+void af_prim_from_input(af_global_t* global, af_thread_t* thread);
+
+/* >OUTPUT primitive */
+void af_prim_to_output(af_global_t* global, af_thread_t* thread);
+
+/* OUTPUT> primitive */
+void af_prim_from_output(af_global_t* global, af_thread_t* thread);
+
+/* >ERROR primitive */
+void af_prim_to_error(af_global_t* global, af_thread_t* thread);
+
+/* ERROR> primitive */
+void af_prim_from_error(af_global_t* global, af_thread_t* thread);
+
+/* >DATA primitive */
+void af_prim_to_data(af_global_t* global, af_thread_t* thread);
+
+/* >RETURN primitive */
+void af_prim_to_return(af_global_t* global, af_thread_t* thread);
+
+/* >CLEANUP primitive */
+void af_prim_to_cleanup(af_global_t* global, af_thread_t* thread);
+
+/* CLEANUP> primitive */
+void af_prim_from_cleanup(af_global_t* global, af_thread_t* thread);
+
+/* >DEFAULT-CLEANUP primitive */
+void af_prim_to_default_cleanup(af_global_t* global, af_thread_t* thread);
+
+/* DEFAULT-CLEANUP> primitive */
+void af_prim_from_default_cleanup(af_global_t* global, af_thread_t* thread);
+
+/* >DROP-INPUT primitive */
+void af_prim_to_drop_input(af_global_t* global, af_thread_t* thread);
+
+/* DROP-INPUT> primitive */
+void af_prim_from_drop_input(af_global_t* global, af_thread_t* thread);
+
+/* >DEFAULT-DROP-INPUT primitive */
+void af_prim_to_default_drop_input(af_global_t* global, af_thread_t* thread);
+
+/* DEFAULT-DROP-INPUT> primitive */
+void af_prim_from_default_drop_input(af_global_t* global, af_thread_t* thread);
 
 /* ALLOCATE primitive */
 void af_prim_allocate(af_global_t* global, af_thread_t* thread);
@@ -255,11 +300,32 @@ void af_prim_parse_name(af_global_t* global, af_thread_t* thread);
 /* THIS-THREAD primitive */
 void af_prim_this_thread(af_global_t* global, af_thread_t* thread);
 
-/* SPAWN-EXECUTE primitive */
-void af_prim_spawn_execute(af_global_t* global, af_thread_t* thread);
+/* SPAWN primitive */
+void af_prim_spawn(af_global_t* global, af_thread_t* thread);
 
-/* SPAWN-EVALUATE primitive */
-void af_prim_spawn_evaluate(af_global_t* global, af_thread_t* thread);
+/* >CONSOLE-IN primitive */
+void af_prim_to_console_input(af_global_t* global, af_thread_t* thread);
+
+/* >CONSOLE-OUT primitive */
+void af_prim_to_console_out(af_global_t* global, af_thread_t* thread);
+
+/* >CONSOLE-ERR primitive */
+void af_prim_to_console_err(af_global_t* global, af_thread_t* thread);
+
+/* CONSOLE-OUT> primitive */
+void af_prim_from_console_out(af_global_t* global, af_thread_t* thread);
+
+/* CONSOLE-ERR> primitive */
+void af_prim_from_console_err(af_global_t* global, af_thread_t* thread);
+
+/* >INIT-WORD primitive */
+void af_prim_to_init_word(af_global_t* global, af_thread_t* thread);
+
+/* >INTERPRET primitive */
+void af_prim_to_interpret(af_global_t* global, af_thread_t* thread);
+
+/* START primitive */
+void af_prim_start(af_global_t* global, af_thread_t* thread);
 
 /* KILL primitive */
 void af_prim_kill(af_global_t* global, af_thread_t* thread);
@@ -468,17 +534,29 @@ void af_prim_input_index(af_global_t* global, af_thread_t* thread);
 /* INPUT-IS-CLOSED primitive */
 void af_prim_input_is_closed(af_global_t* global, af_thread_t* thread);
 
-/* INPUT-IS-FREEABLE primitive */
-void af_prim_input_is_freeable(af_global_t* global, af_thread_t* thread);
-
-/* INPUT-IS-BUFFER-FREEABLE primitive */
-void af_prim_input_is_buffer_freeable(af_global_t* global, af_thread_t* thread);
+/* INPUT-CLEANUP primitive */
+void af_prim_input_cleanup(af_global_t* global, af_thread_t* thread);
 
 /* INPUT-REFILL primitive */
 void af_prim_input_refill(af_global_t* global, af_thread_t* thread);
 
 /* INPUT-ARG primitive */
 void af_prim_input_arg(af_global_t* global, af_thread_t* thread);
+
+/* OUTPUT-SIZE primitive */
+void af_prim_output_size(af_global_t* global, af_thread_t* thread);
+
+/* OUTPUT-NEXT-OUTPUT primitive */
+void af_prim_output_next_output(af_global_t* global, af_thread_t* thread);
+
+/* OUTPUT-WRITE primitive */
+void af_prim_output_write(af_global_t* global, af_thread_t* thread);
+
+/* OUTPUT-CLEANUP primitive */
+void af_prim_output_cleanup(af_global_t* global, af_thread_t* thread);
+
+/* OUTPUT-ARG primitive */
+void af_prim_output_arg(af_global_t* global, af_thread_t* thread);
 
 /* Function definitions */
 
@@ -548,7 +626,27 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "LATESTXT", af_prim_latestxt, FALSE);
   af_register_prim(global, thread, ">IN", af_prim_to_in, FALSE);
   af_register_prim(global, thread, "SOURCE", af_prim_source, FALSE);
-  af_register_prim(global, thread, "EVALUATE", af_prim_evaluate, FALSE);
+  af_register_prim(global, thread, ">INPUT", af_prim_to_input, FALSE);
+  af_register_prim(global, thread, "INPUT>", af_prim_from_input, FALSE);
+  af_register_prim(global, thread, ">OUTPUT", af_prim_to_output, FALSE);
+  af_register_prim(global, thread, "OUTPUT>", af_prim_from_output, FALSE);
+  af_register_prim(global, thread, ">ERROR", af_prim_to_error, FALSE);
+  af_register_prim(global, thread, "ERROR>", af_prim_from_error, FALSE);
+  af_register_prim(global, thread, ">DATA", af_prim_to_data, FALSE);
+  af_register_prim(global, thread, ">RETURN", af_prim_to_return, FALSE);
+  af_register_prim(global, thread, ">CLEANUP", af_prim_to_cleanup, FALSE);
+  af_register_prim(global, thread, "CLEANUP>", af_prim_from_cleanup, FALSE);
+  af_register_prim(global, thread, ">DEFAULT-CLEANUP",
+		   af_prim_to_default_cleanup, FALSE);
+  af_register_prim(global, thread, "DEFAULT-CLEANUP>",
+		   af_prim_from_default_cleanup, FALSE);
+  af_register_prim(global, thread, ">DROP-INPUT", af_prim_to_drop_input, FALSE);
+  af_register_prim(global, thread, "DROP-INPUT>", af_prim_from_drop_input,
+		   FALSE);
+  af_register_prim(global, thread, ">DEFAULT-DROP-INPUT",
+		   af_prim_to_default_drop_input, FALSE);
+  af_register_prim(global, thread, "DEFAULT-DROP-INPUT>",
+		   af_prim_from_default_drop_input, FALSE);
   af_register_prim(global, thread, "ALLOCATE", af_prim_allocate, FALSE);
   af_register_prim(global, thread, "FREE", af_prim_free, FALSE);
   af_register_prim(global, thread, "RESIZE", af_prim_resize, FALSE);
@@ -557,10 +655,22 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "WORD", af_prim_word, FALSE);
   af_register_prim(global, thread, "PARSE-NAME", af_prim_parse_name, FALSE);
   af_register_prim(global, thread, "THIS-THREAD", af_prim_this_thread, FALSE);
-  af_register_prim(global, thread, "SPAWN-EXECUTE", af_prim_spawn_execute,
+  af_register_prim(global, thread, "SPAWN", af_prim_spawn, FALSE);
+  af_register_prim(global, thread, ">CONSOLE-INPUT", af_prim_to_console_input,
 		   FALSE);
-  af_register_prim(global, thread, "SPAWN-EVALUATE", af_prim_spawn_evaluate,
+  af_register_prim(global, thread, ">CONSOLE-OUTPUT", af_prim_to_console_output,
 		   FALSE);
+  af_register_prim(global, thread, ">CONSOLE-ERROR", af_prim_to_console_error,
+		   FALSE);
+  af_register_prim(global, thread, "CONSOLE-INPUT>",
+		   af_prim_from_console_input, FALSE);
+  af_register_prim(global, thread, "CONSOLE-OUTPUT>",
+		   af_prim_from_console_output, FALSE);
+  af_register_prim(global, thread, "CONSOLE-ERROR>",
+		   af_prim_from_console_error, FALSE);
+  af_register_prim(global, thread, ">INIT-WORD", af_prim_to_init_word, FALSE);
+  af_register_prim(global, thread, ">INTERPRET", af_prim_to_interpret, FALSE);
+  af_register_prim(global, thread, "START", af_prim_start, FALSE);
   af_register_prim(global, thread, "KILL", af_prim_kill, FALSE);
   af_register_prim(global, thread, "YIELD", af_prim_yield, FALSE);
   af_register_prim(global, thread, "SLEEP", af_prim_sleep, FALSE);
@@ -649,12 +759,17 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "INPUT-INDEX", af_prim_input_index, FALSE);
   af_register_prim(global, thread, "INPUT-IS-CLOSED", af_prim_input_is_closed,
 		   FALSE);
-  af_register_prim(global, thread, "INPUT-IS-FREEABLE",
-		   af_prim_input_is_freeable, FALSE);
-  af_register_prim(global, thread, "INPUT-IS-BUFFER-FREEABLE",
-		   af_prim_input_is_buffer_freeable, FALSE);
+  af_register_prim(global, thread, "INPUT-CLEANUP", af_prim_input_cleanup,
+		   FALSE);
   af_register_prim(global, thread, "INPUT-REFILL", af_prim_input_refill, FALSE);
   af_register_prim(global, thread, "INPUT-ARG", af_prim_input_arg, FALSE);
+  af_register_prim(global, thread, "OUTPUT-SIZE", af_prim_output_size, FALSE);
+  af_register_prim(global, thread, "OUTPUT-NEXT-OUTPUT",
+		   af_prim_output_next_output, FALSE);
+  af_register_prim(global, thread, "OUTPUT-WRITE", af_prim_output_write, FALSE);
+  af_register_prim(global, thread, "OUTPUT-CLEANUP", af_prim_output_cleanup,
+		   FALSE);
+  af_register_prim(global, thread, "OUTPUT-ARG", af_prim_output_arg, FALSE);
 }
 
 /* Docol primitive */
@@ -1372,15 +1487,148 @@ void af_prim_source(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
-/* EVALUATE primitive */
-void af_prim_evaluate(af_global_t* global, af_thread_t* thread) {
-  af_byte_t* text;
-  af_cell_t count;
+/* >INPUT primitive */
+void af_prim_to_input(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
-  count = *thread->data_stack_current++;
-  text = (af_byte_t*)(*thread->data_stack_current++);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->current_input = (af_input_t*)(*thread->data_stack_current++);
   AF_ADVANCE_IP(thread, 1);
-  af_evaluate(global, thread, text, count);
+}
+
+/* INPUT> primitive */
+void af_prim_from_input(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = (af_cell_t)target_thread->current_input;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >OUTPUT primitive */
+void af_prim_to_output(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->current_output = (af_output_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OUTPUT> primitive */
+void af_prim_from_output(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = (af_cell_t)target_thread->current_output;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >ERROR primitive */
+void af_prim_to_error(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->current_error = (af_output_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* ERROR> primitive */
+void af_prim_from_error(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = (af_cell_t)target_thread->current_error;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >DATA primitive */
+void af_prim_to_data(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_cell_t data;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  data = *thread->data_stack_current++;
+  af_push_data(global, target_thread, data);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >RETURN primitive */
+void af_prim_to_return(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_compiled_t* pointer;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  pointer = (af_compiled_t*)(*thread->data_stack_current++);
+  af_push_return(global, target_thread, pointer);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >CLEANUP primitive */
+void af_prim_to_cleanup(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->cleanup = (af_word_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* CLEANUP> primitive */
+void af_prim_from_cleanup(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = (af_cell_t)target_thread->cleanup;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >DEFAULT-CLEANUP primitive */
+void af_prim_to_default_cleanup(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  global->default_cleaup = (af_word_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* DEFAULT-CLEANUP> primitive */
+void af_prim_from_default_cleanup(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (af_cell_t)global->default_cleanup;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >DROP-INPUT primitive */
+void af_prim_to_drop_input(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->drop_input = (af_word_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* DROP-INPUT> primitive */
+void af_prim_from_drop_input(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = (af_cell_t)target_thread->drop_input;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >DEFAULT-DROP-INPUT primitive */
+void af_prim_to_default_drop_input(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  global->default_cleaup = (af_word_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* DEFAULT-DROP-INPUT> primitive */
+void af_prim_from_default_drop_input(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (af_cell_t)global->default_drop_input;
+  AF_ADVANCE_IP(thread, 1);
 }
 
 /* ALLOCATE primitive */
@@ -1482,35 +1730,95 @@ void af_prim_this_thread(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
-/* SPAWN-EXECUTE primitive */
-void af_prim_spawn_execute(af_global_t* global, af_thread_t* thread) {
-  af_word_t* word;
+/* SPAWN primitive */
+void af_prim_spawn(af_global_t* global, af_thread_t* thread) {
   af_thread_t* new_thread;
-  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  word = (af_word_t*)(*thread->data_stack_current);
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
   if(!(new_thread = af_spawn(global))) {
     return;
   }
-  af_set_init_word(global, new_thread, word);
-  af_start(global, new_thread);
   *thread->data_stack_current = (af_cell_t)new_thread;
   AF_ADVANCE_IP(thread, 1);
 }
 
-/* SPAWN-EVALUATE primitive */
-void af_prim_spawn_evaluate(af_global_t* global, af_thread_t* thread) {
-  af_af_byte_t* text;
-  af_af_cell_t count;
-  af_thread_t* new_thread;
+/* >CONSOLE-INPUT primitive */
+void af_prim_to_console_input(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
-  count = *thread->data_stack_current;
-  text = (af_af_byte_t*)(*(thread->data_stack_current + 1));
-  if(!(new_thread = af_spawn(global))) {
-    return;
-  }
-  af_evaluate(global, new_thread, text, count);
-  af_start(global, new_thread);
-  *(++thread->data_stack_current) = (af_cell_t)new_thread;
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->console_input = (af_input_t*)(*thread->data_stack_current++);
+   input;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >CONSOLE-OUTPUT primitive */
+void af_prim_to_console_output(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->console_output = (af_output_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >CONSOLE-ERROR primitive */
+void af_prim_to_console_error(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->console_error = (af_output_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* CONSOLE-INPUT> primitive */
+void af_prim_from_console_input(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)((af_thread_t*)(*thread->data_stack_current))->console_input;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* CONSOLE-OUTPUT> primitive */
+void af_prim_from_console_out(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)((af_thread_t*)(*thread->data_stack_current))->console_output;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* CONSOLE-ERROR> primitive */
+void af_prim_from_console_err(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)((af_thread_t*)(*thread->data_stack_current))->console_error;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >INIT-WORD primitive */
+void af_prim_to_init_word(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  word = (af_word_t*)(*thread->data_stack_current++);
+  af_set_init_word(global, target_thread, word);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >INTERPRET primitive */
+void af_prim_to_interpret(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  af_interpret(global, target_thread);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* START primitive */
+void af_prim_start(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  af_start(global, target_thread);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1518,7 +1826,7 @@ void af_prim_spawn_evaluate(af_global_t* global, af_thread_t* thread) {
 void af_prim_kill(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  target_thread = (af_thread_t*)(thread->data_stack_current++);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
   af_kill(global, target_thread);
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1533,7 +1841,7 @@ void af_prim_yield(af_global_t* global, af_thread_t* thread) {
 void af_prim_sleep(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  target_thread = (af_thread_t*)(thread->data_stack_current++);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
   af_sleep(global, target_thread);
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1542,7 +1850,7 @@ void af_prim_sleep(af_global_t* global, af_thread_t* thread) {
 void af_prim_wake(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  target_thread = (af_thread_t*)(thread->data_stack_current++);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
   af_wake(global, target_thread);
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1551,7 +1859,7 @@ void af_prim_wake(af_global_t* global, af_thread_t* thread) {
 void af_prim_reset(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  target_thread = (af_thread_t*)(thread->data_stack_current++);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
   af_reset(global, target_thread);
   AF_ADVANCE_IP(thread, 1);
 }
@@ -2129,21 +2437,11 @@ void af_prim_input_is_closed(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
-/* INPUT-IS-FREEABLE primitive */
-void af_prim_input_is_freeable(af_global_t* global, af_thread_t* thread) {
+/* INPUT-CLEANUP primitive */
+void af_prim_input_cleanup(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   *thread->data_stack_current =
-    (af_cell_t)(&((af_input_t*)(*thread->data_stack_current))->is_freeable);
-  AF_ADVANCE_IP(thread, 1);
-}
-
-/* INPUT-IS-BUFFER-FREEABLE primitive */
-void af_prim_input_is_buffer_freeable(af_global_t* global,
-				      af_thread_t* thread) {
-  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  *thread->data_stack_current =
-    (af_cell_t)(&((af_input_t*)
-		  (*thread->data_stack_current))->is_buffer_freeable);
+    (af_cell_t)(&((af_input_t*)(*thread->data_stack_current))->cleanup);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -2160,5 +2458,44 @@ void af_prim_input_arg(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   *thread->data_stack_current =
     (af_cell_t)(&((af_input_t*)(*thread->data_stack_current))->arg);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OUTPUT-SIZE primitive */
+void af_prim_output_size(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (af_cell_t)sizeof(af_output_t);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OUTPUT-NEXT-OUTPUT primitive */
+void af_prim_output_next_output(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)(&((af_output_t*)(*thread->data_stack_current))->next_output);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OUTPUT-WRITE primitive */
+void af_prim_output_write(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)(&((af_output_t*)(*thread->data_stack_current))->write);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OUTPUT-CLEANUP primitive */
+void af_prim_output_cleanup(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)(&((af_output_t*)(*thread->data_stack_current))->cleanup);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* OUTPUT-ARG primitive */
+void af_prim_output_arg(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  *thread->data_stack_current =
+    (af_cell_t)(&((af_output_t*)(*thread->data_stack_current))->arg);
   AF_ADVANCE_IP(thread, 1);
 }

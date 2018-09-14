@@ -36,6 +36,7 @@
 #include "af/types.h"
 #include "af/cond.h"
 #include "af/inner.h"
+#include "af/io.h"
 
 /* Forward declarations */
 
@@ -139,14 +140,14 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
       if(!af_refill(global, thread)) {
 	if(thread->return_stack_current < thread->return_stack_base) {
 	  thread->interpreter_pointer = *thread->return_stack_current++;
-	  af_pop_input(global, thread);
+	  af_drop_input(global, thread);	  
 	} else {
 	  af_kill(global, thread);
 	}
       }
     } else if(thread->return_stack_current < thread->return_stack_base) {
       thread->interpreter_pointer = *thread->return_stack_current++;
-      af_pop_input(global, thread);
+      af_drop_input(global, thread);
     } else {
       af_kill(global, thread);
     }
@@ -215,25 +216,17 @@ af_thread_t* af_spawn(af_global_t* global) {
     data_space_base + global->default_data_space_count;
   thread->most_recent_word = NULL;
   thread->console_input = NULL;
+  thread->console_output = NULL;
+  thread->console_error = NULL;
   thread->current_input = NULL;
+  thread->current_output = NULL;
+  thread->current_error = NULL;
   thread->base = 10;
   thread->current_interactive_word = NULL;
-  thread->repeat_interactive = FALSE
+  thread->repeat_interactive = FALSE;
+  thread->cleanup = global->default_cleanup;
+  thread->drop_input = global->drop_input;
   return thread;
-}
-
-void af_set_console(af_global_t* global, af_thread_t* thread,
-		    af_input_t* input) {
-  af_input_t* current_input = thread->current_input;
-  thread->console_input = input;
-  if(!current_input) {
-    thread->current_input = input;
-    return;
-  }
-  while(current_input->next_input && current_input->next_input != input) {
-    current_input = current_input->next_input;
-  }
-  current_input->next_input = input;
 }
 
 void af_set_init_word(af_global_t* global, af_thread_t* thread,
@@ -250,8 +243,25 @@ void af_interpret(af_global_t* global, af_thread_t* thread, af_input_t* input) {
   }
   *(--thread->return_stack_current) = thread->interpreter_pointer;
   thread->interpreter_pointer = NULL;
-  input->next_input = thread->current_input;
-  thread->current_input = input;
+}
+
+void af_push_data(af_global_t* global, af_thread_t* thread, af_cell_t data) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = data;
+}
+
+void af_push_return(af_global_t* global, af_thread_t* thread,
+		    af_compiled_t* pointer) {
+  AF_VERIFY_RETURN_STACK_EXPAND(global, thread, 1);
+  *(--thread->return_stack_current) = pointer;
+}
+
+void af_drop_input(af_global_t* global, af_thread_t* thread) {
+  if(thread->current_input && thread->drop_input) {
+    AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+    *(--thread->data_stack_current) = (af_cell_t)thread;
+    thread->drop_input->code(global, thread);
+  }
 }
 
 void af_start(af_global_t* global, af_thread_t* thread) {
@@ -295,14 +305,11 @@ void af_reset(af_global_t* global, af_thread_t* thread) {
   thread->most_recent_word = NULL;
   thread->current_interactive_word = NULL;
   thread->repeat_interactive_word = NULL;
-  while(thread->current_input &&
-	thread->current_input != thread->console_input) {
-    af_pop_input(global, thread);
-  }
   thread->base = 10;
-  if(thread->current_input) {
-    thread->current_input->count = 0;
-    thread->current_input->index = 0;
+  if(thread->cleanup) {
+    AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+    *(--thread->data_stack_current) = (af_cell_t)thread;
+    thread->cleanup->code(global, thread);
   }
 }
 
@@ -312,45 +319,16 @@ void af_quit(af_global_t* global, af_thread_t* thread) {
   thread->return_stack_current = thread->return_stack_base;
   thread->current_interactive_word = NULL;
   thread->repeat_interactive_word = NULL;
-  while(thread->current_input &&
-	thread->current_input != thread->console_input) {
-    af_pop_input(global, thread);
-  }
-  if(thread->current_input) {
-    thread->current_input->count = 0;
-    thread->current_input->index = 0;
+  if(thread->cleanup) {
+    AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+    *(--thread->data_stack_curent) = (af_cell_t)thread;
+    thread->cleanup->code(global, thread);
   }
 }
 
 void af_repeat_interactive(af_global_t* global, af_thread_t* thread) {
   if(!thread->interpreter_pointer) {
     thread->repeat_interactive = TRUE;
-  }
-}
-
-void af_pop_input(af_global_t* global, af_thread_t* thread) {
-  af_input_t* current_input = thread->current_input;
-  if(thread->current_input) {
-    thread->current_input = current_input->next_input;
-    if(current_input->is_buffer_freeable) {
-      free(current_input->buffer);
-    }
-    if(current_input->is_freeable) {
-      free(current_input);
-    }
-  }
-}
-
-void af_pop_all_inputs(af_thread_t* thread) {
-  while(thread->current_input) {
-    af_input_t* current_input = thread->current_input;
-    thread->current_input = current_input->next_input;
-    if(current_input->is_buffer_freeable) {
-      free(current_input->buffer);
-    }
-    if(current_input->is_freeable) {
-      free(current_input);
-    }
   }
 }
 
@@ -636,36 +614,20 @@ af_bool_t af_refill(af_global_t* global, af_thread_t* thread) {
   }
 }
 
-af_input_t* af_new_string_input(af_byte_t* text, af_cell_t count) {
-  af_byte_t* buffer = malloc(count * sizeof(af_byte_t));
+af_input_t* af_new_string_input(af_byte_t* buffer, af_cell_t count) {
   af_input_t* input;
-  if(!buffer) {
-    return NULL;
-  }
   input = malloc(sizeof(af_input_t));
   if(!input) {
-    free(buffer);
     return NULL;
   }
-  memcpy(buffer, text, count * sizeof(af_byte_t));
   input->next_input = NULL;
   input->buffer = buffer;
   input->count = count;
   input->index = 0;
   input->is_closed = TRUE;
   input->is_freeable = TRUE;
-  input->is_buffer_freeable = TRUE;
+  input->is_buffer_freeable = FALSE;
   return input;
-}
-
-void af_evaluate(af_global_t* global, af_thread_t* thread, af_byte_t* text,
-		 af_cell_t count) {
-  af_input_t* input = af_new_string_input(text, count);
-  if(!input) {
-    af_handle_out_of_memory(global, thread);
-    return;
-  }
-  af_interpret(global, thread, input);
 }
 
 af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
