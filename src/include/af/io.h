@@ -70,7 +70,7 @@
 /* Function declarations */
 
 /* Initialize IO manager */
-void af_io_init(af_io_t* io, af_global_t* global);
+af_bool_t af_io_init(af_io_t* io, af_global_t* global);
 
 /* Destroy IO manager */
 void af_io_destroy(af_io_t* io);

@@ -34,7 +34,7 @@
 
 /* Some definitions */
 
-#define TRUE (-1);
-#define FALSE (0);
+#define TRUE (-1)
+#define FALSE (0)
 
 #endif /* AF_COMMON_H */

@@ -143,6 +143,7 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     "' DROP-INPUT DUP >DEFAULT-DROP-INPUT THIS-THREAD >DROP-INPUT "
     ": TYPE THIS-THREAD CONSOLE-OUT> OUTPUT-WRITE @ EXECUTE ; "
     ": EMIT HERE C! HERE 1 TYPE ; "
+    ": CR NEWLINE EMIT ; "
     ": .\" SKIP-WHITESPACE [CHAR] \" PARSE DUP ALLOCATE! 2DUP POSTPONE "
     "  (LITERAL) , POSTPONE (LITERAL) , SWAP MOVE POSTPONE TYPE ; IMMEDIATE "
     ": .( SKIP-WHITESPACE [CHAR] ) PARSE TYPE ; IMMEDIATE "
@@ -183,7 +184,7 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     "      ELSE DROP THEN TRUE "
     "    ELSE
            OVER TRY-EXPAND-TERMINAL-BUFFER OVER INPUT-COUNT @ DUP 2 PICK "
-    "      INPUT-BUFFER @ + ROT SWAP C! 1+ SWAP INPUT-COUNT ! "
+    "      INPUT-BUFFER @ + ROT DUP EMIT SWAP C! 1+ SWAP INPUT-COUNT ! "
     "    THEN THEN "
     "  ELSE DROP TRUE SWAP INPUT-IS-CLOSED ! FALSE ; "
     ": REFILL-TERMINAL ( source -- ) "
@@ -201,7 +202,31 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     "  ['] TERMINAL>SOURCE-CLEANUP OVER INPUT-CLEANUP ! "
     "  ['] REFILL-TERMINAL OVER INPUT-REFILL ! "
     "  0 OVER INPUT-NEXT-INPUT ! ; "
-  if(!(input = af_new_string_input(code, (af_cell_t)strlen(code)))) {
+    ": TERMINAL-INTERACTIVE-ENDLINE ( thread -- ) "
+    "  DUP INPUT> OVER CONSOLE-INPUT> = IF "
+    "    STATE @ IF "
+    "      .\" compiled\" CR "
+    "    ELSE "
+    "      .\" ok\" CR "
+    "    THEN "
+    "  THEN INPUT> REFILL-TERMINAL ; "
+    "' TERMINAL-INTERACTIVE-ENDLINE DUP >DEFAULT-INTERACTIVE-ENDLINE "
+    "THIS-THREAD >INTERACTIVE-ENDLINE "
+    "INPUT-STDIN TERMINAL>SOURCE THIS-THREAD >CONSOLE-INPUT "
+    ": FD>OUTPUT-CLEANUP ( output -- ) FREE ; "
+    ": FD.OUTPUT-WRITE ( addr n output -- ) "
+    "  OUTPUT-ARG @ IO-WRITE-ASYNC IO-WRITE-DESTROY ; "
+    ": FD>OUTPUT ( fd -- output ) "
+    "  OUTPUT-SIZE ALLOCATE SWAP OVER OUTPUT-ARG ! "
+    "  0 OVER OUTPUT-NEXT-OUTPUT ! "
+    "  ['] FD>OUTPUT-WRITE OVER OUTPUT-WRITE ! "
+    "  ['] FD>OUTPUT-CLEANUP OVER OUTPUT-CLEANUP ! ; "
+    "IO-STDOUT FD>OUTPUT THIS-THREAD >OUTPUT "
+    "IO-STDERR FD>OUTPUT THIS-THREAD >ERROR "
+    ": OLD-SPAWN SPAWN ; "
+    ": SPAWN OLD-SPAWN IO-STDOUT FD>OUTPUT OVER >CONSOLE-OUTPUT "
+    "  IO-STDERR FD>OUTPUT OVER >CONSOLE-ERROR ; ";
+  if(!(input = af_new_string_input(global, code, (af_cell_t)strlen(code)))) {
     af_handle_out_of_memory(global, thread);
     return;
   }

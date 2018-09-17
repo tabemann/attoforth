@@ -61,14 +61,14 @@ void* af_io_main(void* arg);
 /* Function definitions */
 
 /* Initialize IO manager */
-void af_io_init(af_io_t* io, af_global_t* global) {
+af_bool_t af_io_init(af_io_t* io, af_global_t* global) {
   af_io_fd_t pipefd[2];
   if(pthread_mutex_init(&io->mutex, NULL)) {
-    return NULL;
+    return FALSE;
   }
   if(pipe(pipefd)) {
     pthread_mutex_destroy(&io->mutex);
-    return NULL;
+    return FALSE;
   }
   io->global = global;
   io->break_fd_out = pipefd[0];
@@ -77,7 +77,7 @@ void af_io_init(af_io_t* io, af_global_t* global) {
     close(io->break_fd_out);
     close(io->break_fd_in);
     pthread_mutex_destroy(&io->mutex);
-    return NULL;
+    return FALSE;
   }
   io->active_action_count = 0;
   io->first_active_action = NULL;
@@ -89,9 +89,9 @@ void af_io_init(af_io_t* io, af_global_t* global) {
     close(io->break_fd_out);
     close(io->break_fd_in);
     pthread_mutex_destroy(&io->mutex);
-    return NULL;
+    return FALSE;
   }
-  return io;
+  return TRUE;
 }
 
 /* Destroy IO manager */

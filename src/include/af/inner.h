@@ -113,6 +113,10 @@
 
 /* Function declarations */
 
+af_global_t* af_global_init(void);
+
+void af_global_execute(af_global_t* global);
+
 void af_thread_loop(af_global_t* global);
 
 void af_lock(af_global_t* global);
@@ -132,6 +136,8 @@ void af_push_return(af_global_t* global, af_thread_t* thread,
 		    af_compiled_t* pointer);
 
 void af_drop_input(af_global_t* global, af_thread_t* thread);
+
+void af_interactive_endline(af_global_t* global, af_thread_t* thread);
 
 void af_start(af_global_t* global, af_thread_t* thread);
 
@@ -183,7 +189,7 @@ void* af_guarantee(af_global_t* global, af_thread_t* thread, size_t size);
 
 void* af_allocate(af_global_t* global, af_thread_t* thread, size_t size);
 
-void* af_allot(af_global_t* global, af_thread_t* thread, size_t size);
+void* af_allot(af_global_t* global, af_thread_t* thread, ssize_t size);
 
 af_bool_t af_word_available(af_global_t* global, af_thread_t* thread,
 			    af_byte_t delimiter);
@@ -195,12 +201,19 @@ af_bool_t af_parse_name_available(af_global_t* global, af_thread_t* thread);
 af_byte_t* af_parse_name(af_global_t* global, af_thread_t* thread,
 		       af_cell_t* length);
 
-af_bool_t af_refill(af_global_t* global, af_thread_t* thread);
+af_bool_t af_parse_number(af_global_t* global, af_byte_t* text,
+			  size_t length, af_sign_cell_t* result);
 
-af_input_t* af_new_string_input(af_byte_t* buffer, af_cell_t count);
+void af_refill(af_global_t* global, af_thread_t* thread);
+
+af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
+				af_cell_t count);
 
 af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
 			    af_byte_t* name, af_prim_t prim,
 			    af_bool_t is_immediate);
+
+af_word_t* af_lookup(af_global_t* global, af_byte_t* name,
+		     af_cell_t name_length);
 
 #endif /* AF_INNER_H */

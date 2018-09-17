@@ -37,7 +37,7 @@
 
 /* Functions to act on condition variables */
 
-void af_cond_init(af_cond_t* cond);
+af_bool_t af_cond_init(af_cond_t* cond);
 
 void af_cond_destroy(af_cond_t* cond);
 

@@ -28,41 +28,21 @@
  * POSSIBILITY OF SUCH DAMAGE. */
 
 #include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <ctype.h>
 #include <pthread.h>
 #include "af/common.h"
 #include "af/types.h"
-#include "af/cond.h"
 #include "af/inner.h"
 
-af_bool_t af_cond_init(af_cond_t* cond) {
-  if(pthread_cond_init(&cond->cond, NULL)) {
-    return FALSE;
+/* Main function */
+int main(int argc, char** argv) {
+  af_global_t* global = af_global_init();
+  if(!global) {
+    abort();
   }
-  if(pthread_mutex_init(&cond->mutex, NULL)) {
-    pthread_cond_destroy(&cond->cond);
-  }
-  cond->count = 0;
-}
-
-void af_cond_destroy(af_cond_t* cond) {
-  pthread_mutex_destroy(&cond->mutex);
-  pthread_cond_destroy(&cond->cond);
-}
-
-void af_cond_wait(af_cond_t* cond) {
-  pthread_mutex_lock(&cond->mutex);
-  if(!cond->count) {
-    pthread_cond_wait(&cond->cond, &cond->mutex);
-  }
-  cond->count = 0;
-  pthread_mutex_unlock(&cond->mutex);
-}
-
-void af_cond_signal(af_cond_t* cond) {
-  pthread_mutex_lock(&cond->mutex);
-  cond->count++;
-  pthread_cond_signal(&cond->cond);
-  pthread_mutex_unlock(&cond->mutex);
+  af_global_execute(global);
+  return 0;
 }

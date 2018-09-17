@@ -216,6 +216,9 @@ void af_prim_bracket_tick(af_global_t* global, af_thread_t* thread);
 /* EXECUTE primitive */
 void af_prim_execute(af_global_t* global, af_thread_t* thread);
 
+/* STATE primitive */
+void af_prim_state(af_global_t* global, af_thread_t* thread);
+
 /* LATESTXT primitive */
 void af_prim_latestxt(af_global_t* global, af_thread_t* thread);
 
@@ -273,6 +276,18 @@ void af_prim_to_default_drop_input(af_global_t* global, af_thread_t* thread);
 /* DEFAULT-DROP-INPUT> primitive */
 void af_prim_from_default_drop_input(af_global_t* global, af_thread_t* thread);
 
+/* >INTERACTIVE-ENDLINE primitive */
+void af_prim_to_interactive_endline(af_global_t* global, af_thread_t* thread);
+
+/* INTERACTIVE-ENDLINE> primitive */
+void af_prim_from_interactive_endline(af_global_t* global, af_thread_t* thread);
+
+/* >DEFAULT-INTERACTIVE-ENDLINE primitive */
+void af_prim_to_default_interactive_endline(af_global_t* global, af_thread_t* thread);
+
+/* DEFAULT-INTERACTIVE-ENDLINE> primitive */
+void af_prim_from_default_interactive_endline(af_global_t* global, af_thread_t* thread);
+
 /* ALLOCATE primitive */
 void af_prim_allocate(af_global_t* global, af_thread_t* thread);
 
@@ -307,16 +322,19 @@ void af_prim_spawn(af_global_t* global, af_thread_t* thread);
 void af_prim_to_console_input(af_global_t* global, af_thread_t* thread);
 
 /* >CONSOLE-OUT primitive */
-void af_prim_to_console_out(af_global_t* global, af_thread_t* thread);
+void af_prim_to_console_output(af_global_t* global, af_thread_t* thread);
 
 /* >CONSOLE-ERR primitive */
-void af_prim_to_console_err(af_global_t* global, af_thread_t* thread);
+void af_prim_to_console_error(af_global_t* global, af_thread_t* thread);
+
+/* CONSOLE-INPUT> primitive */
+void af_prim_from_console_input(af_global_t* global, af_thread_t* thread);
 
 /* CONSOLE-OUT> primitive */
-void af_prim_from_console_out(af_global_t* global, af_thread_t* thread);
+void af_prim_from_console_output(af_global_t* global, af_thread_t* thread);
 
 /* CONSOLE-ERR> primitive */
-void af_prim_from_console_err(af_global_t* global, af_thread_t* thread);
+void af_prim_from_console_error(af_global_t* global, af_thread_t* thread);
 
 /* >INIT-WORD primitive */
 void af_prim_to_init_word(af_global_t* global, af_thread_t* thread);
@@ -365,9 +383,6 @@ void af_prim_branch(af_global_t* global, af_thread_t* thread);
 
 /* ?BRANCH primitive */
 void af_prim_cond_branch(af_global_t* global, af_thread_t* thread);
-
-/* STATE primitive */
-void af_prim_state(af_global_t* global, af_thread_t* thread);
 
 /* MOVE primitive */
 void af_prim_move(af_global_t* global, af_thread_t* thread);
@@ -623,6 +638,7 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "'", af_prim_tick, FALSE);
   af_register_prim(global, thread, "[']", af_prim_bracket_tick, TRUE);
   af_register_prim(global, thread, "EXECUTE", af_prim_execute, FALSE);
+  af_register_prim(global, thread, "STATE", af_prim_state, FALSE);
   af_register_prim(global, thread, "LATESTXT", af_prim_latestxt, FALSE);
   af_register_prim(global, thread, ">IN", af_prim_to_in, FALSE);
   af_register_prim(global, thread, "SOURCE", af_prim_source, FALSE);
@@ -647,8 +663,16 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
 		   af_prim_to_default_drop_input, FALSE);
   af_register_prim(global, thread, "DEFAULT-DROP-INPUT>",
 		   af_prim_from_default_drop_input, FALSE);
+  af_register_prim(global, thread, ">INTERACTIVE-ENDLINE", af_prim_to_interactive_endline, FALSE);
+  af_register_prim(global, thread, "INTERACTIVE-ENDLINE>", af_prim_from_interactive_endline,
+		   FALSE);
+  af_register_prim(global, thread, ">DEFAULT-INTERACTIVE-ENDLINE",
+		   af_prim_to_default_interactive_endline, FALSE);
+  af_register_prim(global, thread, "DEFAULT-INTERACTIVE-ENDLINE>",
+		   af_prim_from_default_interactive_endline, FALSE);
   af_register_prim(global, thread, "ALLOCATE", af_prim_allocate, FALSE);
-  af_register_prim(global, thread, "FREE", af_prim_free, FALSE);
+  global->builtin_free =
+    af_register_prim(global, thread, "FREE", af_prim_free, FALSE);
   af_register_prim(global, thread, "RESIZE", af_prim_resize, FALSE);
   af_register_prim(global, thread, "ALIGN", af_prim_align, FALSE);
   af_register_prim(global, thread, "ALLOT", af_prim_allot, FALSE);
@@ -683,7 +707,6 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   af_register_prim(global, thread, "POSTPONE", af_prim_postpone, TRUE);
   af_register_prim(global, thread, "BRANCH", af_prim_branch, FALSE);
   af_register_prim(global, thread, "?BRANCH", af_prim_cond_branch, FALSE);
-  af_register_prim(global, thread, "STATE", af_prim_state, FALSE);
   af_register_prim(global, thread, "MOVE", af_prim_move, FALSE);
   af_register_prim(global, thread, "DEPTH", af_prim_depth, FALSE);
   af_register_prim(global, thread, "CELL-SIZE", af_prim_cell_size, FALSE);
@@ -776,9 +799,9 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
 void af_prim_docol(af_global_t* global, af_thread_t* thread) {
   if(thread->return_stack_current > thread->return_stack_top) {
     *(--thread->return_stack_current) =
-      interpreter_pointer ? interpreter_pointer + 1 : NULL;
+      thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
     thread->interpreter_pointer =
-      interpreter_pointer->compiled_call->secondary;
+      thread->interpreter_pointer->compiled_call->secondary;
   } else {
     af_handle_return_stack_overflow(global, thread);
   }
@@ -811,9 +834,9 @@ void af_prim_do_does(af_global_t* global, af_thread_t* thread) {
       *(--thread->data_stack_current) =
 	(af_cell_t)thread->interpreter_pointer->compiled_call->data;
       *(--thread->return_stack_current) =
-	interpreter_pointer ? interpreter_pointer + 1 : NULL;
+	thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
       thread->interpreter_pointer =
-	interpreter_pointer->compiled_call->secondary;
+	thread->interpreter_pointer->compiled_call->secondary;
     } else {
       af_handle_return_stack_overflow(global, thread);
     }
@@ -826,7 +849,7 @@ void af_prim_do_does(af_global_t* global, af_thread_t* thread) {
 void af_prim_literal_runtime(af_global_t* global, af_thread_t* thread) {
   if(--thread->data_stack_current >= thread->data_stack_top) {
     *thread->data_stack_current =
-      (af_cell_t)(*(thread->interpreter_pointer + 1));
+      (thread->interpreter_pointer + 1)->compiled_cell;
     AF_ADVANCE_IP(thread, 2);
   } else {
     af_handle_data_stack_overflow(global, thread);
@@ -838,7 +861,7 @@ void af_prim_literal(af_global_t* global, af_thread_t* thread) {
   af_compiled_t* slot;
   AF_VERIFY_COMPILING(global, thread);
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  slot = af_allot(global, thread, sizeof(af_compile_t) * 2);
+  slot = af_allot(global, thread, sizeof(af_compiled_t) * 2);
   if(slot) {
     slot->compiled_call = global->builtin_literal_runtime;
     (slot + 1)->compiled_cell = *thread->data_stack_current++;
@@ -862,7 +885,7 @@ void af_prim_create(af_global_t* global, af_thread_t* thread) {
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
   word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
-  *(af_byte_t)(word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
+  *(af_byte_t*)(word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
   memmove(word_space + sizeof(af_word_t) + sizeof(af_byte_t), name,
 	  (size_t)name_length);
   word = word_space;
@@ -890,7 +913,7 @@ void af_prim_colon(af_global_t* global, af_thread_t* thread) {
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
   word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
-  *(af_byte_t)(word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
+  *(af_byte_t*)(word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
   memmove(word_space + sizeof(af_word_t) + sizeof(af_byte_t), name,
 	  (size_t)name_length);
   word = word_space;
@@ -901,7 +924,7 @@ void af_prim_colon(af_global_t* global, af_thread_t* thread) {
   word->secondary = word_space + sizeof(af_word_t) + name_size;
   thread->most_recent_word = word;
   global->first_word = word;
-  thread->is_compiling = true;
+  thread->is_compiling = TRUE;
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -916,9 +939,9 @@ void af_prim_colon_noname(af_global_t* global, af_thread_t* thread) {
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
   word->data = NULL;
-  word->secondary = word_space + sizeof(af_word_t) + name_size;
+  word->secondary = word_space + sizeof(af_word_t);
   thread->most_recent_word = word;
-  thread->is_compiling = true;
+  thread->is_compiling = TRUE;
   *(--thread->data_stack_current) = (af_cell_t)word;
   AF_ADVANCE_IP(thread, 1);
 }
@@ -926,14 +949,14 @@ void af_prim_colon_noname(af_global_t* global, af_thread_t* thread) {
 /* ; primitive - immediate */
 void af_prim_semi(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_COMPILING(global, thread);
-  thread->is_compiling = false;
+  thread->is_compiling = FALSE;
   AF_ADVANCE_IP(thread, 1);
 }
 
 /* IMMEDIATE primitive */
 void af_prim_immediate(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_WORD_CREATED(global, thread);
-  thread->most_recent_word->is_immediate = true;
+  thread->most_recent_word->is_immediate = TRUE;
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1082,7 +1105,7 @@ void af_prim_add(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 + value1;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 + value1);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1093,7 +1116,7 @@ void af_prim_sub(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 - value1;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 - value1);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1104,7 +1127,7 @@ void af_prim_mul(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 * value1;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 * value1);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1119,7 +1142,7 @@ void af_prim_div(af_global_t* global, af_thread_t* thread) {
     af_handle_divide_by_zero(global, thread);
     return;
   }
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 / value1;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 / value1);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1134,7 +1157,7 @@ void af_prim_mod(af_global_t* global, af_thread_t* thread) {
     af_handle_divide_by_zero(global, thread);
     return;
   }
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 % value1;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 % value1);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1185,7 +1208,7 @@ void af_prim_lt(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 < value1 ? -1 : 0;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 < value1 ? -1 : 0);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1196,7 +1219,7 @@ void af_prim_lte(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 <= value1 ? -1 : 0;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 <= value1 ? -1 : 0);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1207,7 +1230,7 @@ void af_prim_gt(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 > value1 ? -1 : 0;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 > value1 ? -1 : 0);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1218,7 +1241,7 @@ void af_prim_gte(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 >= value1 ? -1 : 0;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 >= value1 ? -1 : 0);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1229,7 +1252,7 @@ void af_prim_eq(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 == value1 ? -1 : 0;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 == value1 ? -1 : 0);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1240,7 +1263,7 @@ void af_prim_ne(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   value0 = *((af_sign_cell_t*)thread->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)thread->data_stack_current;
-  *(++(af_sign_cell_t*)thread->data_stack_current) = value0 != value1 ? -1 : 0;
+  *(++thread->data_stack_current) = (af_cell_t)(value0 != value1 ? -1 : 0);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1341,7 +1364,7 @@ void af_prim_2_comma(af_global_t* global, af_thread_t* thread) {
 void af_prim_to_r(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   AF_VERIFY_RETURN_STACK_EXPAND(global, thread, 1);
-  *(--thread->return_stack_current) = (af_cell_t*)*thread->data_stack_current++;
+  *(af_cell_t*)(--thread->return_stack_current) = *thread->data_stack_current++;
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1349,7 +1372,8 @@ void af_prim_to_r(af_global_t* global, af_thread_t* thread) {
 void af_prim_from_r(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
   AF_VERIFY_RETURN_STACK_READ(global, thread, 1);
-  *(--thread->data_stack_current) = (af_cell_t)*thread->return_stack_current++;
+  *(--thread->data_stack_current) =
+    *(af_cell_t*)(thread->return_stack_current++);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1357,7 +1381,8 @@ void af_prim_from_r(af_global_t* global, af_thread_t* thread) {
 void af_prim_r_fetch(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
   AF_VERIFY_RETURN_STACK_READ(global, thread, 1);
-  *(--thread->data_stack_current) = (af_cell_t)*thread->return_stack_current;
+  *(--thread->data_stack_current) =
+    *(af_cell_t*)(thread->return_stack_current);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1365,8 +1390,9 @@ void af_prim_r_fetch(af_global_t* global, af_thread_t* thread) {
 void af_prim_two_to_r(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   AF_VERIFY_RETURN_STACK_EXPAND(global, thread, 2);
-  *(--thread->return_stack_current) = *(thread->data_stack_current + 1);
-  *(--thread->return_stack_current) = *thread->data_stack_current;
+  *(af_cell_t*)(--thread->return_stack_current) =
+    *(thread->data_stack_current + 1);
+  *(af_cell_t*)(--thread->return_stack_current) = *thread->data_stack_current;
   thread->data_stack_current += 2;
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1375,8 +1401,10 @@ void af_prim_two_to_r(af_global_t* global, af_thread_t* thread) {
 void af_prim_two_from_r(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 2);
   AF_VERIFY_RETURN_STACK_READ(global, thread, 2);
-  *(--thread->data_stack_current) = *(thread->return_stack_current + 1);
-  *(--thread->data_stack_current) = *thread->return_stack_current;
+  *(--thread->data_stack_current) =
+    *(af_cell_t*)(thread->return_stack_current + 1);
+  *(--thread->data_stack_current) =
+    *(af_cell_t*)(thread->return_stack_current);
   thread->return_stack_current += 2;
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1385,8 +1413,10 @@ void af_prim_two_from_r(af_global_t* global, af_thread_t* thread) {
 void af_prim_two_r_fetch(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 2);
   AF_VERIFY_RETURN_STACK_READ(global, thread, 2);
-  *(--thread->data_stack_current) = *(thread->return_stack_current + 1);
-  *(--thread->data_stack_current) = *thread->return_stack_current;
+  *(--thread->data_stack_current) =
+    *(af_cell_t*)(thread->return_stack_current + 1);
+  *(--thread->data_stack_current) =
+    *(af_cell_t*)(thread->return_stack_current);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1426,7 +1456,7 @@ void af_prim_tick(af_global_t* global, af_thread_t* thread) {
     return;
   }
   name = af_parse_name(global, thread, &name_length);
-  if(!(word = af_lookup(global, name))) {
+  if(!(word = af_lookup(global, name, name_length))) {
     af_handle_word_not_found(global, thread);
     return;
   }
@@ -1463,6 +1493,13 @@ void af_prim_bracket_tick(af_global_t* global, af_thread_t* thread) {
 void af_prim_execute(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   ((af_word_t*)(*thread->data_stack_current++))->code(global, thread);
+}
+
+/* STATE primitive */
+void af_prim_state(af_global_t* global, af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) = (af_cell_t)(&thread->is_compiling);
+  AF_ADVANCE_IP(thread, 1);
 }
 
 /* LATESTXT primitive */
@@ -1586,7 +1623,7 @@ void af_prim_from_cleanup(af_global_t* global, af_thread_t* thread) {
 /* >DEFAULT-CLEANUP primitive */
 void af_prim_to_default_cleanup(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  global->default_cleaup = (af_word_t*)(*thread->data_stack_current++);
+  global->default_cleanup = (af_word_t*)(*thread->data_stack_current++);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1620,7 +1657,7 @@ void af_prim_from_drop_input(af_global_t* global, af_thread_t* thread) {
 /* >DEFAULT-DROP-INPUT primitive */
 void af_prim_to_default_drop_input(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  global->default_cleaup = (af_word_t*)(*thread->data_stack_current++);
+  global->default_drop_input = (af_word_t*)(*thread->data_stack_current++);
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1631,13 +1668,53 @@ void af_prim_from_default_drop_input(af_global_t* global, af_thread_t* thread) {
   AF_ADVANCE_IP(thread, 1);
 }
 
+/* >INTERACTIVE-ENDLINE primitive */
+void af_prim_to_interactive_endline(af_global_t* global, af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 2);
+  target_thread = (af_thread_t*)(*thread->data_stack_current++);
+  target_thread->interactive_endline =
+    (af_word_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* INTERACTIVE-ENDLINE> primitive */
+void af_prim_from_interactive_endline(af_global_t* global,
+				      af_thread_t* thread) {
+  af_thread_t* target_thread;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  target_thread = (af_thread_t*)(*thread->data_stack_current);
+  *thread->data_stack_current = (af_cell_t)target_thread->interactive_endline;
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* >DEFAULT-INTERACTIVE-ENDLINE primitive */
+void af_prim_to_default_interactive_endline(af_global_t* global,
+					    af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
+  global->default_interactive_endline =
+    (af_word_t*)(*thread->data_stack_current++);
+  AF_ADVANCE_IP(thread, 1);
+}
+
+/* DEFAULT-INTERACTIVE-ENDLINE> primitive */
+void af_prim_from_default_interactive_endline(af_global_t* global,
+					      af_thread_t* thread) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+  *(--thread->data_stack_current) =
+    (af_cell_t)global->default_interactive_endline;
+  AF_ADVANCE_IP(thread, 1);
+}
+
 /* ALLOCATE primitive */
 void af_prim_allocate(af_global_t* global, af_thread_t* thread) {
   void* data;
-  AF_VEFIFY_DATA_STACK_READ(global, thread, 1);
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
   if(!(data = malloc((size_t)(*thread->data_stack_current)))) {
-    *thread->data_stack_current = NULL;
+    *thread->data_stack_current = (af_cell_t)NULL;
     *(--thread->data_stack_current) = 1;
     return;
   }
@@ -1660,7 +1737,7 @@ void af_prim_resize(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   if(!(data = realloc((void*)(*(thread->data_stack_current + 1)),
 		      (size_t)(*thread->data_stack_current)))) {
-    *(thread->data_stack_current + 1) = NULL;
+    *(thread->data_stack_current + 1) = (af_cell_t)NULL;
     *thread->data_stack_current = 1;
     return;
   }
@@ -1682,7 +1759,7 @@ void af_prim_align(af_global_t* global, af_thread_t* thread) {
 
 /* ALLOT primitive */
 void af_prim_allot(af_global_t* global, af_thread_t* thread) {
-  AF_VERIFY_DATA_STACK_READ(global, thread);
+  AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   if(!af_allot(global, thread, (ssize_t)(*thread->data_stack_current++))) {
     return;
   }
@@ -1691,7 +1768,7 @@ void af_prim_allot(af_global_t* global, af_thread_t* thread) {
 
 /* UNUSED primitive */
 void af_prim_unused(af_global_t* global, af_thread_t* thread) {
-  AF_VERIFY_DATA_STACK_EXPAND(global, thread);
+  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
   *(--thread->data_stack_current) =
     (af_cell_t)(thread->data_stack_top - thread->data_stack_current);
   AF_ADVANCE_IP(thread, 1);
@@ -1714,7 +1791,7 @@ void af_prim_parse_name(af_global_t* global, af_thread_t* thread) {
   af_cell_t length;
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 2);
   if(!af_parse_name_available(global, thread)) {
-    *(--thread->data_stack_current) = NULL;
+    *(--thread->data_stack_current) = (af_cell_t)NULL;
     *(--thread->data_stack_current) = 0;    
   }
   text = af_parse_name(global, thread, &length);
@@ -1744,28 +1821,57 @@ void af_prim_spawn(af_global_t* global, af_thread_t* thread) {
 /* >CONSOLE-INPUT primitive */
 void af_prim_to_console_input(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
+  af_input_t* current_input;
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   target_thread = (af_thread_t*)(*thread->data_stack_current++);
   target_thread->console_input = (af_input_t*)(*thread->data_stack_current++);
-   input;
+  current_input = target_thread->current_input;
+  while(current_input && current_input->next_input) {
+    current_input = current_input->next_input;
+  }
+  if(current_input) {
+    current_input->next_input = target_thread->console_input;
+  } else {
+    target_thread->current_input = target_thread->console_input;
+  }
   AF_ADVANCE_IP(thread, 1);
 }
 
 /* >CONSOLE-OUTPUT primitive */
 void af_prim_to_console_output(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
+  af_output_t* current_output;
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   target_thread = (af_thread_t*)(*thread->data_stack_current++);
   target_thread->console_output = (af_output_t*)(*thread->data_stack_current++);
+  current_output = target_thread->current_output;
+  while(current_output && current_output->next_output) {
+    current_output = current_output->next_output;
+  }
+  if(current_output) {
+    current_output->next_output = target_thread->console_output;
+  } else {
+    target_thread->current_output = target_thread->console_output;
+  }
   AF_ADVANCE_IP(thread, 1);
 }
 
 /* >CONSOLE-ERROR primitive */
 void af_prim_to_console_error(af_global_t* global, af_thread_t* thread) {
   af_thread_t* target_thread;
+  af_output_t* current_error;
   AF_VERIFY_DATA_STACK_READ(global, thread, 2);
   target_thread = (af_thread_t*)(*thread->data_stack_current++);
   target_thread->console_error = (af_output_t*)(*thread->data_stack_current++);
+  current_error = target_thread->current_error;
+  while(current_error && current_error->next_output) {
+    current_error = current_error->next_output;
+  }
+  if(current_error) {
+    current_error->next_output = target_thread->console_error;
+  } else {
+    target_thread->current_error = target_thread->console_error;
+  }
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -1899,7 +2005,7 @@ void af_prim_postpone(af_global_t* global, af_thread_t* thread) {
     return;
   }
   name = af_parse_name(global, thread, &name_length);
-  if(!(word = af_lookup(global, thread, name, name_length))) {
+  if(!(word = af_lookup(global, name, name_length))) {
     af_handle_word_not_found(global, thread);
     return;
   }
@@ -1908,12 +2014,12 @@ void af_prim_postpone(af_global_t* global, af_thread_t* thread) {
       return;
     }
     slot->compiled_call = global->builtin_postpone_runtime;
-    (slot + 1)->compiled_call = (af_cell_t)word;
+    (slot + 1)->compiled_cell = (af_cell_t)word;
   } else {
     if(!(slot = af_allot(global, thread, sizeof(af_compiled_t)))) {
       return;
     }
-    slot->compiled_call = (af_cell_t)word;
+    slot->compiled_call = word;
   }
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1924,7 +2030,7 @@ void af_prim_postpone_runtime(af_global_t* global, af_thread_t* thread) {
   if(!slot) {
     return;
   }
-  slot->compiled_call = (af_compiled_t)(*(thread->interpreter_pointer + 1));
+  slot->compiled_call = *(af_word_t**)(thread->interpreter_pointer + 1);
   AF_ADVANCE_IP(thread, 2);
 }
 
@@ -1932,7 +2038,7 @@ void af_prim_postpone_runtime(af_global_t* global, af_thread_t* thread) {
 void af_prim_branch(af_global_t* global, af_thread_t* thread) {
   if(thread->interpreter_pointer) {
     thread->interpreter_pointer =
-      (af_thread_t*)(*(thread->interpreter_pointer + 1));
+      (af_compiled_t*)((thread->interpreter_pointer + 1)->compiled_cell);
   } else {
     af_handle_not_interactive(global, thread);
   }
@@ -1942,23 +2048,16 @@ void af_prim_branch(af_global_t* global, af_thread_t* thread) {
 void af_prim_cond_branch(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   if(thread->interpreter_pointer) {
-    af_cell_t* value = *thread->data_stack_current++;
+    af_cell_t value = *thread->data_stack_current++;
     if(!value) {
       thread->interpreter_pointer =
-	(af_thread_t*)(*(thread->interpreter_pointer + 1));
+	(af_compiled_t*)((thread->interpreter_pointer + 1)->compiled_cell);
     } else {
       AF_ADVANCE_IP(thread, 2);
     }
   } else {
     af_handle_not_interactive(global, thread);
   }
-}
-
-/* STATE primitive */
-void af_prim_state(af_global_t* global, af_thread_t* thread) {
-  AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
-  *(--thread->data_stack_current) = (af_cell_t)(&thread->is_compiling);
-  AF_ADVANCE_IP(thread, 1);
 }
 
 /* MOVE primitive */
@@ -1989,16 +2088,21 @@ void af_prim_cell_size(af_global_t* global, af_thread_t* thread) {
 
 /* REFILL primitive */
 void af_prim_refill(af_global_t* global, af_thread_t* thread) {
-  if(!af_refill(global, thread)) {
-    AF_VERIFY_DATA_STACK(global, thread, 1);
+  af_refill(global, thread);
+  if(!thread->current_input || (thread->current_input->is_closed &&
+				!thread->current_input->count)) {
+    AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
     *(--thread->data_stack_current) = (af_cell_t)FALSE;
+  } else {
+    AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
+    *(--thread->data_stack_current) = (af_cell_t)TRUE;
   }
 }
 
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  af_io_action_destroy((af_io_t*)(*thread->data_stack_current++));
+  af_io_action_destroy((af_io_action_t*)(*thread->data_stack_current++));
   AF_ADVANCE_IP(thread, 1);
 }
 
@@ -2010,7 +2114,7 @@ void af_prim_io_action_get_state(af_global_t* global, af_thread_t* thread) {
     af_handle_out_of_memory(global, thread);
     return;
   }
-  af_io_action_get_state((af_io_t*)(*thread->data_stack_current), state);
+  af_io_action_get_state((af_io_action_t*)(*thread->data_stack_current), state);
   *thread->data_stack_current = (af_cell_t)state;
   AF_ADVANCE_IP(thread, 1);
 }

@@ -69,6 +69,27 @@ typedef int af_io_error_t;
 
 typedef void (*af_prim_t)(af_global_t* global, af_thread_t* thread);
 
+typedef struct af_cond_t {
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+  af_cell_t count;
+} af_cond_t;
+
+typedef struct af_io_t {
+  pthread_t pthread;
+  pthread_mutex_t mutex;
+  af_global_t* global;
+  int break_fd_in;
+  int break_fd_out;
+  af_cell_t active_action_count;
+  af_io_action_t* first_active_action;
+  af_io_action_t* first_waiting_action;
+  af_io_action_t* last_waiting_action;
+  af_io_action_t* first_done_action;
+  af_bool_t to_be_destroyed;
+  af_bool_t ready_for_destruction;
+} af_io_t;
+
 typedef union af_compiled_t {
   af_word_t* compiled_call;
   af_cell_t compiled_cell;
@@ -95,14 +116,14 @@ typedef struct af_global_t {
   af_cell_t default_return_stack_count;
   size_t min_guaranteed_data_space_size;
   size_t default_data_space_size;
-  size_t min_guaranteed_compile_space_count;
-  size_t default_compile_space_count;
   af_cell_t default_cycles_before_yield;
   af_word_t* builtin_literal_runtime;
   af_word_t* builtin_exit;
   af_word_t* builtin_postpone_runtime;
+  af_word_t* builtin_free;
   af_word_t* default_cleanup;
   af_word_t* default_drop_input;
+  af_word_t* default_interactive_endline;
 } af_global_t;
 
 typedef struct af_thread_t {
@@ -135,6 +156,7 @@ typedef struct af_thread_t {
   af_bool_t repeat_interactive;
   af_word_t* cleanup;
   af_word_t* drop_input;
+  af_word_t* interactive_endline;
 } af_thread_t;
 
 typedef struct af_input_t {
@@ -154,21 +176,6 @@ typedef struct af_output_t {
   af_word_t* cleanup;
   af_cell_t arg;
 } af_output_t;
-
-typedef struct af_io_t {
-  pthread_t pthread;
-  pthread_mutex_t mutex;
-  af_global_t* global;
-  int break_fd_in;
-  int break_fd_out;
-  af_cell_t active_action_count;
-  af_io_action_t* first_active_action;
-  af_io_action_t* first_waiting_action;
-  af_io_action_t* last_waiting_action;
-  af_io_action_t* first_done_action;
-  af_bool_t to_be_destroyed;
-  af_bool_t ready_for_destruction;
-} af_io_t;
 
 typedef struct af_io_action_t {
   af_io_action_t* prev_action;
@@ -197,11 +204,5 @@ typedef struct af_io_state_t {
   af_bool_t has_hangup;
   af_bool_t has_error;
 } af_io_state_t;
-
-typedef struct af_cond_t {
-  pthread_mutex_t mutex;
-  pthread_cond_t cond;
-  af_cell_t count;
-} af_cond_t;
 
 #endif /* AF_TYPES_H */
