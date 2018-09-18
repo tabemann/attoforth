@@ -105,11 +105,11 @@
 
 /* Macro to get name length of word */
 #define AF_WORD_NAME_LEN(word) \
-  (*(af_byte_t*)((af_word_t*)word + sizeof(af_word_t)))
+  (*(af_byte_t*)((af_word_t*)word + 1))
 
 /* Macro to get name data of word */
 #define AF_WORD_NAME_DATA(word) \
-  ((af_byte_t*)((af_word_t*)word + sizeof(af_word_t)) + sizeof(af_byte_t))
+  ((af_byte_t*)((af_word_t*)word + 1) + sizeof(af_byte_t))
 
 /* Function declarations */
 

@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE. */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -95,6 +96,7 @@ void af_global_execute(af_global_t* global) {
   }
   af_register_prims(global, thread);
   af_compile_builtin(global, thread);
+  af_start(global, thread);
   af_thread_loop(global);
 }
 
@@ -152,15 +154,21 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
     if(af_parse_name_available(global, thread)) {
       af_cell_t length;
       af_byte_t* text = af_parse_name(global, thread, &length);
+      char* print_text = malloc(length + 1);
+      memcpy(print_text, text, length);
+      print_text[length] = '\0';
       af_word_t* word = af_lookup(global, text, length);
       if(word) {
 	if(thread->is_compiling && !word->is_immediate) {
+	  printf("COMPILING WORD: %s\n", print_text);	
 	  af_compiled_t* slot = af_allot(global, thread,
 					 sizeof(af_compiled_t));
 	  if(slot) {
 	    slot->compiled_call = word;
 	  }
 	} else {
+	  printf("EXECUTING WORD: %s\n", print_text);	
+	  thread->current_interactive_word = word;
 	  word->code(global, thread);
 	}
       } else {
@@ -184,6 +192,7 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
 	  af_handle_parse_error(global, thread);
 	}
       }
+      free(print_text);
     } else if(thread->current_input && !thread->current_input->is_closed) {
       af_interactive_endline(global, thread);
     } else if(thread->return_stack_current < thread->return_stack_base) {
@@ -196,7 +205,7 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
 }
 
 void af_free_thread(af_thread_t* thread) {
-  af_pop_all_inputs(thread);
+  /* af_pop_all_inputs(thread); */
   free(thread->data_stack_top);
   free(thread->return_stack_top);
   free(thread);
@@ -332,6 +341,7 @@ void af_start(af_global_t* global, af_thread_t* thread) {
   if(!thread->base_cycles_before_yield && !thread->is_to_be_freed) {
     thread->base_cycles_before_yield = thread->current_cycles_before_yield =
       thread->current_cycles_left = global->default_cycles_before_yield;
+    global->threads_active_count++;
   }
 }
 
@@ -393,59 +403,73 @@ void af_repeat_interactive(af_global_t* global, af_thread_t* thread) {
 }
 
 void af_handle_data_stack_overflow(af_global_t* global, af_thread_t* thread) {
+  printf("Data stack overflow\n");
   af_reset(global, thread);
 }
 
 void af_handle_return_stack_overflow(af_global_t* global, af_thread_t* thread) {
+  printf("Return stack overflow\n");
   af_reset(global, thread);
 }
 
 void af_handle_data_stack_underflow(af_global_t* global, af_thread_t* thread) {
+  printf("Data stack underflow\n");
   af_reset(global, thread);
 }
 
 void af_handle_return_stack_underflow(af_global_t* global,
 				      af_thread_t* thread) {
+  printf("Return stack underflow\n");
   af_reset(global, thread);
 }
 
 void af_handle_word_expected(af_global_t* global, af_thread_t* thread) {
+  printf("Word expected\n");
   af_reset(global, thread);
 }
 
 void af_handle_data_space_overflow(af_global_t* global, af_thread_t* thread) {
+  printf("Data space overflow\n");
   af_reset(global, thread);
 }
 
 void af_handle_parse_error(af_global_t* global, af_thread_t* thread) {
+  printf("Parse error\n");
   af_reset(global, thread);
 }
 
 void af_handle_word_not_found(af_global_t* global, af_thread_t* thread) {
+  printf("Word not found\n");
   af_reset(global, thread);
 }
 
 void af_handle_out_of_memory(af_global_t* global, af_thread_t* thread) {
+  printf("Out of memory\n");
   af_kill(global, thread);
 }
 
 void af_handle_divide_by_zero(af_global_t* global, af_thread_t* thread) {
+  printf("Divide by zero\n");
   af_reset(global, thread);
 }
 
 void af_handle_compile_only(af_global_t* global, af_thread_t* thread) {
+  printf("Compile only\n");
   af_reset(global, thread);
 }
 
 void af_handle_interpret_only(af_global_t* global, af_thread_t* thread) {
+  printf("Interpret only\n");
   af_reset(global, thread);
 }
 
 void af_handle_no_word_created(af_global_t* global, af_thread_t* thread) {
+  printf("No word created\n");
   af_reset(global, thread);
 }
 
 void af_handle_not_interactive(af_global_t* global, af_thread_t* thread) {
+  printf("Must not be interactive\n");
   af_reset(global, thread);
 }
 
@@ -625,7 +649,8 @@ af_bool_t af_parse_name_available(af_global_t* global, af_thread_t* thread) {
     return FALSE;
   }
   if(!thread->current_input->is_closed) {
-    while(current_index < count && current_char != '\n') {
+    while(current_index < count &&
+	  (current_char != ' ' || current_char != '\n')) {
       current_char = *(buffer + ++current_index);
     }
     return current_index < count;
@@ -659,7 +684,8 @@ af_byte_t* af_parse_name(af_global_t* global, af_thread_t* thread,
     return NULL;
   }
   start_index = current_index;
-  while(current_index < count && current_char != '\n') {
+  while(current_index < count &&
+	(current_char != ' ' && current_char != '\n')) {
     current_char = *(buffer + ++current_index);
   }
   if(!thread->current_input->is_closed && current_index == count) {
@@ -712,23 +738,23 @@ af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
   if(name) {
     size_t name_length = strlen(name) * sizeof(af_byte_t);
     word_space = af_allocate(global, thread,
-			     sizeof(af_word_t) + name_length +
-			     sizeof(af_byte_t));
-    *((af_byte_t*)word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
-    memmove(word_space + sizeof(af_word_t) + sizeof(af_byte_t), name,
-	    name_length);
+			     sizeof(af_word_t) +
+			     ((name_length + 1) * sizeof(af_byte_t)));
   } else {
     word_space = af_allocate(global, thread, sizeof(af_word_t));
   }
   word = word_space;
   word->is_immediate = is_immediate;
   if(name) {
+    size_t name_length = strlen(name) * sizeof(af_byte_t);
+    AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
+    memcpy(AF_WORD_NAME_DATA(word), name, name_length);
     word->next_word = global->first_word;
-    thread->most_recent_word = word;
     global->first_word = word;
   } else {
     word->next_word = NULL;
   }
+  thread->most_recent_word = word;
   word->code = prim;
   word->secondary = NULL;
   return word;

@@ -56,8 +56,8 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     ": LITERAL POSTPONE (LITERAL) , ; IMMEDIATE "
     ": VARIABLE CREATE 0 , ; "
     ": CONSTANT CREATE , DOES> @ ; "
-    ": IF POSTPONE 0BRANCH HERE 0 , ; IMMEDIATE "
-    ": ELSE POSTPONE BRANCH HERE 0 , SWAP HERE SWAP ! ; IMMEDIATE "
+    ": IF POSTPONE ?BRANCH HERE 0 , ; IMMEDIATE "
+    ": ELSE POSTPONE BRANCH HERE 0 , HERE ROT ! ; IMMEDIATE "
     ": THEN HERE SWAP ! ; IMMEDIATE "
     ": ENDIF POSTPONE THEN ; IMMEDIATE "
     ": DEFER CREATE ['] ABORT , DOES> @ EXECUTE ; "
@@ -69,18 +69,18 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     "  IMMEDIATE "
     ": BEGIN HERE ; IMMEDIATE "
     ": AGAIN POSTPONE BRANCH , ; IMMEDIATE "
-    ": UNTIL POSTPONE 0BRANCH , ; IMMEDIATE "
-    ": WHILE POSTPONE 0BRANCH HERE 0 , ; IMMEDIATE "
+    ": UNTIL POSTPONE ?BRANCH , ; IMMEDIATE "
+    ": WHILE POSTPONE ?BRANCH HERE 0 , ; IMMEDIATE "
     ": REPEAT POSTPONE BRANCH SWAP , HERE SWAP ! ; IMMEDIATE "
     ": DO POSTPONE (LITERAL) HERE DUP 0 , POSTPONE >R POSTPONE 2>R HERE ; "
     "  IMMEDIATE "
     ": ?DO POSTPONE (LITERAL) HERE 0 , POSTPONE >R POSTPONE 2DUP POSTPONE 2>R "
-    "  POSTPONE > POSTPONE 0BRANCH HERE 0 , HERE ; IMMEDIATE "
+    "  POSTPONE > POSTPONE ?BRANCH HERE 0 , HERE ; IMMEDIATE "
     ": LOOP POSTPONE 2R> POSTPONE 1+ POSTPONE 2DUP POSTPONE 2>R POSTPONE <= "
-    "  POSTPONE 0BRANCH , HERE SWAP ! HERE SWAP ! POSTPONE 2R> POSTPONE 2DROP "
+    "  POSTPONE ?BRANCH , HERE SWAP ! HERE SWAP ! POSTPONE 2R> POSTPONE 2DROP "
     "  POSTPONE R> POSTPONE DROP ; IMMEDIATE "
     ": +LOOP POSTPONE 2R> POSTPONE ROT POSTPONE + POSTPONE 2DUP POSTPONE 2>R "
-    "  POSTPONE <= POSTPONE 0BRANCH , HERE SWAP ! HERE SWAP ! POSTPONE 2R> "
+    "  POSTPONE <= POSTPONE ?BRANCH , HERE SWAP ! HERE SWAP ! POSTPONE 2R> "
     "  POSTPONE 2DROP POSTPONE R> POSTPONE DROP ; IMMEDIATE "
     ": LEAVE 2R> 2DROP EXIT ; "
     ": UNLOOP 2R> 2DROP R> DROP ; "
@@ -182,8 +182,8 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     "      DROP DUP INPUT-COUNT @ 0> IF "
     "        DUP INPUT-COUNT @ 1 - SWAP INPUT-COUNT ! "
     "      ELSE DROP THEN TRUE "
-    "    ELSE
-           OVER TRY-EXPAND-TERMINAL-BUFFER OVER INPUT-COUNT @ DUP 2 PICK "
+    "    ELSE "
+    "      OVER TRY-EXPAND-TERMINAL-BUFFER OVER INPUT-COUNT @ DUP 2 PICK "
     "      INPUT-BUFFER @ + ROT DUP EMIT SWAP C! 1+ SWAP INPUT-COUNT ! "
     "    THEN THEN "
     "  ELSE DROP TRUE SWAP INPUT-IS-CLOSED ! FALSE ; "
@@ -225,11 +225,12 @@ void af_compile_builtin(af_global_t* global, af_thread_t* thread) {
     "IO-STDERR FD>OUTPUT THIS-THREAD >ERROR "
     ": OLD-SPAWN SPAWN ; "
     ": SPAWN OLD-SPAWN IO-STDOUT FD>OUTPUT OVER >CONSOLE-OUTPUT "
-    "  IO-STDERR FD>OUTPUT OVER >CONSOLE-ERROR ; ";
+    "  IO-STDERR FD>OUTPUT OVER >CONSOLE-ERROR ; "
+    ".( READY) ";
   if(!(input = af_new_string_input(global, code, (af_cell_t)strlen(code)))) {
     af_handle_out_of_memory(global, thread);
     return;
   }
-  af_push_input(global, thread, input);
+  thread->current_input = input;
   af_interpret(global, thread);
 }

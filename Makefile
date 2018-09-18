@@ -1,6 +1,6 @@
 IDIR =src/include
 CC=gcc
-CFLAGS=-I$(IDIR)
+CFLAGS=-I$(IDIR) -g
 
 ODIR=obj
 
@@ -17,7 +17,7 @@ $(ODIR)/%.o: src/runtime/%.c $(DEPS)
 	mkdir -p obj
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-hellomake: $(OBJ)
+attoforth: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean

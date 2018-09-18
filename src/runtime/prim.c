@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE. */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -798,10 +799,14 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
 /* Docol primitive */
 void af_prim_docol(af_global_t* global, af_thread_t* thread) {
   if(thread->return_stack_current > thread->return_stack_top) {
-    *(--thread->return_stack_current) =
-      thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
-    thread->interpreter_pointer =
-      thread->interpreter_pointer->compiled_call->secondary;
+    if(thread->interpreter_pointer) {
+      *(--thread->return_stack_current) = thread->interpreter_pointer + 1;
+      thread->interpreter_pointer =
+	thread->interpreter_pointer->compiled_call->secondary;
+    } else {
+      thread->interpreter_pointer =
+	thread->current_interactive_word->secondary;
+    }
   } else {
     af_handle_return_stack_overflow(global, thread);
   }
@@ -831,12 +836,19 @@ void af_prim_push_data(af_global_t* global, af_thread_t* thread) {
 void af_prim_do_does(af_global_t* global, af_thread_t* thread) {
   if(thread->data_stack_current > thread->data_stack_top) {
     if(thread->return_stack_current > thread->return_stack_top) {
-      *(--thread->data_stack_current) =
-	(af_cell_t)thread->interpreter_pointer->compiled_call->data;
-      *(--thread->return_stack_current) =
-	thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
-      thread->interpreter_pointer =
-	thread->interpreter_pointer->compiled_call->secondary;
+      if(thread->interpreter_pointer) {
+	*(--thread->data_stack_current) =
+	  (af_cell_t)thread->interpreter_pointer->compiled_call->data;
+	*(--thread->return_stack_current) =
+	  thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
+	thread->interpreter_pointer =
+	  thread->interpreter_pointer->compiled_call->secondary;
+      } else {
+	*(--thread->data_stack_current) =
+	  (af_cell_t)thread->current_interactive_word->data;
+	thread->interpreter_pointer =
+	  thread->current_interactive_word->secondary;
+      }
     } else {
       af_handle_return_stack_overflow(global, thread);
     }
@@ -885,15 +897,15 @@ void af_prim_create(af_global_t* global, af_thread_t* thread) {
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
   word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
-  *(af_byte_t*)(word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
-  memmove(word_space + sizeof(af_word_t) + sizeof(af_byte_t), name,
-	  (size_t)name_length);
   word = word_space;
+  AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
+  memmove(AF_WORD_NAME_DATA(word), name, name_length);
   word->is_immediate = FALSE;
   word->code = af_prim_push_data;
   word->data = word_space + name_size;
   word->secondary = NULL;
   thread->most_recent_word = word;
+  word->next_word = global->first_word;
   global->first_word = word;
   AF_ADVANCE_IP(thread, 1);
 }
@@ -913,10 +925,18 @@ void af_prim_colon(af_global_t* global, af_thread_t* thread) {
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
   word_space = af_allocate(global, thread, sizeof(af_word_t) + name_size);
-  *(af_byte_t*)(word_space + sizeof(af_word_t)) = (af_byte_t)name_length;
-  memmove(word_space + sizeof(af_word_t) + sizeof(af_byte_t), name,
-	  (size_t)name_length);
   word = word_space;
+  AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
+  memmove(AF_WORD_NAME_DATA(word), name, name_length);
+
+  /* TESTING */
+  char* buffer = malloc(name_length + 1);
+  memcpy(buffer, name, name_length);
+  buffer[name_length] = '\0';
+  printf("STARTING COMPILING: %s\n", buffer);
+  free(buffer);
+
+
   word->next_word = global->first_word;
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
@@ -1884,7 +1904,7 @@ void af_prim_from_console_input(af_global_t* global, af_thread_t* thread) {
 }
 
 /* CONSOLE-OUTPUT> primitive */
-void af_prim_from_console_out(af_global_t* global, af_thread_t* thread) {
+void af_prim_from_console_output(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   *thread->data_stack_current =
     (af_cell_t)((af_thread_t*)(*thread->data_stack_current))->console_output;
@@ -1892,7 +1912,7 @@ void af_prim_from_console_out(af_global_t* global, af_thread_t* thread) {
 }
 
 /* CONSOLE-ERROR> primitive */
-void af_prim_from_console_err(af_global_t* global, af_thread_t* thread) {
+void af_prim_from_console_error(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
   *thread->data_stack_current =
     (af_cell_t)((af_thread_t*)(*thread->data_stack_current))->console_error;

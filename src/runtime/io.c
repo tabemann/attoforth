@@ -55,6 +55,9 @@ af_bool_t af_io_is_active(af_io_t* io, af_io_fd_t fd);
 /* Set or unset non-blocking on a file; return TRUE on success */
 af_bool_t af_fd_set_blocking(int fd, af_bool_t blocking);
 
+/* Remove done actions from the active action list */
+void af_io_remove_done(af_io_t* io);
+
 /* Implements IO manager thread */
 void* af_io_main(void* arg);
 
@@ -73,7 +76,7 @@ af_bool_t af_io_init(af_io_t* io, af_global_t* global) {
   io->global = global;
   io->break_fd_out = pipefd[0];
   io->break_fd_in = pipefd[1];
-  if(!af_set_nonblocking(io->break_fd_in, TRUE)) {
+  if(!af_fd_set_blocking(io->break_fd_in, TRUE)) {
     close(io->break_fd_out);
     close(io->break_fd_in);
     pthread_mutex_destroy(&io->mutex);
@@ -110,7 +113,7 @@ void af_io_action_destroy(af_io_action_t* action) {
     } else {
       io->first_done_action = action->next_action;
     }
-    if(action->next_acton) {
+    if(action->next_action) {
       action->next_action->prev_action = action->prev_action;
     }
     free(action);
@@ -264,7 +267,7 @@ af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
   action->has_error = FALSE;
-  af_fd_set_nonblocking(fd, TRUE);
+  af_fd_set_blocking(fd, FALSE);
   af_io_add(io, action);
   return action;
 }
@@ -288,7 +291,7 @@ af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
   action->has_error = FALSE;
-  af_fd_set_nonblocking(fd, TRUE);
+  af_fd_set_blocking(fd, FALSE);
   af_io_add(io, action);
   return action;
 }
@@ -312,7 +315,7 @@ af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
   action->has_error = FALSE;
-  af_fd_set_nonblocking(fd, TRUE);
+  af_fd_set_blocking(fd, FALSE);
   af_io_add(io, action);
   return action;
 }
@@ -342,7 +345,7 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
   action->has_error = FALSE;
-  af_fd_set_nonblocking(fd, TRUE);
+  af_fd_set_blocking(fd, FALSE);
   af_io_add(io, action);
   return action;
 }
@@ -351,10 +354,10 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 ssize_t af_io_read_nonblock(int fd, uint8_t* buffer, uint64_t count,
 			    af_bool_t* again) {
   ssize_t size;
-  af_fd_set_nonblocking(fd, TRUE);
+  af_fd_set_blocking(fd, FALSE);
   size = read(fd, buffer, sizeof(uint8_t) * count);
   *again = size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
-			  errno = EINTR) ? TRUE : FALSE;
+			  errno == EINTR) ? TRUE : FALSE;
   return size;
 }
 
@@ -362,10 +365,10 @@ ssize_t af_io_read_nonblock(int fd, uint8_t* buffer, uint64_t count,
 ssize_t af_io_write_nonblock(int fd, uint8_t* buffer, uint64_t count,
 			     af_bool_t* again) {
   ssize_t size;
-  af_fd_set_nonblocking(fd, TRUE);
+  af_fd_set_blocking(fd, FALSE);
   size = write(fd, buffer, sizeof(uint8_t) * count);
   *again = size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
-			  errno = EINTR) ? TRUE : FALSE;
+			  errno == EINTR) ? TRUE : FALSE;
   return size;
 }
 
@@ -408,8 +411,8 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
   af_bool_t wake = FALSE;
   pthread_mutex_lock(&io->mutex);
   action->io = io;
-  if(count > 0) {
-    if(af_io_is_active(io, fd)) {
+  if(action->count > 0) {
+    if(af_io_is_active(io, action->fd)) {
       action->prev_action = io->last_waiting_action;
       action->next_action = NULL;
       if(action->prev_action) {
@@ -429,12 +432,26 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
       wake = TRUE;
     }
   } else {
-    action->prev_action = NULL;
-    action->next_action = io->first_done_action;
-    if(action->next_action) {
-      action->next_action->prev_action = action;
+    if(action->thread_to_wake) {
+      af_lock(io->global);
+      af_wake(io->global, action->thread_to_wake);
+      af_unlock(io->global);
+      af_cond_signal(&io->global->cond);
     }
-    io->first_done_action = action;
+    if(!action->to_be_destroyed) {
+      action->prev_action = NULL;
+      action->next_action = io->first_done_action;
+      if(action->next_action) {
+	action->next_action->prev_action = action;
+      }
+      io->first_done_action = action;
+    }
+    if(action->to_be_destroyed) {
+      if(action->is_buffer_freeable) {
+	free(action->buffer);
+      }
+      free(action);
+    }
   }
   pthread_mutex_unlock(&io->mutex);
   if(wake) {
@@ -449,7 +466,8 @@ void* af_io_main(void* arg) {
     af_io_action_t* current_action;
     uint64_t active_fd_count;
     struct pollfd* fds;
-    af_io_action_t* actions;
+    af_io_action_t** actions;
+    uint64_t current_index = 0;
     pthread_mutex_lock(&io->mutex);
     current_action = io->first_active_action;
     while(current_action) {
@@ -464,26 +482,26 @@ void* af_io_main(void* arg) {
       close(io->break_fd_out);
       close(io->break_fd_in);
       pthread_mutex_destroy(&io->mutex);
-      return;
+      return NULL;
     }
-    if(!(actions = malloc(sizeof(af_io_t) * io->active_action_count))) {
+    if(!(actions = malloc(sizeof(af_io_action_t*) * io->active_action_count))) {
       free(fds);
       close(io->break_fd_out);
       close(io->break_fd_in);
       pthread_mutex_destroy(&io->mutex);
-      return;
+      return NULL;
     }
     current_action = io->first_active_action;
     while(current_action) {
       if(current_action->type != AF_IO_TYPE_CLOSE) {
-	fds[current_index]->fd; = current_action->fd;
+	fds[current_index].fd = current_action->fd;
 	if(current_action->type == AF_IO_TYPE_READ) {
-	  fds[current_index]->events = POLLIN;
+	  fds[current_index].events = POLLIN;
 	} else {
-	  fds[current_index]->events = POLLOUT;
+	  fds[current_index].events = POLLOUT;
 	}
 	actions[current_index] = current_action;
-	fds[current_index++]->revents = 0;
+	fds[current_index++].revents = 0;
       } else {
 	current_action->is_done = TRUE;
 	close(current_action->fd);
@@ -509,57 +527,57 @@ void* af_io_main(void* arg) {
 	  has_event = TRUE;
 	}
 	if(fds[current_active_index].revents & POLLIN) {
-	  if(action[current_active_index]->type = AF_IO_TYPE_READ) {
-	    ssize_t size = read(read_action[current_active_index]->fd,
-				read_action[current_active_index]->buffer +
-				read_action[current_active_index]->index,
-				read_action[current_active_index]->count -
-				read_action[current_active_index]->index);
+	  if(actions[current_active_index]->type = AF_IO_TYPE_READ) {
+	    ssize_t size = read(actions[current_active_index]->fd,
+				actions[current_active_index]->buffer +
+				actions[current_active_index]->index,
+				actions[current_active_index]->count -
+				actions[current_active_index]->index);
 	    if(size > 0) {
-	      action[current_active_index]->index += size;
-	      if(action[current_active_index]->index >=
-		 action[current_active_index]->count) {
-		action[current_active_index]->is_done = TRUE;
+	      actions[current_active_index]->index += size;
+	      if(actions[current_active_index]->index >=
+		 actions[current_active_index]->count) {
+		actions[current_active_index]->is_done = TRUE;
 	      }
 	    } else if (!size) {
-	      action[current_active_index]->is_done = TRUE;
-	      action[current_active_index]->is_closed = TRUE;
+	      actions[current_active_index]->is_done = TRUE;
+	      actions[current_active_index]->is_closed = TRUE;
 	    } else if(errno == EAGAIN ||
 		      errno == EWOULDBLOCK ||
 		      errno == EINTR) {
 	      /* Do nothing */
 	    } else {
-	      action[current_active_index]->is_done = TRUE;
-	      action[current_active_index]->is_closed = TRUE
-	      action[current_active_index]->has_error = TRUE;
+	      actions[current_active_index]->is_done = TRUE;
+	      actions[current_active_index]->is_closed = TRUE;
+	      actions[current_active_index]->has_error = TRUE;
 	    }
 	  }
 	  has_event = TRUE;
 	}
 	if(fds[current_active_index].revents & POLLOUT) {
-	  if(action[current_active_index]->type = AF_IO_TYPE_WRITE) {
-	    ssize_t size = write(action[current_active_index]->fd,
-				 action[current_active_index]->buffer +
-				 action[current_active_index]->index,
-				 action[current_active_index]->count -
-				 action[current_active_index]->index);
+	  if(actions[current_active_index]->type = AF_IO_TYPE_WRITE) {
+	    ssize_t size = write(actions[current_active_index]->fd,
+				 actions[current_active_index]->buffer +
+				 actions[current_active_index]->index,
+				 actions[current_active_index]->count -
+				 actions[current_active_index]->index);
 	    if(size > 0) {
-	      action[current_active_index]->index += size;
-	      if(action[current_active_index]->index >=
-		 action[current_active_index]->count) {
-		action[current_active_index]->is_done = TRUE;
+	      actions[current_active_index]->index += size;
+	      if(actions[current_active_index]->index >=
+		 actions[current_active_index]->count) {
+		actions[current_active_index]->is_done = TRUE;
 	      }
 	    } else if (!size) {
-	      action[current_active_index]->is_done = TRUE;
-	      action[current_active_index]->is_closed = TRUE;
+	      actions[current_active_index]->is_done = TRUE;
+	      actions[current_active_index]->is_closed = TRUE;
 	    } else if(errno == EAGAIN ||
 		      errno == EWOULDBLOCK ||
 		      errno == EINTR) {
 	      /* Do nothing */
 	    } else {
-	      action[current_active_index]->is_done = TRUE;
-	      action[current_active_index]->is_closed = TRUE
-	      action[current_active_index]->has_error = TRUE;
+	      actions[current_active_index]->is_done = TRUE;
+	      actions[current_active_index]->is_closed = TRUE;
+	      actions[current_active_index]->has_error = TRUE;
 	    }
 	  }
 	  has_event = TRUE;
@@ -577,14 +595,14 @@ void* af_io_main(void* arg) {
 	  close(io->break_fd_out);
 	  close(io->break_fd_in);
 	  pthread_mutex_destroy(&io->mutex);
-	  return;
+	  return NULL;
 	}
 	if(fds[current_index].revents & POLLIN) {
 	  uint8_t buffer;
 	  ssize_t size = read(io->break_fd_out, &buffer, sizeof(uint8_t));
 	  if(size > 0) {
 	    /* Do nothing */
-	  } (size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+	  } else if (size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 	    /* Do nothing */
 	  } else {
 	    free(actions);
@@ -592,7 +610,7 @@ void* af_io_main(void* arg) {
 	    close(io->break_fd_out);
 	    close(io->break_fd_in);
 	    pthread_mutex_destroy(&io->mutex);
-	    return;
+	    return NULL;
 	  }
 	}
       }
@@ -601,18 +619,18 @@ void* af_io_main(void* arg) {
       af_io_remove_done(io);
       pthread_mutex_unlock(&io->mutex);
     } else {
+      free(actions);
       free(fds);
-      free(write_actions);
-      free(read_actions);
       close(io->break_fd_out);
       close(io->break_fd_in);
       pthread_mutex_destroy(&io->mutex);
-      return;
+      return NULL;
     }
   }
   close(io->break_fd_out);
   close(io->break_fd_in);
   pthread_mutex_destroy(&io->mutex);
+  return NULL;
 }
 
 /* Remove done actions from the active action list */
@@ -640,8 +658,8 @@ void af_io_remove_done(af_io_t* io) {
 	if(io->first_done_action) {
 	  io->first_done_action->prev_action = current_action;
 	}
+	io->first_done_action = current_action;
       }
-      io->first_done_action = current_action;
       while(current_waiting_action) {
 	if(current_waiting_action->fd == current_action->fd) {
 	  found = TRUE;
@@ -674,7 +692,7 @@ void af_io_remove_done(af_io_t* io) {
       }
       if(current_action->thread_to_wake) {
 	af_lock(io->global);
-	af_wake(current_action->thread_to_wake);
+	af_wake(io->global, current_action->thread_to_wake);
 	af_unlock(io->global);
 	af_cond_signal(&io->global->cond);
       }
