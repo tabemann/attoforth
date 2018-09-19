@@ -152,8 +152,7 @@ typedef struct af_thread_t {
   af_output_t* current_output;
   af_output_t* current_error;
   af_cell_t base;
-  af_word_t* current_interactive_word;
-  af_bool_t repeat_interactive;
+  af_word_t* current_word;
   af_word_t* cleanup;
   af_word_t* drop_input;
   af_word_t* interactive_endline;

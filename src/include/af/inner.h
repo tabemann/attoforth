@@ -105,11 +105,20 @@
 
 /* Macro to get name length of word */
 #define AF_WORD_NAME_LEN(word) \
-  (*(af_byte_t*)((af_word_t*)word + 1))
+  (*(af_byte_t*)((af_word_t*)(word) + 1))
 
 /* Macro to get name data of word */
 #define AF_WORD_NAME_DATA(word) \
-  ((af_byte_t*)((af_word_t*)word + 1) + sizeof(af_byte_t))
+  (((af_byte_t*)((af_word_t*)(word) + 1) + sizeof(af_byte_t)))
+
+/* Macro to execute word */
+#define AF_WORD_EXECUTE(global, thread, word) \
+  { af_word_t* _word_ = (word); \
+    af_thread_t* _thread_ = (thread);	      \
+    af_global_t* _global_ = (global); \
+    (_thread_)->current_word = (_word_);	      \
+    af_print_state((_global_), (_thread_));	      \
+    (_word_)->code((_global_), (_thread_)); }
 
 /* Function declarations */
 
@@ -122,6 +131,8 @@ void af_thread_loop(af_global_t* global);
 void af_lock(af_global_t* global);
 
 void af_unlock(af_global_t* global);
+
+void af_print_state(af_global_t* global, af_thread_t* thread);
 
 af_thread_t* af_spawn(af_global_t* global);
 
@@ -152,8 +163,6 @@ void af_wake(af_global_t* global, af_thread_t* thread);
 void af_reset(af_global_t* global, af_thread_t* thread);
 
 void af_quit(af_global_t* global, af_thread_t* thread);
-
-void af_repeat_interactive(af_global_t* global, af_thread_t* thread);
 
 void af_pop_input(af_global_t* global, af_thread_t* thread);
 

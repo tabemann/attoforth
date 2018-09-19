@@ -584,7 +584,8 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
   global->builtin_exit =
     af_register_prim(global, thread, "EXIT", af_prim_exit, FALSE);
   global->builtin_postpone_runtime =
-    af_register_prim(global, thread, NULL, af_prim_postpone_runtime, FALSE);
+    af_register_prim(global, thread, "(POSTPONE)", af_prim_postpone_runtime,
+		     FALSE);
   af_register_prim(global, thread, "CREATE", af_prim_create, FALSE);
   af_register_prim(global, thread, ":", af_prim_colon, FALSE);
   af_register_prim(global, thread, ":NONAME", af_prim_colon_noname, FALSE);
@@ -799,14 +800,9 @@ void af_register_prims(af_global_t* global, af_thread_t* thread) {
 /* Docol primitive */
 void af_prim_docol(af_global_t* global, af_thread_t* thread) {
   if(thread->return_stack_current > thread->return_stack_top) {
-    if(thread->interpreter_pointer) {
-      *(--thread->return_stack_current) = thread->interpreter_pointer + 1;
-      thread->interpreter_pointer =
-	thread->interpreter_pointer->compiled_call->secondary;
-    } else {
-      thread->interpreter_pointer =
-	thread->current_interactive_word->secondary;
-    }
+    *(--thread->return_stack_current) =
+      thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
+    thread->interpreter_pointer = thread->current_word->secondary;
   } else {
     af_handle_return_stack_overflow(global, thread);
   }
@@ -836,19 +832,10 @@ void af_prim_push_data(af_global_t* global, af_thread_t* thread) {
 void af_prim_do_does(af_global_t* global, af_thread_t* thread) {
   if(thread->data_stack_current > thread->data_stack_top) {
     if(thread->return_stack_current > thread->return_stack_top) {
-      if(thread->interpreter_pointer) {
-	*(--thread->data_stack_current) =
-	  (af_cell_t)thread->interpreter_pointer->compiled_call->data;
-	*(--thread->return_stack_current) =
-	  thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
-	thread->interpreter_pointer =
-	  thread->interpreter_pointer->compiled_call->secondary;
-      } else {
-	*(--thread->data_stack_current) =
-	  (af_cell_t)thread->current_interactive_word->data;
-	thread->interpreter_pointer =
-	  thread->current_interactive_word->secondary;
-      }
+      *(--thread->data_stack_current) = (af_cell_t)thread->current_word->data;
+      *(--thread->return_stack_current) =
+	thread->interpreter_pointer ? thread->interpreter_pointer + 1 : NULL;
+      thread->interpreter_pointer = thread->current_word->secondary;
     } else {
       af_handle_return_stack_overflow(global, thread);
     }
@@ -953,13 +940,17 @@ void af_prim_colon_noname(af_global_t* global, af_thread_t* thread) {
   void* word_space;
   af_word_t* word;
   AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
-  word_space = af_allocate(global, thread, sizeof(af_word_t));
+  if(!(word_space = af_allocate(global, thread,
+				sizeof(af_word_t) + sizeof(af_byte_t)))) {
+    return;
+  }
   word = word_space;
   word->next_word = NULL;
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
   word->data = NULL;
-  word->secondary = word_space + sizeof(af_word_t);
+  word->secondary = word_space + sizeof(af_word_t) + sizeof(af_byte_t);
+  AF_WORD_NAME_LEN(word) = 0;
   thread->most_recent_word = word;
   thread->is_compiling = TRUE;
   *(--thread->data_stack_current) = (af_cell_t)word;
@@ -968,7 +959,12 @@ void af_prim_colon_noname(af_global_t* global, af_thread_t* thread) {
 
 /* ; primitive - immediate */
 void af_prim_semi(af_global_t* global, af_thread_t* thread) {
+  void* space;
   AF_VERIFY_COMPILING(global, thread);
+  if(!(space = af_allot(global, thread, sizeof(af_compiled_t)))) {
+    return;
+  }
+  ((af_compiled_t*)space)->compiled_call = global->builtin_exit;
   thread->is_compiling = FALSE;
   AF_ADVANCE_IP(thread, 1);
 }
@@ -1512,7 +1508,7 @@ void af_prim_bracket_tick(af_global_t* global, af_thread_t* thread) {
 /* EXECUTE primitive */
 void af_prim_execute(af_global_t* global, af_thread_t* thread) {
   AF_VERIFY_DATA_STACK_READ(global, thread, 1);
-  ((af_word_t*)(*thread->data_stack_current++))->code(global, thread);
+  AF_WORD_EXECUTE(global, thread, (af_word_t*)(*thread->data_stack_current++));
 }
 
 /* STATE primitive */

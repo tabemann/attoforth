@@ -135,12 +135,8 @@ void af_thread_loop(af_global_t* global) {
 
 void af_inner_loop(af_global_t* global, af_thread_t* thread) {
   thread->current_cycles_left = thread->current_cycles_before_yield;
-  if(thread->current_cycles_left && thread->interpreter_pointer) {
-    thread->current_interactive_word = NULL;
-    thread->repeat_interactive = FALSE;
-  }
   if(thread->init_word) {
-    thread->init_word->code(global, thread);
+    AF_WORD_EXECUTE(global, thread, thread->init_word);
   }
   if(thread->current_cycles_left ||
      (thread->current_cycles_before_yield && !thread->interpreter_pointer)) {
@@ -148,7 +144,8 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
   }
   while(thread->current_cycles_left-- && thread->interpreter_pointer) {
     af_compiled_t* interpreter_pointer = thread->interpreter_pointer;
-    interpreter_pointer->compiled_call->code(global, thread);
+    af_word_t* word = interpreter_pointer->compiled_call;
+    AF_WORD_EXECUTE(global, thread, word);
   }
   if(thread->current_cycles_before_yield && !thread->interpreter_pointer) {
     if(af_parse_name_available(global, thread)) {
@@ -167,9 +164,8 @@ void af_inner_loop(af_global_t* global, af_thread_t* thread) {
 	    slot->compiled_call = word;
 	  }
 	} else {
-	  printf("EXECUTING WORD: %s\n", print_text);	
-	  thread->current_interactive_word = word;
-	  word->code(global, thread);
+	  printf("EXECUTING WORD: %s\n", print_text);
+	  AF_WORD_EXECUTE(global, thread, word);
 	}
       } else {
 	af_sign_cell_t result;
@@ -217,6 +213,21 @@ void af_lock(af_global_t* global) {
 
 void af_unlock(af_global_t* global) {
   pthread_mutex_unlock(&global->mutex);
+}
+
+void af_print_state(af_global_t* global, af_thread_t* thread) {
+  af_byte_t length = AF_WORD_NAME_LEN(thread->current_word);
+  af_byte_t* buffer = malloc(length * sizeof(af_byte_t));
+  af_cell_t* data_stack = thread->data_stack_current;
+  memcpy(buffer, AF_WORD_NAME_DATA(thread->current_word),
+	 length * sizeof(af_byte_t));
+  buffer[length] = 0;
+  printf("Entering: %s", buffer);
+  while(data_stack < thread->data_stack_base) {
+    printf(" %lld", *data_stack++);
+  }
+  printf("\n");
+  free(buffer);
 }
 
 af_thread_t* af_spawn(af_global_t* global) {
@@ -273,8 +284,7 @@ af_thread_t* af_spawn(af_global_t* global) {
   thread->current_error = NULL;
   thread->base = 10;
   thread->init_word = NULL;
-  thread->current_interactive_word = NULL;
-  thread->repeat_interactive = FALSE;
+  thread->current_word = NULL;
   thread->cleanup = global->default_cleanup;
   thread->drop_input = global->default_drop_input;
   thread->interactive_endline = global->default_interactive_endline;
@@ -312,7 +322,7 @@ void af_drop_input(af_global_t* global, af_thread_t* thread) {
   if(thread->current_input && thread->drop_input) {
     AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
     *(--thread->data_stack_current) = (af_cell_t)thread;
-    thread->drop_input->code(global, thread);
+    AF_WORD_EXECUTE(global, thread, thread->drop_input);
   }
 }
 
@@ -333,7 +343,7 @@ void af_interactive_endline(af_global_t* global, af_thread_t* thread) {
   } else if(thread->current_input) {
     AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
     *(--thread->data_stack_current) = (af_cell_t)thread;
-    thread->interactive_endline->code(global, thread);
+    AF_WORD_EXECUTE(global, thread, thread->interactive_endline);
   }
 }
 
@@ -381,7 +391,7 @@ void af_reset(af_global_t* global, af_thread_t* thread) {
   if(thread->cleanup) {
     AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
     *(--thread->data_stack_current) = (af_cell_t)thread;
-    thread->cleanup->code(global, thread);
+    AF_WORD_EXECUTE(global, thread, thread->cleanup);
   }
 }
 
@@ -392,13 +402,7 @@ void af_quit(af_global_t* global, af_thread_t* thread) {
   if(thread->cleanup) {
     AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
     *(--thread->data_stack_current) = (af_cell_t)thread;
-    thread->cleanup->code(global, thread);
-  }
-}
-
-void af_repeat_interactive(af_global_t* global, af_thread_t* thread) {
-  if(!thread->interpreter_pointer) {
-    thread->repeat_interactive = TRUE;
+    AF_WORD_EXECUTE(global, thread, thread->cleanup);
   }
 }
 
@@ -703,7 +707,7 @@ void af_refill(af_global_t* global, af_thread_t* thread) {
       AF_VERIFY_RETURN_STACK_EXPAND(global, thread, 1);
       AF_VERIFY_DATA_STACK_EXPAND(global, thread, 1);
       *(--thread->data_stack_current) = (af_cell_t)thread->current_input;
-      thread->current_input->refill->code(global, thread);
+      AF_WORD_EXECUTE(global, thread, thread->current_input->refill);
     } else {
       thread->current_input->is_closed = TRUE;
       thread->current_input->index = 0;
@@ -741,7 +745,8 @@ af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
 			     sizeof(af_word_t) +
 			     ((name_length + 1) * sizeof(af_byte_t)));
   } else {
-    word_space = af_allocate(global, thread, sizeof(af_word_t));
+    word_space = af_allocate(global, thread,
+			     sizeof(af_word_t) + sizeof(af_byte_t));
   }
   word = word_space;
   word->is_immediate = is_immediate;
@@ -752,6 +757,7 @@ af_word_t* af_register_prim(af_global_t* global, af_thread_t* thread,
     word->next_word = global->first_word;
     global->first_word = word;
   } else {
+    AF_WORD_NAME_LEN(word) = 0;
     word->next_word = NULL;
   }
   thread->most_recent_word = word;
