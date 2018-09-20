@@ -37,6 +37,6 @@
 
 /* Function declarations */
 
-void af_compile_builtin(af_global_t* global, af_thread_t* thread);
+void af_compile_builtin(af_global_t* global, af_task_t* task);
 
 #endif /* AF_BUILTIN_H */

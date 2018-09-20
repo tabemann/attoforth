@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE. */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -205,7 +206,7 @@ af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error) {
 
 /* Blocking close of file descriptor */
 af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
-				  af_thread_t* thread_to_wake) {
+				  af_task_t* task_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
@@ -217,7 +218,7 @@ af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
   action->count = 0;
   action->index = 0;
   action->is_buffer_freeable = FALSE;
-  action->thread_to_wake = thread_to_wake;
+  action->task_to_wake = task_to_wake;
   action->is_done = FALSE;
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
@@ -239,7 +240,7 @@ af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd) {
   action->count = 0;
   action->index = 0;
   action->is_buffer_freeable = FALSE;
-  action->thread_to_wake = NULL;
+  action->task_to_wake = NULL;
   action->is_done = FALSE;
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
@@ -250,7 +251,7 @@ af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd) {
 
 /* Start blocking read */
 af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				 uint64_t count, af_thread_t* thread_to_wake) {
+				 uint64_t count, af_task_t* task_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
@@ -262,7 +263,7 @@ af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->count = count;
   action->index = 0;
   action->is_buffer_freeable = FALSE;
-  action->thread_to_wake = thread_to_wake;
+  action->task_to_wake = task_to_wake;
   action->is_done = count == 0;
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
@@ -274,7 +275,7 @@ af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 
 /* Start blocking write */
 af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				  uint64_t count, af_thread_t* thread_to_wake) {
+				  uint64_t count, af_task_t* task_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
@@ -286,7 +287,7 @@ af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->count = count;
   action->index = 0;
   action->is_buffer_freeable = FALSE;
-  action->thread_to_wake = thread_to_wake;
+  action->task_to_wake = task_to_wake;
   action->is_done = count == 0;
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
@@ -310,7 +311,7 @@ af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->count = count;
   action->index = 0;
   action->is_buffer_freeable = FALSE;
-  action->thread_to_wake = NULL;
+  action->task_to_wake = NULL;
   action->is_done = count == 0;
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
@@ -340,7 +341,7 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->count = count;
   action->index = 0;
   action->is_buffer_freeable = TRUE;
-  action->thread_to_wake = NULL;
+  action->task_to_wake = NULL;
   action->is_done = count == 0;
   action->is_closed = FALSE;
   action->has_hangup = FALSE;
@@ -432,9 +433,9 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
       wake = TRUE;
     }
   } else {
-    if(action->thread_to_wake) {
+    if(action->task_to_wake) {
       af_lock(io->global);
-      af_wake(io->global, action->thread_to_wake);
+      af_wake(io->global, action->task_to_wake);
       af_unlock(io->global);
       af_cond_signal(&io->global->cond);
     }
@@ -527,7 +528,7 @@ void* af_io_main(void* arg) {
 	  has_event = TRUE;
 	}
 	if(fds[current_active_index].revents & POLLIN) {
-	  if(actions[current_active_index]->type = AF_IO_TYPE_READ) {
+	  if(actions[current_active_index]->type == AF_IO_TYPE_READ) {
 	    ssize_t size = read(actions[current_active_index]->fd,
 				actions[current_active_index]->buffer +
 				actions[current_active_index]->index,
@@ -690,9 +691,9 @@ void af_io_remove_done(af_io_t* io) {
       } else {
 	io->active_action_count--;
       }
-      if(current_action->thread_to_wake) {
+      if(current_action->task_to_wake) {
 	af_lock(io->global);
-	af_wake(io->global, current_action->thread_to_wake);
+	af_wake(io->global, current_action->task_to_wake);
 	af_unlock(io->global);
 	af_cond_signal(&io->global->cond);
       }

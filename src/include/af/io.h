@@ -111,18 +111,18 @@ af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error);
 
 /* Blocking close of file descriptor */
 af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
-				  af_thread_t* thread_to_wake);
+				  af_task_t* task_to_wake);
 
 /* Asynchronous close of file descriptor */
 af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd);
 
 /* Start blocking read */
 af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				 uint64_t count, af_thread_t* thread_to_wake);
+				 uint64_t count, af_task_t* task_to_wake);
 
 /* Start blocking write */
 af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				  uint64_t count, af_thread_t* thread_to_wake);
+				  uint64_t count, af_task_t* task_to_wake);
 
 /* Start asynchronous read */
 af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,

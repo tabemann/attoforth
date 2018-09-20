@@ -39,7 +39,7 @@
 typedef union af_compiled_t af_compiled_t;
 typedef struct af_word_t af_word_t;
 typedef struct af_global_t af_global_t;
-typedef struct af_thread_t af_thread_t;
+typedef struct af_task_t af_task_t;
 typedef struct af_input_t af_input_t;
 typedef struct af_output_t af_output_t;
 typedef struct af_io_t af_io_t;
@@ -67,7 +67,7 @@ typedef mode_t af_io_mode_t;
 
 typedef int af_io_error_t;
 
-typedef void (*af_prim_t)(af_global_t* global, af_thread_t* thread);
+typedef void (*af_prim_t)(af_global_t* global, af_task_t* task);
 
 typedef struct af_cond_t {
   pthread_mutex_t mutex;
@@ -106,8 +106,8 @@ typedef struct af_word_t {
 } af_word_t;
 
 typedef struct af_global_t {
-  af_thread_t* first_thread;
-  af_cell_t threads_active_count;
+  af_task_t* first_task;
+  af_cell_t tasks_active_count;
   af_cond_t cond;
   pthread_mutex_t mutex;
   af_io_t io;
@@ -126,8 +126,8 @@ typedef struct af_global_t {
   af_word_t* default_interactive_endline;
 } af_global_t;
 
-typedef struct af_thread_t {
-  af_thread_t* next_thread;
+typedef struct af_task_t {
+  af_task_t* next_task;
   af_cell_t base_cycles_before_yield;
   af_cell_t current_cycles_before_yield;
   af_cell_t current_cycles_left;
@@ -155,8 +155,7 @@ typedef struct af_thread_t {
   af_word_t* current_word;
   af_word_t* cleanup;
   af_word_t* drop_input;
-  af_word_t* interactive_endline;
-} af_thread_t;
+} af_task_t;
 
 typedef struct af_input_t {
   af_input_t* next_input;
@@ -187,7 +186,7 @@ typedef struct af_io_action_t {
   af_cell_t count;
   af_cell_t index;
   af_bool_t is_buffer_freeable;
-  af_thread_t* thread_to_wake;
+  af_task_t* task_to_wake;
   af_bool_t is_done;
   af_bool_t is_closed;
   af_bool_t has_hangup;

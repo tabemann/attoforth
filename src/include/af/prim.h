@@ -38,6 +38,6 @@
 /* Function declarations */
 
 /* Register primitves */
-void af_register_prims(af_global_t* global, af_thread_t* thread);
+void af_register_prims(af_global_t* global, af_task_t* task);
 
 #endif /* AF_PRIM_H */
