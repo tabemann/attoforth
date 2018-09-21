@@ -325,9 +325,6 @@ void af_prim_from_console_error(af_global_t* global, af_task_t* task);
 /* >INIT-WORD primitive */
 void af_prim_to_init_word(af_global_t* global, af_task_t* task);
 
-/* >INTERPRET primitive */
-void af_prim_to_interpret(af_global_t* global, af_task_t* task);
-
 /* START primitive */
 void af_prim_start(af_global_t* global, af_task_t* task);
 
@@ -669,7 +666,6 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "CONSOLE-ERROR>",
 		   af_prim_from_console_error, FALSE);
   af_register_prim(global, task, ">INIT-WORD", af_prim_to_init_word, FALSE);
-  af_register_prim(global, task, ">INTERPRET", af_prim_to_interpret, FALSE);
   af_register_prim(global, task, "START", af_prim_start, FALSE);
   af_register_prim(global, task, "KILL", af_prim_kill, FALSE);
   af_register_prim(global, task, "YIELD", af_prim_yield, FALSE);
@@ -1875,15 +1871,6 @@ void af_prim_to_init_word(af_global_t* global, af_task_t* task) {
   target_task = (af_task_t*)(*task->data_stack_current++);
   word = (af_word_t*)(*task->data_stack_current++);
   af_set_init_word(global, target_task, word);
-  AF_ADVANCE_IP(task, 1);
-}
-
-/* >INTERPRET primitive */
-void af_prim_to_interpret(af_global_t* global, af_task_t* task) {
-  af_task_t* target_task;
-  AF_VERIFY_DATA_STACK_READ(global, task, 1);
-  target_task = (af_task_t*)(*task->data_stack_current++);
-  af_interpret(global, target_task);
   AF_ADVANCE_IP(task, 1);
 }
 

@@ -181,6 +181,11 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
 	    }
 	  }
 	} else {
+	  char* buffer = malloc(length + 1);
+	  memcpy(buffer, text, length);
+	  buffer[length] = 0;
+	  printf("%s: ", buffer);
+	  free(buffer);
 	  af_handle_parse_error(global, task);
 	}
       }
