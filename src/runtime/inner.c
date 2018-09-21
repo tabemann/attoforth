@@ -46,8 +46,6 @@
 
 void af_free_task(af_task_t* task);
 
-void af_pop_all_inputs(af_task_t* task);
-
 void af_inner_loop(af_global_t* global, af_task_t* task);
 
 /* Definitions */
@@ -77,8 +75,7 @@ af_global_t* af_global_init(void) {
   global->builtin_literal_runtime = NULL;
   global->builtin_exit = NULL;
   global->builtin_postpone_runtime = NULL;
-  global->default_cleanup = NULL;
-  global->default_drop_input = NULL;
+  global->default_abort = NULL;
   if(!(af_io_init(&global->io, global))) {
     pthread_mutex_destroy(&global->mutex);
     af_cond_destroy(&global->cond);
@@ -156,14 +153,14 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
       af_word_t* word = af_lookup(global, text, length);
       if(word) {
 	if(task->is_compiling && !word->is_immediate) {
-	  printf("COMPILING WORD: %s\n", print_text);	
+	  /*printf("COMPILING WORD: %s\n", print_text);*/
 	  af_compiled_t* slot = af_allot(global, task,
 					 sizeof(af_compiled_t));
 	  if(slot) {
 	    slot->compiled_call = word;
 	  }
 	} else {
-	  printf("EXECUTING WORD: %s\n", print_text);
+	  /*printf("EXECUTING WORD: %s\n", print_text);*/
 	  AF_WORD_EXECUTE(global, task, word);
 	}
       } else {
@@ -195,7 +192,6 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
 }
 
 void af_free_task(af_task_t* task) {
-  /* af_pop_all_inputs(task); */
   free(task->data_stack_top);
   free(task->return_stack_top);
   free(task);
@@ -210,7 +206,7 @@ void af_unlock(af_global_t* global) {
 }
 
 void af_print_state(af_global_t* global, af_task_t* task) {
-  /*af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
+  af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
   af_byte_t* buffer = malloc(length * sizeof(af_byte_t));
   af_cell_t* data_stack = task->data_stack_current;
   memcpy(buffer, AF_WORD_NAME_DATA(task->current_word),
@@ -221,7 +217,7 @@ void af_print_state(af_global_t* global, af_task_t* task) {
     printf(" %lld", *data_stack++);
   }
   printf("\n");
-  free(buffer);*/
+  free(buffer);
 }
 
 af_task_t* af_spawn(af_global_t* global) {
@@ -279,8 +275,7 @@ af_task_t* af_spawn(af_global_t* global) {
   task->base = 10;
   task->init_word = NULL;
   task->current_word = NULL;
-  task->cleanup = global->default_cleanup;
-  task->drop_input = global->default_drop_input;
+  task->abort = global->default_abort;
   return task;
 }
 
@@ -309,14 +304,6 @@ void af_push_return(af_global_t* global, af_task_t* task,
 		    af_compiled_t* pointer) {
   AF_VERIFY_RETURN_STACK_EXPAND(global, task, 1);
   *(--task->return_stack_current) = pointer;
-}
-
-void af_drop_input(af_global_t* global, af_task_t* task) {
-  if(task->current_input && task->drop_input) {
-    AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-    *(--task->data_stack_current) = (af_cell_t)task;
-    AF_WORD_EXECUTE(global, task, task->drop_input);
-  }
 }
 
 void af_start(af_global_t* global, af_task_t* task) {
@@ -360,21 +347,11 @@ void af_reset(af_global_t* global, af_task_t* task) {
   task->return_stack_current = task->return_stack_base;
   task->most_recent_word = NULL;
   task->base = 10;
-  if(task->cleanup) {
-    AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-    *(--task->data_stack_current) = (af_cell_t)task;
-    AF_WORD_EXECUTE(global, task, task->cleanup);
-  }
-}
-
-void af_quit(af_global_t* global, af_task_t* task) {
-  task->is_compiling = FALSE;
-  task->interpreter_pointer = NULL;
-  task->return_stack_current = task->return_stack_base;
-  if(task->cleanup) {
-    AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-    *(--task->data_stack_current) = (af_cell_t)task;
-    AF_WORD_EXECUTE(global, task, task->cleanup);
+  if(task->abort) {
+    AF_WORD_EXECUTE(global, task, task->abort);
+  } else {
+    task->current_cycles_before_yield = 0;
+    task->is_to_be_freed = TRUE;
   }
 }
 

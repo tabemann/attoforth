@@ -121,9 +121,8 @@ typedef struct af_global_t {
   af_word_t* builtin_exit;
   af_word_t* builtin_postpone_runtime;
   af_word_t* builtin_free;
-  af_word_t* default_cleanup;
+  af_word_t* default_abort;
   af_word_t* default_drop_input;
-  af_word_t* default_interactive_endline;
 } af_global_t;
 
 typedef struct af_task_t {
@@ -153,7 +152,7 @@ typedef struct af_task_t {
   af_output_t* current_error;
   af_cell_t base;
   af_word_t* current_word;
-  af_word_t* cleanup;
+  af_word_t* abort;
   af_word_t* drop_input;
 } af_task_t;
 

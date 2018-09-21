@@ -117,7 +117,7 @@
     af_task_t* _task_ = (task);	      \
     af_global_t* _global_ = (global); \
     (_task_)->current_word = (_word_);	      \
-    af_print_state((_global_), (_task_));	      \
+    /*af_print_state((_global_), (_task_));*/ \
     (_word_)->code((_global_), (_task_)); }
 
 /* Function declarations */
@@ -146,8 +146,6 @@ void af_push_data(af_global_t* global, af_task_t* task, af_cell_t data);
 void af_push_return(af_global_t* global, af_task_t* task,
 		    af_compiled_t* pointer);
 
-void af_drop_input(af_global_t* global, af_task_t* task);
-
 void af_start(af_global_t* global, af_task_t* task);
 
 void af_kill(af_global_t* global, af_task_t* task);
@@ -159,10 +157,6 @@ void af_sleep(af_global_t* global, af_task_t* task);
 void af_wake(af_global_t* global, af_task_t* task);
 
 void af_reset(af_global_t* global, af_task_t* task);
-
-void af_quit(af_global_t* global, af_task_t* task);
-
-void af_pop_input(af_global_t* global, af_task_t* task);
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task);
 
