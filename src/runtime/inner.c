@@ -48,6 +48,8 @@ void af_free_task(af_task_t* task);
 
 void af_inner_loop(af_global_t* global, af_task_t* task);
 
+void af_print_current_return_stack(af_global_t* global, af_task_t* task);
+
 /* Definitions */
 
 af_global_t* af_global_init(void) {
@@ -225,12 +227,34 @@ void af_print_state(af_global_t* global, af_task_t* task) {
   free(buffer);
 }
 
+void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
+  af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
+  af_byte_t* buffer = malloc(length * sizeof(af_byte_t));
+  memcpy(buffer, AF_WORD_NAME_DATA(task->current_word),
+	 length * sizeof(af_byte_t));
+  buffer[length] = 0;
+  printf("Current word: %s\n", buffer);
+  free(buffer);
+  af_compiled_t** return_stack = task->return_stack_current;
+  while(return_stack < task->return_stack_base) {
+    af_word_t* word = (*return_stack++)->compiled_call;
+    length = AF_WORD_NAME_LEN(word);
+    buffer = malloc(length * sizeof(af_byte_t));
+    memcpy(buffer, AF_WORD_NAME_DATA(word), length * sizeof(af_byte_t));
+    buffer[length] = 0;
+    printf("Next word: %s\n", buffer);
+    free(buffer);
+  }
+  return buffer;
+}
+
 af_task_t* af_spawn(af_global_t* global) {
   af_cell_t* data_stack_top;
   af_compiled_t** return_stack_top;
   af_compiled_t* compile_space_base;
   af_compiled_t* data_space_base;
   af_task_t* task;
+  
   if(!(data_stack_top = malloc(global->default_data_stack_count *
 			       sizeof(af_cell_t)))) {
     return NULL;
@@ -361,22 +385,26 @@ void af_reset(af_global_t* global, af_task_t* task) {
 }
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task) {
+  af_print_current_return_stack(global, task);
   printf("Data stack overflow\n");
   af_reset(global, task);
 }
 
 void af_handle_return_stack_overflow(af_global_t* global, af_task_t* task) {
+  af_print_current_return_stack(global, task);
   printf("Return stack overflow\n");
   af_reset(global, task);
 }
 
 void af_handle_data_stack_underflow(af_global_t* global, af_task_t* task) {
+  af_print_current_return_stack(global, task);
   printf("Data stack underflow\n");
   af_reset(global, task);
 }
 
 void af_handle_return_stack_underflow(af_global_t* global,
 				      af_task_t* task) {
+  af_print_current_return_stack(global, task);
   printf("Return stack underflow\n");
   af_reset(global, task);
 }
@@ -387,6 +415,7 @@ void af_handle_word_expected(af_global_t* global, af_task_t* task) {
 }
 
 void af_handle_data_space_overflow(af_global_t* global, af_task_t* task) {
+  af_print_current_return_stack(global, task);
   printf("Data space overflow\n");
   af_reset(global, task);
 }

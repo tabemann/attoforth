@@ -33,6 +33,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /* Forward type declarations */
 
@@ -64,6 +66,12 @@ typedef int af_io_fd_t;
 typedef int af_io_flags_t;
 
 typedef mode_t af_io_mode_t;
+
+typedef off_t af_io_off_t;
+
+typedef size_t af_io_size_t;
+
+typedef int af_io_whence_t;
 
 typedef int af_io_error_t;
 
@@ -184,6 +192,8 @@ typedef struct af_io_action_t {
   af_byte_t* buffer;
   af_cell_t count;
   af_cell_t index;
+  af_sign_cell_t offset;
+  af_cell_t whence;
   af_bool_t is_buffer_freeable;
   af_task_t* task_to_wake;
   af_bool_t is_done;

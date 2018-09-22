@@ -158,24 +158,24 @@ af_bool_t af_io_state_has_error(af_io_state_t* state) {
 }
 
 /* Get IO action buffer */
-uint8_t* af_io_state_get_buffer(af_io_state_t* state) {
+af_byte_t* af_io_state_get_buffer(af_io_state_t* state) {
   return state->buffer;
 }
 
 /* Get IO action buffer index */
-uint64_t af_io_state_get_index(af_io_state_t* state) {
+af_io_size_t af_io_state_get_index(af_io_state_t* state) {
   return state->index;
 }
 
 /* Get IO action buffer count */
-uint64_t af_io_state_get_count(af_io_state_t* state) {
+af_io_size_t af_io_state_get_count(af_io_state_t* state) {
   return state->count;
 }
 
 /* Open a file */
-af_io_fd_t af_io_open(uint8_t* path, uint64_t count, af_io_flags_t flags,
+af_io_fd_t af_io_open(af_byte_t* path, af_io_size_t count, af_io_flags_t flags,
 		      af_io_mode_t mode, af_io_error_t* error) {
-  uint8_t* path_buffer = malloc(sizeof(uint8_t) * (count + 1));
+  af_byte_t* path_buffer = malloc(sizeof(af_byte_t) * (count + 1));
   af_io_fd_t fd;
   memcpy(path_buffer, path, count);
   path_buffer[count] = 0;
@@ -217,6 +217,8 @@ af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
   action->buffer = NULL;
   action->count = 0;
   action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = FALSE;
@@ -239,6 +241,59 @@ af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd) {
   action->buffer = NULL;
   action->count = 0;
   action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
+  action->is_buffer_freeable = FALSE;
+  action->task_to_wake = NULL;
+  action->is_done = FALSE;
+  action->is_closed = FALSE;
+  action->has_hangup = FALSE;
+  action->has_error = FALSE;
+  af_io_add(io, action);
+  return action;
+}
+
+/* Blocking seek of file descriptor */
+af_io_action_t* af_io_seek_block(af_io_t* io, af_io_fd_t fd, af_io_off_t offset,
+				 af_io_whence_t whence,
+				 af_task_t* task_to_wake) {
+  af_io_action_t* action;
+  if(!(action = malloc(sizeof(af_io_action_t)))) {
+    return NULL;
+  }
+  action->type = AF_IO_TYPE_SEEK;
+  action->to_be_destroyed = FALSE;
+  action->fd = fd;
+  action->buffer = NULL;
+  action->count = 0;
+  action->index = 0;
+  action->offset = offset;
+  action->whence = whence;
+  action->is_buffer_freeable = FALSE;
+  action->task_to_wake = task_to_wake;
+  action->is_done = FALSE;
+  action->is_closed = FALSE;
+  action->has_hangup = FALSE;
+  action->has_error = FALSE;
+  af_io_add(io, action);
+  return action;
+}
+
+/* Asynchronous seek of file descriptor */
+af_io_action_t* af_io_seek_async(af_io_t* io, af_io_fd_t fd, af_io_off_t offset,
+				 af_io_whence_t whence) {
+  af_io_action_t* action;
+  if(!(action = malloc(sizeof(af_io_action_t)))) {
+    return NULL;
+  }
+  action->type = AF_IO_TYPE_SEEK;
+  action->to_be_destroyed = FALSE;
+  action->fd = fd;
+  action->buffer = NULL;
+  action->count = 0;
+  action->index = 0;
+  action->offset = offset;
+  action->whence = whence;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = NULL;
   action->is_done = FALSE;
@@ -250,8 +305,8 @@ af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd) {
 }
 
 /* Start blocking read */
-af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				 uint64_t count, af_task_t* task_to_wake) {
+af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				 af_io_size_t count, af_task_t* task_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
@@ -262,6 +317,8 @@ af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->buffer = buffer;
   action->count = count;
   action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = count == 0;
@@ -274,8 +331,8 @@ af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 }
 
 /* Start blocking write */
-af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				  uint64_t count, af_task_t* task_to_wake) {
+af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				  af_io_size_t count, af_task_t* task_to_wake) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
@@ -286,6 +343,8 @@ af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->buffer = buffer;
   action->count = count;
   action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = count == 0;
@@ -298,8 +357,8 @@ af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 }
 
 /* Start asynchronous read */
-af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				 uint64_t count) {
+af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				 af_io_size_t count) {
   af_io_action_t* action;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
@@ -310,6 +369,8 @@ af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
   action->buffer = buffer;
   action->count = count;
   action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = NULL;
   action->is_done = count == 0;
@@ -322,24 +383,26 @@ af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 }
 
 /* Start asynchronous write */
-af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				  uint64_t count) {
+af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				  af_io_size_t count) {
   af_io_action_t* action;
-  uint8_t* buffer_copy;
+  af_byte_t* buffer_copy;
   if(!(action = malloc(sizeof(af_io_action_t)))) {
     return NULL;
   }
-  if(!(buffer_copy = malloc(sizeof(uint8_t) * count))) {
+  if(!(buffer_copy = malloc(sizeof(af_byte_t) * count))) {
     free(action);
     return NULL;
   }
-  memcpy(buffer_copy, buffer, sizeof(uint8_t) * count);
+  memcpy(buffer_copy, buffer, sizeof(af_byte_t) * count);
   action->type = AF_IO_TYPE_WRITE;
   action->to_be_destroyed = FALSE;
   action->fd = fd;
   action->buffer = buffer_copy;
   action->count = count;
   action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
   action->is_buffer_freeable = TRUE;
   action->task_to_wake = NULL;
   action->is_done = count == 0;
@@ -352,22 +415,22 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
 }
 
 /* Carry out non-blocking read */
-ssize_t af_io_read_nonblock(int fd, uint8_t* buffer, uint64_t count,
+ssize_t af_io_read_nonblock(int fd, af_byte_t* buffer, af_io_size_t count,
 			    af_bool_t* again) {
   ssize_t size;
   af_fd_set_blocking(fd, FALSE);
-  size = read(fd, buffer, sizeof(uint8_t) * count);
+  size = read(fd, buffer, sizeof(af_byte_t) * count);
   *again = size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
 			  errno == EINTR) ? TRUE : FALSE;
   return size;
 }
 
 /* Carry out non-blocking read */
-ssize_t af_io_write_nonblock(int fd, uint8_t* buffer, uint64_t count,
+ssize_t af_io_write_nonblock(int fd, af_byte_t* buffer, af_io_size_t count,
 			     af_bool_t* again) {
   ssize_t size;
   af_fd_set_blocking(fd, FALSE);
-  size = write(fd, buffer, sizeof(uint8_t) * count);
+  size = write(fd, buffer, sizeof(af_byte_t) * count);
   *again = size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
 			  errno == EINTR) ? TRUE : FALSE;
   return size;
@@ -389,8 +452,8 @@ af_bool_t af_fd_set_blocking(int fd, af_bool_t blocking) {
 
 /* Wake the IO manager */
 void af_io_wake(af_io_t* io) {
-  uint8_t buffer;
-  while(write(io->break_fd_in, &buffer, sizeof(uint8_t)) == -1 &&
+  af_byte_t buffer;
+  while(write(io->break_fd_in, &buffer, sizeof(af_byte_t)) == -1 &&
 	errno == EAGAIN) {
   }
 }
@@ -412,7 +475,20 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
   af_bool_t wake = FALSE;
   pthread_mutex_lock(&io->mutex);
   action->io = io;
-  if(action->count > 0) {
+  if(action->to_be_destroyed) {
+    if(action->task_to_wake) {
+      pthread_mutex_unlock(&io->mutex);
+      af_lock(io->global);
+      af_wake(io->global, action->task_to_wake);
+      af_unlock(io->global);
+      pthread_mutex_lock(&io->mutex);
+      af_cond_signal(&io->global->cond);
+    }
+    if(action->is_buffer_freeable) {
+      free(action->buffer);
+    }
+    free(action);
+  } else {
     if(af_io_is_active(io, action->fd)) {
       action->prev_action = io->last_waiting_action;
       action->next_action = NULL;
@@ -432,27 +508,6 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
       io->active_action_count++;
       wake = TRUE;
     }
-  } else {
-    if(action->task_to_wake) {
-      af_lock(io->global);
-      af_wake(io->global, action->task_to_wake);
-      af_unlock(io->global);
-      af_cond_signal(&io->global->cond);
-    }
-    if(!action->to_be_destroyed) {
-      action->prev_action = NULL;
-      action->next_action = io->first_done_action;
-      if(action->next_action) {
-	action->next_action->prev_action = action;
-      }
-      io->first_done_action = action;
-    }
-    if(action->to_be_destroyed) {
-      if(action->is_buffer_freeable) {
-	free(action->buffer);
-      }
-      free(action);
-    }
   }
   pthread_mutex_unlock(&io->mutex);
   if(wake) {
@@ -465,20 +520,32 @@ void* af_io_main(void* arg) {
   af_io_t* io = arg;
   while(!io->to_be_destroyed) {
     af_io_action_t* current_action;
-    uint64_t active_fd_count;
+    af_cell_t active_fd_count;
     struct pollfd* fds;
     af_io_action_t** actions;
-    uint64_t current_index = 0;
+    af_cell_t current_index = 0;
     pthread_mutex_lock(&io->mutex);
-    current_action = io->first_active_action;
-    while(current_action) {
-      if(current_action->type == AF_IO_TYPE_CLOSE) {
-	current_action->is_done = TRUE;
-	close(current_action->fd);
+    af_bool_t still_looping;
+    do {
+      still_looping = FALSE;
+      current_action = io->first_active_action;
+      while(current_action) {
+	if(current_action->type == AF_IO_TYPE_CLOSE) {
+	  current_action->is_done = TRUE;
+	  close(current_action->fd);
+	  still_looping = TRUE;
+	} else if(current_action->type == AF_IO_TYPE_SEEK) {
+	  current_action->is_done = TRUE;
+	  if((lseek(current_action->fd, current_action->offset,
+		  current_action->whence)) == -1) {
+	    current_action->has_error = TRUE;
+	  }
+	  still_looping = TRUE;
+	}
+	current_action = current_action->next_action;
       }
-      current_action = current_action->next_action;
-    }
-    af_io_remove_done(io);
+      af_io_remove_done(io);
+    } while(still_looping);
     if(!(fds = malloc(sizeof(struct pollfd) * (io->active_action_count + 1)))) {
       close(io->break_fd_out);
       close(io->break_fd_in);
@@ -494,7 +561,8 @@ void* af_io_main(void* arg) {
     }
     current_action = io->first_active_action;
     while(current_action) {
-      if(current_action->type != AF_IO_TYPE_CLOSE) {
+      if(current_action->type != AF_IO_TYPE_CLOSE &&
+	 current_action->type != AF_IO_TYPE_SEEK) {
 	fds[current_index].fd = current_action->fd;
 	if(current_action->type == AF_IO_TYPE_READ) {
 	  fds[current_index].events = POLLIN;
@@ -503,9 +571,6 @@ void* af_io_main(void* arg) {
 	}
 	actions[current_index] = current_action;
 	fds[current_index++].revents = 0;
-      } else {
-	current_action->is_done = TRUE;
-	close(current_action->fd);
       }
       current_action = current_action->next_action;
     }
@@ -515,17 +580,14 @@ void* af_io_main(void* arg) {
     pthread_mutex_unlock(&io->mutex);
     if((active_fd_count = poll(fds, current_index + 1, -1)) != -1) {
       pthread_mutex_lock(&io->mutex);
-      uint64_t current_active_index = 0;
-      while(active_fd_count && current_active_index < current_index) {
-	af_bool_t has_event = FALSE;
+      af_cell_t current_active_index = 0;
+      while(current_active_index < current_index) {
 	if(fds[current_active_index].revents & POLLHUP) {
 	  actions[current_active_index]->has_hangup = TRUE;
-	  has_event = TRUE;
 	}
 	if(fds[current_active_index].revents & POLLERR) {
 	  actions[current_active_index]->is_done = TRUE;
 	  actions[current_active_index]->has_error = TRUE;
-	  has_event = TRUE;
 	}
 	if(fds[current_active_index].revents & POLLIN) {
 	  if(actions[current_active_index]->type == AF_IO_TYPE_READ) {
@@ -553,10 +615,9 @@ void* af_io_main(void* arg) {
 	      actions[current_active_index]->has_error = TRUE;
 	    }
 	  }
-	  has_event = TRUE;
 	}
 	if(fds[current_active_index].revents & POLLOUT) {
-	  if(actions[current_active_index]->type = AF_IO_TYPE_WRITE) {
+	  if(actions[current_active_index]->type == AF_IO_TYPE_WRITE) {
 	    ssize_t size = write(actions[current_active_index]->fd,
 				 actions[current_active_index]->buffer +
 				 actions[current_active_index]->index,
@@ -581,38 +642,32 @@ void* af_io_main(void* arg) {
 	      actions[current_active_index]->has_error = TRUE;
 	    }
 	  }
-	  has_event = TRUE;
-	}
-	if(has_event) {
-	  active_fd_count--;
 	}
 	current_active_index++;
       }
-      if(active_fd_count) {
-	if(fds[current_index].revents & POLLERR ||
-	   fds[current_index].revents & POLLHUP) {
+      if(fds[current_index].revents & POLLERR ||
+	 fds[current_index].revents & POLLHUP) {
+	free(actions);
+	free(fds);
+	close(io->break_fd_out);
+	close(io->break_fd_in);
+	pthread_mutex_destroy(&io->mutex);
+	return NULL;
+      }
+      if(fds[current_index].revents & POLLIN) {
+	af_byte_t buffer;
+	ssize_t size = read(io->break_fd_out, &buffer, sizeof(af_byte_t));
+	if(size > 0) {
+	  /* Do nothing */
+	} else if (size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+	  /* Do nothing */
+	} else {
 	  free(actions);
 	  free(fds);
 	  close(io->break_fd_out);
 	  close(io->break_fd_in);
 	  pthread_mutex_destroy(&io->mutex);
 	  return NULL;
-	}
-	if(fds[current_index].revents & POLLIN) {
-	  uint8_t buffer;
-	  ssize_t size = read(io->break_fd_out, &buffer, sizeof(uint8_t));
-	  if(size > 0) {
-	    /* Do nothing */
-	  } else if (size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-	    /* Do nothing */
-	  } else {
-	    free(actions);
-	    free(fds);
-	    close(io->break_fd_out);
-	    close(io->break_fd_in);
-	    pthread_mutex_destroy(&io->mutex);
-	    return NULL;
-	  }
 	}
       }
       free(actions);
@@ -692,10 +747,12 @@ void af_io_remove_done(af_io_t* io) {
 	io->active_action_count--;
       }
       if(current_action->task_to_wake) {
+	pthread_mutex_unlock(&io->mutex);
 	af_lock(io->global);
 	af_wake(io->global, current_action->task_to_wake);
 	af_unlock(io->global);
 	af_cond_signal(&io->global->cond);
+	pthread_mutex_lock(&io->mutex);
       }
       if(current_action->to_be_destroyed) {
 	if(current_action->is_buffer_freeable) {

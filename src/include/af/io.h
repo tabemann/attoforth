@@ -41,6 +41,8 @@
 #define AF_IO_TYPE_READ ((af_io_type_t)0)
 #define AF_IO_TYPE_WRITE ((af_io_type_t)1)
 #define AF_IO_TYPE_CLOSE ((af_io_type_t)2)
+#define AF_IO_TYPE_SEEK ((af_io_type_t)3)
+#define AF_IO_TYPE_SLEEP ((af_io_type_t)4)
 #define AF_IO_STDIN ((af_io_fd_t)STDIN_FILENO)
 #define AF_IO_STDOUT ((af_io_fd_t)STDOUT_FILENO)
 #define AF_IO_STDERR ((af_io_fd_t)STDERR_FILENO)
@@ -66,6 +68,9 @@
 #define AF_IO_ISUID ((af_io_mode_t)0004000)
 #define AF_IO_ISGID ((af_io_mode_t)0002000)
 #define AF_IO_ISVTX ((af_io_mode_t)0001000)
+#define AF_IO_SEEK_SET ((af_io_whence_t)SEEK_SET)
+#define AF_IO_SEEK_CUR ((af_io_whence_t)SEEK_CUR)
+#define AF_IO_SEEK_END ((af_io_whence_t)SEEK_END)
 
 /* Function declarations */
 
@@ -94,16 +99,16 @@ af_bool_t af_io_state_has_hangup(af_io_state_t* state);
 af_bool_t af_io_state_has_error(af_io_state_t* state);
 
 /* Get IO action buffer */
-uint8_t* af_io_state_get_buffer(af_io_state_t* state);
+af_byte_t* af_io_state_get_buffer(af_io_state_t* state);
 
 /* Get IO action buffer index */
-uint64_t af_io_state_get_index(af_io_state_t* state);
+af_io_size_t af_io_state_get_index(af_io_state_t* state);
 
 /* Get IO action buffer count */
-uint64_t af_io_state_get_count(af_io_state_t* state);
+af_io_size_t af_io_state_get_count(af_io_state_t* state);
 
 /* Open a file */
-af_io_fd_t af_io_open(uint8_t* path, uint64_t count, af_io_flags_t flags,
+af_io_fd_t af_io_open(af_byte_t* path, af_io_size_t count, af_io_flags_t flags,
 		      af_io_mode_t mode, af_io_error_t* error);
 
 /* Open a pipe */
@@ -116,28 +121,37 @@ af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
 /* Asynchronous close of file descriptor */
 af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd);
 
+/* Blocking seek of file descriptor */
+af_io_action_t* af_io_seek_block(af_io_t* io, af_io_fd_t fd, af_io_off_t offset,
+				 af_io_whence_t whence,
+				 af_task_t* task_to_wake);
+
+/* Asynchronous seek of file descriptor */
+af_io_action_t* af_io_seek_async(af_io_t* io, af_io_fd_t fd, af_io_off_t offset,
+				 af_io_whence_t whence);
+
 /* Start blocking read */
-af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				 uint64_t count, af_task_t* task_to_wake);
+af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				 af_io_size_t count, af_task_t* task_to_wake);
 
 /* Start blocking write */
-af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				  uint64_t count, af_task_t* task_to_wake);
+af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				  af_io_size_t count, af_task_t* task_to_wake);
 
 /* Start asynchronous read */
-af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				 uint64_t count);
+af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				 af_io_size_t count);
 
 /* Start asynchronous write */
-af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, uint8_t* buffer,
-				  uint64_t count);
+af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
+				  af_io_size_t count);
 
 /* Carry out non-blocking read */
-ssize_t af_io_read_nonblock(af_io_fd_t fd, uint8_t* buffer, uint64_t count,
-			    af_bool_t* again);
+ssize_t af_io_read_nonblock(af_io_fd_t fd, af_byte_t* buffer,
+			    af_io_size_t count, af_bool_t* again);
 
 /* Carry out non-blocking read */
-ssize_t af_io_write_nonblock(af_io_fd_t fd, uint8_t* buffer, uint64_t count,
-			     af_bool_t* again);
+ssize_t af_io_write_nonblock(af_io_fd_t fd, af_byte_t* buffer,
+			     af_io_size_t count, af_bool_t* again);
 
 #endif /* AF_IO_H */

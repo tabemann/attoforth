@@ -376,6 +376,12 @@ void af_prim_io_close_block(af_global_t* global, af_task_t* task);
 /* IO-CLOSE-ASYNC primitive */
 void af_prim_io_close_async(af_global_t* global, af_task_t* task);
 
+/* IO-SEEK-BLOCK primitive */
+void af_prim_io_seek_block(af_global_t* global, af_task_t* task);
+
+/* IO-SEEK-ASYNC primitive */
+void af_prim_io_seek_async(af_global_t* global, af_task_t* task);
+
 /* IO-READ-BLOCK primitive */
 void af_prim_io_read_block(af_global_t* global, af_task_t* task);
 
@@ -468,6 +474,15 @@ void af_prim_io_isgid(af_global_t* global, af_task_t* task);
 
 /* IO-ISVTX primitive */
 void af_prim_io_isvtx(af_global_t* global, af_task_t* task);
+
+/* IO-SEEK-SET primitive */
+void af_prim_io_seek_set(af_global_t* global, af_task_t* task);
+
+/* IO-SEEK-CUR primitive */
+void af_prim_io_seek_cur(af_global_t* global, af_task_t* task);
+
+/* IO-SEEK-END primitive */
+void af_prim_io_seek_end(af_global_t* global, af_task_t* task);
 
 /* INPUT-SIZE primitive */
 void af_prim_input_size(af_global_t* global, af_task_t* task);
@@ -655,6 +670,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   FALSE);
   af_register_prim(global, task, "IO-CLOSE-ASYNC", af_prim_io_close_async,
 		   FALSE);
+  af_register_prim(global, task, "IO-SEEK-BLOCK", af_prim_io_seek_block,
+		   FALSE);
+  af_register_prim(global, task, "IO-SEEK-ASYNC", af_prim_io_seek_async,
+		   FALSE);
   af_register_prim(global, task, "IO-READ-BLOCK", af_prim_io_read_block,
 		   FALSE);
   af_register_prim(global, task, "IO-WRITE-BLOCK", af_prim_io_write_block,
@@ -692,6 +711,12 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "IO-ISUID", af_prim_io_isuid, FALSE);
   af_register_prim(global, task, "IO-ISGID", af_prim_io_isgid, FALSE);
   af_register_prim(global, task, "IO-ISVTX", af_prim_io_isvtx, FALSE);
+  af_register_prim(global, task, "IO-SEEK-SET",
+		   af_prim_io_seek_set, FALSE);
+  af_register_prim(global, task, "IO-SEEK-CUR",
+		   af_prim_io_seek_cur, FALSE);
+  af_register_prim(global, task, "IO-SEEK-END",
+		   af_prim_io_seek_end, FALSE);
   af_register_prim(global, task, "INPUT-SIZE", af_prim_input_size, FALSE);
   af_register_prim(global, task, "INPUT-NEXT-INPUT", af_prim_input_next_input,
 		   FALSE);
@@ -1576,7 +1601,7 @@ void af_prim_spawn(af_global_t* global, af_task_t* task) {
   if(!(new_task = af_spawn(global))) {
     return;
   }
-  *task->data_stack_current = (af_cell_t)new_task;
+  *(--task->data_stack_current) = (af_cell_t)new_task;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -1976,6 +2001,39 @@ void af_prim_io_close_async(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* IO-SEEK-BLOCK primitive */
+void af_prim_io_seek_block(af_global_t* global, af_task_t* task) {
+  af_io_action_t* action;
+  af_io_fd_t fd;
+  af_io_off_t offset;
+  af_io_whence_t whence;
+  AF_VERIFY_DATA_STACK_READ(global, task, 3);
+  fd = *task->data_stack_current;
+  whence = *(task->data_stack_current + 1);
+  offset = *(af_sign_cell_t*)(task->data_stack_current + 2);
+  action = af_io_seek_block(&global->io, fd, offset, whence, task);
+  task->data_stack_current += 2;
+  *task->data_stack_current = (af_cell_t)action;
+  AF_ADVANCE_IP(task, 1);
+  af_sleep(global, task);
+}
+
+/* IO-SEEK-ASYNC primitive */
+void af_prim_io_seek_async(af_global_t* global, af_task_t* task) {
+  af_io_action_t* action;
+  af_io_fd_t fd;
+  af_io_off_t offset;
+  af_io_whence_t whence;
+  AF_VERIFY_DATA_STACK_READ(global, task, 3);
+  fd = *task->data_stack_current;
+  whence = *(task->data_stack_current + 1);
+  offset = *(af_sign_cell_t*)(task->data_stack_current + 2);
+  action = af_io_seek_async(&global->io, fd, offset, whence);
+  task->data_stack_current += 2;
+  *task->data_stack_current = (af_cell_t)action;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* IO-READ-BLOCK primitive */
 void af_prim_io_read_block(af_global_t* global, af_task_t* task) {
   af_io_action_t* action;
@@ -2236,6 +2294,28 @@ void af_prim_io_isvtx(af_global_t* global, af_task_t* task) {
   *(--task->data_stack_current) = (af_cell_t)AF_IO_ISVTX;
   AF_ADVANCE_IP(task, 1);
 }
+
+/* IO-SEEK-SET primitive */
+void af_prim_io_seek_set(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)AF_IO_SEEK_SET;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-SEEK-CUR primitive */
+void af_prim_io_seek_cur(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)AF_IO_SEEK_CUR;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-SEEK-END primitive */
+void af_prim_io_seek_end(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)AF_IO_SEEK_END;
+  AF_ADVANCE_IP(task, 1);
+}
+
 
 /* INPUT-SIZE primitive */
 void af_prim_input_size(af_global_t* global, af_task_t* task) {
