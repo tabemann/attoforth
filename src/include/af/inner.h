@@ -136,6 +136,8 @@ void af_print_state(af_global_t* global, af_task_t* task);
 
 af_task_t* af_spawn(af_global_t* global);
 
+af_task_t* af_spawn_no_data(af_global_t* global);
+
 void af_set_init_word(af_global_t* global, af_task_t* task,
 		      af_word_t* word);
 

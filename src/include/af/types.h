@@ -169,6 +169,7 @@ typedef struct af_task_t {
   af_word_t* current_word;
   af_word_t* abort;
   af_word_t* drop_input;
+  af_bool_t free_data_on_exit;
 } af_task_t;
 
 typedef struct af_input_t {

@@ -199,6 +199,9 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
 }
 
 void af_free_task(af_task_t* task) {
+  if(task->free_data_on_exit) {
+    free(task->data_space_base);
+  }
   free(task->data_stack_top);
   free(task->return_stack_top);
   free(task);
@@ -216,10 +219,15 @@ void af_print_state(af_global_t* global, af_task_t* task) {
   af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
   af_byte_t* buffer = malloc((length + 1) * sizeof(af_byte_t));
   af_cell_t* data_stack = task->data_stack_current;
+  af_cell_t return_count = task->return_stack_base - task->return_stack_current;
   memcpy(buffer, AF_WORD_NAME_DATA(task->current_word),
 	 length * sizeof(af_byte_t));
   buffer[length] = 0;
-  fprintf(stderr, "Entering: %s\n", buffer);
+  fprintf(stderr, "Entering: ");
+  while(return_count--) {
+    fprintf(stderr, "  ");
+  }
+  fprintf(stderr, "%s\n", buffer);
   /*while(data_stack < task->data_stack_base) {
     printf(" %lld", *data_stack++);
   }
@@ -245,6 +253,7 @@ void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
     printf("Next word: %s\n", buffer);
     free(buffer);
   }
+  abort();
 }
 
 af_task_t* af_spawn(af_global_t* global) {
@@ -304,6 +313,60 @@ af_task_t* af_spawn(af_global_t* global) {
   task->init_word = NULL;
   task->current_word = NULL;
   task->abort = global->default_abort;
+  task->free_data_on_exit = FALSE;
+  return task;
+}
+
+af_task_t* af_spawn_no_data(af_global_t* global) {
+  af_cell_t* data_stack_top;
+  af_compiled_t** return_stack_top;
+  af_compiled_t* compile_space_base;
+  af_compiled_t* data_space_base;
+  af_task_t* task;
+  
+  if(!(data_stack_top = malloc(global->default_data_stack_count *
+			       sizeof(af_cell_t)))) {
+    return NULL;
+  }
+  if(!(return_stack_top = malloc(global->default_return_stack_count *
+				 sizeof(af_compiled_t*)))) {
+    free(data_stack_top);
+    return NULL;
+  }
+  if(!(task = malloc(sizeof(af_task_t)))) {
+    free(return_stack_top);
+    free(data_stack_top);
+    return NULL;
+  }
+  task->next_task = global->first_task;
+  global->first_task = task;
+  task->base_cycles_before_yield = 0;
+  task->current_cycles_before_yield = 0;
+  task->current_cycles_left = 0;
+  task->is_compiling = FALSE;
+  task->is_to_be_freed = FALSE;
+  task->interpreter_pointer = NULL;
+  task->data_stack_current = task->data_stack_base =
+    data_stack_top + global->default_data_stack_count;
+  task->return_stack_current = task->return_stack_base =
+    return_stack_top + global->default_return_stack_count;
+  task->data_stack_top = data_stack_top;
+  task->return_stack_top = return_stack_top;
+  task->data_space_base = NULL;
+  task->data_space_current = NULL;
+  task->data_space_top = NULL;
+  task->most_recent_word = NULL;
+  task->console_input = NULL;
+  task->console_output = NULL;
+  task->console_error = NULL;
+  task->current_input = NULL;
+  task->current_output = NULL;
+  task->current_error = NULL;
+  task->base = 10;
+  task->init_word = NULL;
+  task->current_word = NULL;
+  task->abort = global->default_abort;
+  task->free_data_on_exit = FALSE;
   return task;
 }
 
@@ -462,21 +525,27 @@ void af_handle_not_interactive(af_global_t* global, af_task_t* task) {
 void* af_guarantee(af_global_t* global, af_task_t* task, size_t size) {
   size_t size_remaining = task->data_space_top - task->data_space_current;
   if((size <= size_remaining) &&
-     (global->min_guaranteed_data_space_size <= size_remaining)) {
+     (global->min_guaranteed_data_space_size <= size_remaining ||
+      task->free_data_on_exit)) {
     return task->data_space_current;
-  } else {
+  } else if(!task->free_data_on_exit) {
     void* new_data_space_base = malloc(global->default_data_space_size);
     task->data_space_base = new_data_space_base;
     task->data_space_current = new_data_space_base;
     task->data_space_top =
       new_data_space_base + global->default_data_space_size;
     return new_data_space_base;
+  } else {
+    af_handle_data_space_overflow(global, task);
+    return NULL;
   }
 }
 
 void* af_allocate(af_global_t* global, af_task_t* task, size_t size) {
   void* base = af_guarantee(global, task, size);
-  task->data_space_current += size;
+  if(base) {
+    task->data_space_current += size;
+  }
   return base;
 }
 

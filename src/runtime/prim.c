@@ -169,6 +169,15 @@ void af_prim_does(af_global_t* global, af_task_t* task);
 /* >BODY primitive */
 void af_prim_to_body(af_global_t* global, af_task_t* task);
 
+/* SP@ primitive */
+void af_prim_sp_fetch(af_global_t* global, af_task_t* task);
+
+/* SP0 primitive */
+void af_prim_sp0(af_global_t* global, af_task_t* task);
+
+/* LITTLE-ENDIAN primitive */
+void af_prim_little_endian(af_global_t* global, af_task_t* task);
+
 /* ' primitve */
 void af_prim_tick(af_global_t* global, af_task_t* task);
 
@@ -270,6 +279,12 @@ void af_prim_this_task(af_global_t* global, af_task_t* task);
 
 /* SPAWN primitive */
 void af_prim_spawn(af_global_t* global, af_task_t* task);
+
+/* SPAWN-NO-DATA primitive */
+void af_prim_spawn_no_data(af_global_t* global, af_task_t* task);
+
+/* >FREE-DATA-ON-EXIT primitive */
+void af_prim_free_data_on_exit(af_global_t* global, af_task_t* task);
 
 /* >CONSOLE-IN primitive */
 void af_prim_to_console_input(af_global_t* global, af_task_t* task);
@@ -594,6 +609,9 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "HERE", af_prim_here, FALSE);
   af_register_prim(global, task, "DOES>", af_prim_does, FALSE);
   af_register_prim(global, task, ">BODY", af_prim_to_body, FALSE);
+  af_register_prim(global, task, "SP@", af_prim_sp_fetch, FALSE);
+  af_register_prim(global, task, "SP0", af_prim_sp0, FALSE);
+  af_register_prim(global, task, "LITTLE-ENDIAN", af_prim_little_endian, FALSE);
   af_register_prim(global, task, "'", af_prim_tick, FALSE);
   af_register_prim(global, task, "[']", af_prim_bracket_tick, TRUE);
   af_register_prim(global, task, "EXECUTE", af_prim_execute, FALSE);
@@ -630,6 +648,9 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "2CAS", af_prim_2cas, FALSE);
   af_register_prim(global, task, "THIS-TASK", af_prim_this_task, FALSE);
   af_register_prim(global, task, "SPAWN", af_prim_spawn, FALSE);
+  af_register_prim(global, task, "SPAWN-NO-DATA", af_prim_spawn_no_data, FALSE);
+  af_register_prim(global, task, ">FREE-DATA-ON-EXIT",
+		   af_prim_free_data_on_exit, FALSE);
   af_register_prim(global, task, ">CONSOLE-INPUT", af_prim_to_console_input,
 		   FALSE);
   af_register_prim(global, task, ">CONSOLE-OUTPUT", af_prim_to_console_output,
@@ -845,7 +866,9 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
   name = af_parse_name(global, task, &name_length);
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
-  word_space = af_allocate(global, task, sizeof(af_word_t) + name_size);
+  if(!(word_space = af_allocate(global, task, sizeof(af_word_t) + name_size))) {
+    return;
+  }
   word = word_space;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   memmove(AF_WORD_NAME_DATA(word), name, name_length);
@@ -873,7 +896,9 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
   name = af_parse_name(global, task, &name_length);
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
-  word_space = af_allocate(global, task, sizeof(af_word_t) + name_size);
+  if(!(word_space = af_allocate(global, task, sizeof(af_word_t) + name_size))) {
+    return;
+  }
   word = word_space;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   memmove(AF_WORD_NAME_DATA(word), name, name_length);
@@ -1273,6 +1298,30 @@ void af_prim_to_body(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* SP@ primitive */
+void af_prim_sp_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t* addr;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  addr = task->data_stack_current;
+  *(--task->data_stack_current) = (af_cell_t)addr;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SP0 primitive */
+void af_prim_sp0(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)task->data_stack_base;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* LITTLE-ENDIAN primitive */
+void af_prim_little_endian(af_global_t* global, af_task_t* task) {
+  af_cell_t value = 1;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task,  1);
+  *(--task->data_stack_current) = *(af_byte_t*)(&value) ? TRUE : FALSE;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* ' primitve */
 void af_prim_tick(af_global_t* global, af_task_t* task) {
   af_byte_t* name;
@@ -1653,6 +1702,26 @@ void af_prim_spawn(af_global_t* global, af_task_t* task) {
     return;
   }
   *(--task->data_stack_current) = (af_cell_t)new_task;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SPAWN-NO-DATA primitive */
+void af_prim_spawn_no_data(af_global_t* global, af_task_t* task) {
+  af_task_t* new_task;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  if(!(new_task = af_spawn_no_data(global))) {
+    return;
+  }
+  *(--task->data_stack_current) = (af_cell_t)new_task;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* >FREE-DATA-ON-EXIT primitive */
+void af_prim_free_data_on_exit(af_global_t* global, af_task_t* task) {
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  target_task->free_data_on_exit = (af_bool_t)(*task->data_stack_current++);
   AF_ADVANCE_IP(task, 1);
 }
 
