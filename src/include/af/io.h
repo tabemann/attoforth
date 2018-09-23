@@ -114,6 +114,13 @@ af_io_fd_t af_io_open(af_byte_t* path, af_io_size_t count, af_io_flags_t flags,
 /* Open a pipe */
 af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error);
 
+/* Get monotonic time */
+void af_io_get_monotonic_time(af_time_t* monotonic_time);
+
+/* Sleep */
+af_io_action_t* af_io_sleep(af_io_t* io, af_time_t* sleep_until,
+			    af_task_t* task_to_wake);
+
 /* Blocking close of file descriptor */
 af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
 				  af_task_t* task_to_wake);

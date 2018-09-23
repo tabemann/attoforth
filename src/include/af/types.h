@@ -35,10 +35,12 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <time.h>
 
 /* Forward type declarations */
 
 typedef union af_compiled_t af_compiled_t;
+typedef struct af_time_t af_time_t;
 typedef struct af_word_t af_word_t;
 typedef struct af_global_t af_global_t;
 typedef struct af_task_t af_task_t;
@@ -82,6 +84,11 @@ typedef struct af_cond_t {
   pthread_cond_t cond;
   af_cell_t count;
 } af_cond_t;
+
+typedef struct af_time_t {
+  af_cell_t sec;
+  af_cell_t nsec;
+} af_time_t;
 
 typedef struct af_io_t {
   pthread_t pthread;
@@ -194,6 +201,7 @@ typedef struct af_io_action_t {
   af_cell_t index;
   af_sign_cell_t offset;
   af_cell_t whence;
+  struct timespec sleep_until;
   af_bool_t is_buffer_freeable;
   af_task_t* task_to_wake;
   af_bool_t is_done;

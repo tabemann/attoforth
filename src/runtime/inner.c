@@ -193,7 +193,7 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
       }
       free(print_text);
     } else {
-      af_sleep(global, task);
+      af_wait(global, task);
     }
   }
 }
@@ -214,16 +214,16 @@ void af_unlock(af_global_t* global) {
 
 void af_print_state(af_global_t* global, af_task_t* task) {
   af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
-  af_byte_t* buffer = malloc(length * sizeof(af_byte_t));
+  af_byte_t* buffer = malloc((length + 1) * sizeof(af_byte_t));
   af_cell_t* data_stack = task->data_stack_current;
   memcpy(buffer, AF_WORD_NAME_DATA(task->current_word),
 	 length * sizeof(af_byte_t));
   buffer[length] = 0;
-  printf("Entering: %s", buffer);
-  while(data_stack < task->data_stack_base) {
+  fprintf(stderr, "Entering: %s\n", buffer);
+  /*while(data_stack < task->data_stack_base) {
     printf(" %lld", *data_stack++);
   }
-  printf("\n");
+  printf("\n");*/
   free(buffer);
 }
 
@@ -245,7 +245,6 @@ void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
     printf("Next word: %s\n", buffer);
     free(buffer);
   }
-  return buffer;
 }
 
 af_task_t* af_spawn(af_global_t* global) {
@@ -354,7 +353,7 @@ void af_yield(af_global_t* global, af_task_t* task) {
   task->current_cycles_left = 0;
 }
 
-void af_sleep(af_global_t* global, af_task_t* task) {
+void af_wait(af_global_t* global, af_task_t* task) {
   task->current_cycles_before_yield = 0;
   task->current_cycles_left = 0;
   global->tasks_active_count--;

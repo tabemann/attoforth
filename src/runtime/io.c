@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <time.h>
 #include "af/common.h"
 #include "af/inner.h"
 #include "af/cond.h"
@@ -61,6 +62,9 @@ void af_io_remove_done(af_io_t* io);
 
 /* Implements IO manager thread */
 void* af_io_main(void* arg);
+
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *result);
 
 /* Function definitions */
 
@@ -204,6 +208,41 @@ af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error) {
   }
 }
 
+/* Get monotonic time */
+void af_io_get_monotonic_time(af_time_t* monotonic_time) {
+  struct timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+  monotonic_time->sec = time.tv_sec;
+  monotonic_time->nsec = time.tv_nsec;
+}
+
+/* Sleep */
+af_io_action_t* af_io_sleep(af_io_t* io, af_time_t* sleep_until,
+			    af_task_t* task_to_wake) {
+  af_io_action_t* action;
+  if(!(action = malloc(sizeof(af_io_action_t)))) {
+    return NULL;
+  }
+  action->type = AF_IO_TYPE_SLEEP;
+  action->to_be_destroyed = FALSE;
+  action->fd = 0;
+  action->buffer = NULL;
+  action->count = 0;
+  action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = sleep_until->sec;
+  action->sleep_until.tv_nsec = sleep_until->nsec;
+  action->is_buffer_freeable = FALSE;
+  action->task_to_wake = task_to_wake;
+  action->is_done = FALSE;
+  action->is_closed = FALSE;
+  action->has_hangup = FALSE;
+  action->has_error = FALSE;
+  af_io_add(io, action);
+  return action;
+}
+
 /* Blocking close of file descriptor */
 af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
 				  af_task_t* task_to_wake) {
@@ -219,6 +258,8 @@ af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,
   action->index = 0;
   action->offset = 0;
   action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = FALSE;
@@ -243,6 +284,8 @@ af_io_action_t* af_io_close_async(af_io_t* io, af_io_fd_t fd) {
   action->index = 0;
   action->offset = 0;
   action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = NULL;
   action->is_done = FALSE;
@@ -269,6 +312,8 @@ af_io_action_t* af_io_seek_block(af_io_t* io, af_io_fd_t fd, af_io_off_t offset,
   action->index = 0;
   action->offset = offset;
   action->whence = whence;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = FALSE;
@@ -294,6 +339,8 @@ af_io_action_t* af_io_seek_async(af_io_t* io, af_io_fd_t fd, af_io_off_t offset,
   action->index = 0;
   action->offset = offset;
   action->whence = whence;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = NULL;
   action->is_done = FALSE;
@@ -319,6 +366,8 @@ af_io_action_t* af_io_read_block(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
   action->index = 0;
   action->offset = 0;
   action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = count == 0;
@@ -345,6 +394,8 @@ af_io_action_t* af_io_write_block(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
   action->index = 0;
   action->offset = 0;
   action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = count == 0;
@@ -371,6 +422,8 @@ af_io_action_t* af_io_read_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
   action->index = 0;
   action->offset = 0;
   action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = NULL;
   action->is_done = count == 0;
@@ -403,6 +456,8 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
   action->index = 0;
   action->offset = 0;
   action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = TRUE;
   action->task_to_wake = NULL;
   action->is_done = count == 0;
@@ -462,7 +517,7 @@ void af_io_wake(af_io_t* io) {
 af_bool_t af_io_is_active(af_io_t* io, af_io_fd_t fd) {
   af_io_action_t* current_action = io->first_active_action;
   while(current_action) {
-    if(current_action->fd == fd) {
+    if(current_action->fd == fd && current_action->type != AF_IO_TYPE_SLEEP) {
       return TRUE;
     }
     current_action = current_action->next_action;
@@ -475,39 +530,24 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
   af_bool_t wake = FALSE;
   pthread_mutex_lock(&io->mutex);
   action->io = io;
-  if(action->to_be_destroyed) {
-    if(action->task_to_wake) {
-      pthread_mutex_unlock(&io->mutex);
-      af_lock(io->global);
-      af_wake(io->global, action->task_to_wake);
-      af_unlock(io->global);
-      pthread_mutex_lock(&io->mutex);
-      af_cond_signal(&io->global->cond);
-    }
-    if(action->is_buffer_freeable) {
-      free(action->buffer);
-    }
-    free(action);
-  } else {
-    if(af_io_is_active(io, action->fd)) {
-      action->prev_action = io->last_waiting_action;
-      action->next_action = NULL;
-      if(action->prev_action) {
-	action->prev_action->next_action = action;
-      } else {
-	io->first_waiting_action = action;
-      }
-      io->last_waiting_action = action;
+  if(action->type != AF_IO_TYPE_SLEEP && af_io_is_active(io, action->fd)) {
+    action->prev_action = io->last_waiting_action;
+    action->next_action = NULL;
+    if(action->prev_action) {
+      action->prev_action->next_action = action;
     } else {
-      action->prev_action = NULL;
-      action->next_action = io->first_active_action;
-      if(action->next_action) {
-	action->next_action->prev_action = action;
-      }
-      io->first_active_action = action;
-      io->active_action_count++;
-      wake = TRUE;
+      io->first_waiting_action = action;
     }
+    io->last_waiting_action = action;
+  } else {
+    action->prev_action = NULL;
+    action->next_action = io->first_active_action;
+    if(action->next_action) {
+      action->next_action->prev_action = action;
+    }
+    io->first_active_action = action;
+    io->active_action_count++;
+      wake = TRUE;
   }
   pthread_mutex_unlock(&io->mutex);
   if(wake) {
@@ -526,6 +566,11 @@ void* af_io_main(void* arg) {
     af_cell_t current_index = 0;
     pthread_mutex_lock(&io->mutex);
     af_bool_t still_looping;
+    struct timespec current_time;
+    struct timespec wait_time;
+    int used_wait_time = -1;
+    af_bool_t wait_time_set = FALSE;
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
     do {
       still_looping = FALSE;
       current_action = io->first_active_action;
@@ -541,6 +586,29 @@ void* af_io_main(void* arg) {
 	    current_action->has_error = TRUE;
 	  }
 	  still_looping = TRUE;
+	} else if(current_action->type == AF_IO_TYPE_SLEEP) {
+	  if(current_time.tv_sec > current_action->sleep_until.tv_sec ||
+	     (current_time.tv_sec == current_action->sleep_until.tv_sec &&
+	      current_time.tv_nsec > current_action->sleep_until.tv_nsec)) {
+	    current_action->is_done = TRUE;
+	    still_looping = TRUE;
+	  } else {
+	    struct timespec current_wait_time;
+	    timespec_diff(&current_time, &current_action->sleep_until,
+			  &current_wait_time);
+	    if(wait_time_set) {
+	      if(current_wait_time.tv_sec < wait_time.tv_sec ||
+		 (current_wait_time.tv_sec == wait_time.tv_sec &&
+		  current_wait_time.tv_nsec < wait_time.tv_nsec)) {
+		wait_time.tv_sec = current_wait_time.tv_sec;
+		wait_time.tv_nsec = current_wait_time.tv_nsec;
+	      }
+	    } else {
+	      wait_time.tv_sec = current_wait_time.tv_sec;
+	      wait_time.tv_nsec = current_wait_time.tv_nsec;
+	      wait_time_set = TRUE;
+	    }
+	  }
 	}
 	current_action = current_action->next_action;
       }
@@ -562,7 +630,8 @@ void* af_io_main(void* arg) {
     current_action = io->first_active_action;
     while(current_action) {
       if(current_action->type != AF_IO_TYPE_CLOSE &&
-	 current_action->type != AF_IO_TYPE_SEEK) {
+	 current_action->type != AF_IO_TYPE_SEEK &&
+	 current_action->type != AF_IO_TYPE_SLEEP) {
 	fds[current_index].fd = current_action->fd;
 	if(current_action->type == AF_IO_TYPE_READ) {
 	  fds[current_index].events = POLLIN;
@@ -578,9 +647,26 @@ void* af_io_main(void* arg) {
     fds[current_index].events = POLLIN;
     fds[current_index].revents = 0;
     pthread_mutex_unlock(&io->mutex);
-    if((active_fd_count = poll(fds, current_index + 1, -1)) != -1) {
-      pthread_mutex_lock(&io->mutex);
+    if(wait_time_set) {
+      used_wait_time =
+	(wait_time.tv_sec * 1000) + (wait_time.tv_nsec / 1000000);
+    }
+    if((active_fd_count = poll(fds, current_index + 1, used_wait_time))
+       != -1) {
       af_cell_t current_active_index = 0;
+      pthread_mutex_lock(&io->mutex);
+      clock_gettime(CLOCK_MONOTONIC, &current_time);
+      current_action = io->first_active_action;
+      while(current_action) {
+	if(current_action->type == AF_IO_TYPE_SLEEP) {
+	  if(current_time.tv_sec > current_action->sleep_until.tv_sec ||
+	     (current_time.tv_sec == current_action->sleep_until.tv_sec &&
+	      current_time.tv_nsec > current_action->sleep_until.tv_nsec)) {
+	    current_action->is_done = TRUE;
+	  }
+	}
+	current_action = current_action->next_action;
+      }
       while(current_active_index < current_index) {
 	if(fds[current_active_index].revents & POLLHUP) {
 	  actions[current_active_index]->has_hangup = TRUE;
@@ -762,5 +848,16 @@ void af_io_remove_done(af_io_t* io) {
       }
     }
     current_action = next_action;
+  }
+}
+
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *result) {
+  if ((stop->tv_nsec - start->tv_nsec) < 0) {
+    result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+    result->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
+  } else {
+    result->tv_sec = stop->tv_sec - start->tv_sec;
+    result->tv_nsec = stop->tv_nsec - start->tv_nsec;
   }
 }

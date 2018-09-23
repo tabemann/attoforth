@@ -152,7 +152,7 @@ void af_kill(af_global_t* global, af_task_t* task);
 
 void af_yield(af_global_t* global, af_task_t* task);
 
-void af_sleep(af_global_t* global, af_task_t* task);
+void af_wait(af_global_t* global, af_task_t* task);
 
 void af_wake(af_global_t* global, af_task_t* task);
 
