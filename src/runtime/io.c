@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <time.h>
+#include <termios.h>
 #include "af/common.h"
 #include "af/inner.h"
 #include "af/cond.h"
@@ -71,6 +72,7 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
 /* Initialize IO manager */
 af_bool_t af_io_init(af_io_t* io, af_global_t* global) {
   af_io_fd_t pipefd[2];
+  struct termios tp;
   if(pthread_mutex_init(&io->mutex, NULL)) {
     return FALSE;
   }
@@ -93,6 +95,21 @@ af_bool_t af_io_init(af_io_t* io, af_global_t* global) {
   io->last_waiting_action = NULL;
   io->first_done_action = NULL;
   io->to_be_destroyed = FALSE;
+  if(isatty(STDIN_FILENO)) {
+    if (tcgetattr(STDIN_FILENO, &tp) == -1) {
+      close(io->break_fd_out);
+      close(io->break_fd_in);
+      pthread_mutex_destroy(&io->mutex);
+      return FALSE;      
+    }
+    tp.c_lflag &= ~ECHO & ~ICANON;
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &tp) == -1) {
+      close(io->break_fd_out);
+      close(io->break_fd_in);
+      pthread_mutex_destroy(&io->mutex);
+      return FALSE;      
+    }
+  }
   if(pthread_create(&io->pthread, NULL, af_io_main, io)) {
     close(io->break_fd_out);
     close(io->break_fd_in);
