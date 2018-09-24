@@ -1620,7 +1620,19 @@ void af_prim_parse_number(af_global_t* global, af_task_t* task) {
   text = (af_byte_t*)(*(task->data_stack_current + 1));
   length = *task->data_stack_current;
   if(length > 0) {
-    if(*text == '$') {
+    if(*text == '%') {
+      base = 2;
+      text++;
+      length--;
+    } else if(*text == '/') {
+      base = 8;
+      text++;
+      length--;
+    } else if(*text == '#') {
+      base = 10;
+      text++;
+      length--;
+    } else if(*text == '$') {
       base = 16;
       text++;
       length--;

@@ -54,6 +54,7 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     ": BIN 2 BASE ! ; "
     ": OCT 8 BASE ! ; "
     ": DEC 10 BASE ! ; "
+    ": DECIMAL 10 BASE ! ; "
     ": HEX 16 BASE ! ; "
     ": BASE-EXECUTE BASE @ >R BASE ! EXECUTE R> BASE ! ; "
     ": CELL+ CELL-SIZE + ; "
