@@ -265,6 +265,9 @@ void af_prim_parse_number(af_global_t* global, af_task_t* task);
 /* FORMAT-NUMBER primitive */
 void af_prim_format_number(af_global_t* global, af_task_t* task);
 
+/* BASE primitive */
+void af_prim_base(af_global_t* global, af_task_t* task);
+
 /* FIND-WORD primitive */
 void af_prim_find_word(af_global_t* global, af_task_t* task);
 
@@ -643,6 +646,7 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "PARSE-NAME", af_prim_parse_name, FALSE);
   af_register_prim(global, task, "PARSE-NUMBER", af_prim_parse_number, FALSE);
   af_register_prim(global, task, "FORMAT-NUMBER", af_prim_format_number, FALSE);
+  af_register_prim(global, task, "BASE", af_prim_base, FALSE);
   af_register_prim(global, task, "FIND-WORD", af_prim_find_word, FALSE);
   af_register_prim(global, task, "CAS", af_prim_cas, FALSE);
   af_register_prim(global, task, "2CAS", af_prim_2cas, FALSE);
@@ -1608,12 +1612,73 @@ void af_prim_parse_name(af_global_t* global, af_task_t* task) {
 void af_prim_parse_number(af_global_t* global, af_task_t* task) {
   af_byte_t* text;
   af_cell_t length;
-  af_sign_cell_t result;
-  af_bool_t success;
+  af_sign_cell_t result = 0;
+  af_bool_t success = TRUE;
+  af_bool_t negative = FALSE;
+  af_cell_t base = task->base;
   AF_VERIFY_DATA_STACK_READ(global, task, 2);
   text = (af_byte_t*)(*(task->data_stack_current + 1));
   length = *task->data_stack_current;
-  success = af_parse_number(global, text, length, &result);
+  if(length > 0) {
+    if(*text == '$') {
+      base = 16;
+      text++;
+      length--;
+    }
+    if(length > 0 && base >= 2 && base <= 36) {
+      if(*text == '-') {
+	negative = TRUE;
+	text++;
+	length--;
+      }
+      if(length > 0) {
+	while(length--) {
+	  result *= base;
+	  if(*text >= '0' && *text <= '9') {
+	    if(*text - '0' < base) {
+	      result += *text++ - '0';
+	    } else {
+	      result = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else if(*text >= 'a' && *text <= 'z') {
+	    if(*text - 'a' < base - 10) {
+	      result += (*text++ - 'a') + 10;
+	    } else {
+	      result = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else if(*text >= 'A' && *text <= 'Z') {
+	    if(*text - 'A' < base - 10) {
+	      result += (*text++ - 'A') + 10;
+	    } else {
+	      result = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else {
+	    result = 0;
+	    success = FALSE;
+	    break;
+	  }
+	}
+	if(success && negative) {
+	  result = -result;
+	}
+      } else {
+	result = 0;
+	success = FALSE;
+      }
+    } else {
+      result = 0;
+      success = FALSE;
+    }
+  } else {
+    result = 0;
+    success = FALSE;
+  }
   *(task->data_stack_current + 1) = (af_cell_t)result;
   *task->data_stack_current = (af_cell_t)success;
   AF_ADVANCE_IP(task, 1);
@@ -1621,16 +1686,54 @@ void af_prim_parse_number(af_global_t* global, af_task_t* task) {
 
 /* FORMAT-NUMBER primitive */
 void af_prim_format_number(af_global_t* global, af_task_t* task) {
-  af_byte_t buffer[256];
-  af_cell_t length;
+  af_byte_t buffer[64];
+  af_byte_t* current = buffer + sizeof(buffer);
+  af_cell_t length = 0;
+  af_cell_t value;
+  af_bool_t negative = FALSE;
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-  snprintf(buffer, sizeof(buffer), "%lld",
-	   *(af_sign_cell_t*)task->data_stack_current);
-  length = strlen(buffer);
-  memcpy(task->data_space_current, buffer, length);
+  value = *task->data_stack_current;
+  if(task->base == 10) {
+    af_sign_cell_t signed_value = (af_sign_cell_t)value;
+    if(signed_value < 0) {
+      negative = TRUE;
+      signed_value = -signed_value;
+    }
+    while(signed_value > 0) {
+      af_byte_t part = signed_value % 10;
+      part += '0';
+      signed_value /= 10;
+      *(--current) = part;
+      length++;
+    }
+    if(negative) {
+      *(--current) = '-';
+      length++;
+    }
+  } else if(task->base >= 2 && task->base <= 36) {
+    while(value > 0) {
+      af_byte_t part = value % task->base;
+      if(part < 10) {
+	part += '0';
+      } else {
+	part += 'A' - 10;
+      }
+      value /= task->base;
+      *(--current) = part;
+      length++;
+    }
+  }
+  memcpy(task->data_space_current, current, length);
   *task->data_stack_current = (af_cell_t)task->data_space_current;
   *(--task->data_stack_current) = length;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* BASE primitive */
+void af_prim_base(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)(&task->base);
   AF_ADVANCE_IP(task, 1);
 }
 
