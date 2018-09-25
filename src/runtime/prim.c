@@ -121,6 +121,12 @@ void af_prim_or(af_global_t* global, af_task_t* task);
 /* XOR primitive */
 void af_prim_xor(af_global_t* global, af_task_t* task);
 
+/* LSHIFT primitive */
+void af_prim_lshift(af_global_t* global, af_task_t* task);
+
+/* RSHIFT primitive */
+void af_prim_rshift(af_global_t* global, af_task_t* task);
+
 /* < primitive */
 void af_prim_lt(af_global_t* global, af_task_t* task);
 
@@ -559,6 +565,9 @@ void af_prim_empty_data_stack(af_global_t* global, af_task_t* task);
 /* EMPTY-RETURN-STACK primitive */
 void af_prim_empty_return_stack(af_global_t* global, af_task_t* task);
 
+/* DEBUGGER primitive */
+void af_prim_debugger(af_global_t* global, af_task_t* task);
+
 /* Function definitions */
 
 /* Register primitives */
@@ -590,6 +599,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "AND", af_prim_and, FALSE);
   af_register_prim(global, task, "OR", af_prim_or, FALSE);
   af_register_prim(global, task, "XOR", af_prim_xor, FALSE);
+  af_register_prim(global, task, "LSHIFT", af_prim_lshift, FALSE);
+  af_register_prim(global, task, "RSHIFT", af_prim_rshift, FALSE);
   af_register_prim(global, task, "<", af_prim_lt, FALSE);
   af_register_prim(global, task, "<=", af_prim_lte, FALSE);
   af_register_prim(global, task, ">", af_prim_gt, FALSE);
@@ -776,6 +787,7 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   af_prim_empty_data_stack, FALSE);
   af_register_prim(global, task, "EMPTY-RETURN-STACK",
 		   af_prim_empty_return_stack, FALSE);
+  af_register_prim(global, task, "DEBUGGER", af_prim_debugger, FALSE);
 }
 
 /* Docol primitive */
@@ -1151,6 +1163,28 @@ void af_prim_xor(af_global_t* global, af_task_t* task) {
   value0 = *(task->data_stack_current + 1);
   value1 = *task->data_stack_current;
   *(++task->data_stack_current) = value0 ^ value1;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* LSHIFT primitive */
+void af_prim_lshift(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = value0 << value1;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* RSHIFT primitive */
+void af_prim_rshift(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = value0 >> value1;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -2670,5 +2704,10 @@ void af_prim_empty_data_stack(af_global_t* global, af_task_t* task) {
 /* EMPTY-RETURN-STACK primitive */
 void af_prim_empty_return_stack(af_global_t* global, af_task_t* task) {
   task->return_stack_current = task->return_stack_base;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* DEBUGGER primitive */
+void af_prim_debugger(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
