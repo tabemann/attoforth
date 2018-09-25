@@ -76,7 +76,6 @@ af_global_t* af_global_init(void) {
   global->default_cycles_before_yield = 1024;
   global->builtin_literal_runtime = NULL;
   global->builtin_exit = NULL;
-  global->builtin_postpone_runtime = NULL;
   global->default_abort = NULL;
   if(!(af_io_init(&global->io, global))) {
     pthread_mutex_destroy(&global->mutex);

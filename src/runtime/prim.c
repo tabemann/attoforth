@@ -70,6 +70,9 @@ void af_prim_semi(af_global_t* global, af_task_t* task);
 /* IMMEDIATE primitive */
 void af_prim_immediate(af_global_t* global, af_task_t* task);
 
+/* IS-IMMEDIATE primitive */
+void af_prim_is_immediate(af_global_t* global, af_task_t* task);
+
 /* DUP primitive */
 void af_prim_dup(af_global_t* global, af_task_t* task);
 
@@ -334,12 +337,6 @@ void af_prim_open_bracket(af_global_t* global, af_task_t* task);
 /* ] primitive */
 void af_prim_close_bracket(af_global_t* global, af_task_t* task);
 
-/* POSTPONE primitive - immediate */
-void af_prim_postpone(af_global_t* global, af_task_t* task);
-
-/* POSTPONE runtime primitive */
-void af_prim_postpone_runtime(af_global_t* global, af_task_t* task);
-
 /* BRANCH primitive */
 void af_prim_branch(af_global_t* global, af_task_t* task);
 
@@ -571,14 +568,12 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		     FALSE);
   global->builtin_exit =
     af_register_prim(global, task, "EXIT", af_prim_exit, FALSE);
-  global->builtin_postpone_runtime =
-    af_register_prim(global, task, "(POSTPONE)", af_prim_postpone_runtime,
-		     FALSE);
   af_register_prim(global, task, "CREATE", af_prim_create, FALSE);
   af_register_prim(global, task, ":", af_prim_colon, FALSE);
   af_register_prim(global, task, ":NONAME", af_prim_colon_noname, FALSE);
   af_register_prim(global, task, ";", af_prim_semi, TRUE);
   af_register_prim(global, task, "IMMEDIATE", af_prim_immediate, FALSE);
+  af_register_prim(global, task, "IS-IMMEDIATE", af_prim_is_immediate, FALSE);
   af_register_prim(global, task, "DUP", af_prim_dup, FALSE);
   af_register_prim(global, task, "DROP", af_prim_drop, FALSE);
   af_register_prim(global, task, "SWAP", af_prim_swap, FALSE);
@@ -676,7 +671,6 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "RESET", af_prim_reset, FALSE);
   af_register_prim(global, task, "[", af_prim_open_bracket, TRUE);
   af_register_prim(global, task, "]", af_prim_close_bracket, FALSE);
-  af_register_prim(global, task, "POSTPONE", af_prim_postpone, TRUE);
   af_register_prim(global, task, "BRANCH", af_prim_branch, FALSE);
   af_register_prim(global, task, "?BRANCH", af_prim_cond_branch, FALSE);
   af_register_prim(global, task, "MOVE", af_prim_move, FALSE);
@@ -899,6 +893,13 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
   }
   name = af_parse_name(global, task, &name_length);
   name_length = name_length < 256 ? name_length : 255;
+
+  /*af_byte_t* buffer = malloc(name_length + 1);
+  memcpy(buffer, name, name_length);
+  buffer[name_length] = 0;
+  fprintf(stderr, "Compiling word: \"%s\"\n", buffer);
+  free(buffer);*/
+
   name_size = (name_length + 1) * sizeof(af_byte_t);
   if(!(word_space = af_allocate(global, task, sizeof(af_word_t) + name_size))) {
     return;
@@ -964,6 +965,14 @@ void af_prim_semi(af_global_t* global, af_task_t* task) {
 void af_prim_immediate(af_global_t* global, af_task_t* task) {
   AF_VERIFY_WORD_CREATED(global, task);
   task->most_recent_word->is_immediate = TRUE;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IS-IMMEDIATE primitive */
+void af_prim_is_immediate(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current =
+    (af_bool_t)((af_word_t*)(*task->data_stack_current))->is_immediate;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -1337,6 +1346,13 @@ void af_prim_tick(af_global_t* global, af_task_t* task) {
     return;
   }
   name = af_parse_name(global, task, &name_length);
+
+  /*af_byte_t* buffer = malloc(name_length + 1);
+  memcpy(buffer, name, name_length);
+  buffer[name_length] = 0;
+  fprintf(stderr, "Got name: \"%s\"\n", buffer);
+  free(buffer);*/
+
   if(!(word = af_lookup(global, name, name_length))) {
     af_handle_word_not_found(global, task);
     return;
@@ -1995,46 +2011,6 @@ void af_prim_close_bracket(af_global_t* global, af_task_t* task) {
   AF_VERIFY_WORD_CREATED(global, task);
   task->is_compiling = TRUE;
   AF_ADVANCE_IP(task, 1);
-}
-
-/* POSTPONE primitive - immediate */
-void af_prim_postpone(af_global_t* global, af_task_t* task) {
-  af_byte_t* name;
-  af_cell_t name_length;
-  af_word_t* word;
-  af_compiled_t* slot;
-  if(!af_parse_name_available(global, task)) {
-    af_handle_word_expected(global, task);
-    return;
-  }
-  name = af_parse_name(global, task, &name_length);
-  if(!(word = af_lookup(global, name, name_length))) {
-    af_handle_word_not_found(global, task);
-    return;
-  }
-  if(!word->is_immediate) {
-    if(!(slot = af_allot(global, task, sizeof(af_compiled_t) * 2))) {
-      return;
-    }
-    slot->compiled_call = global->builtin_postpone_runtime;
-    (slot + 1)->compiled_cell = (af_cell_t)word;
-  } else {
-    if(!(slot = af_allot(global, task, sizeof(af_compiled_t)))) {
-      return;
-    }
-    slot->compiled_call = word;
-  }
-  AF_ADVANCE_IP(task, 1);
-}
-
-/* POSTPONE runtime primitive */
-void af_prim_postpone_runtime(af_global_t* global, af_task_t* task) {
-  af_compiled_t* slot = af_allot(global, task, sizeof(af_compiled_t));
-  if(!slot) {
-    return;
-  }
-  slot->compiled_call = *(af_word_t**)(task->interpreter_pointer + 1);
-  AF_ADVANCE_IP(task, 2);
 }
 
 /* BRANCH primitive */

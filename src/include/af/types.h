@@ -134,7 +134,6 @@ typedef struct af_global_t {
   af_cell_t default_cycles_before_yield;
   af_word_t* builtin_literal_runtime;
   af_word_t* builtin_exit;
-  af_word_t* builtin_postpone_runtime;
   af_word_t* builtin_free;
   af_word_t* default_abort;
   af_word_t* default_drop_input;
