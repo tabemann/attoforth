@@ -42,6 +42,7 @@
 typedef union af_compiled_t af_compiled_t;
 typedef struct af_time_t af_time_t;
 typedef struct af_word_t af_word_t;
+typedef struct af_wordlist_t af_wordlist_t;
 typedef struct af_global_t af_global_t;
 typedef struct af_task_t af_task_t;
 typedef struct af_input_t af_input_t;
@@ -120,13 +121,16 @@ typedef struct af_word_t {
   af_compiled_t* secondary;
 } af_word_t;
 
+typedef struct af_wordlist_t {
+  af_word_t* first_word;
+} af_wordlist_t;
+
 typedef struct af_global_t {
   af_task_t* first_task;
   af_cell_t tasks_active_count;
   af_cond_t cond;
   pthread_mutex_t mutex;
   af_io_t io;
-  af_word_t* first_word;
   af_cell_t default_data_stack_count;
   af_cell_t default_return_stack_count;
   size_t min_guaranteed_data_space_size;
@@ -137,6 +141,8 @@ typedef struct af_global_t {
   af_word_t* builtin_free;
   af_word_t* default_abort;
   af_word_t* default_drop_input;
+  af_wordlist_t* forth_wordlist;
+  af_cell_t default_wordlist_order_max_count;
 } af_global_t;
 
 typedef struct af_task_t {
@@ -154,6 +160,10 @@ typedef struct af_task_t {
   af_compiled_t** return_stack_top;
   af_cell_t* data_stack_base;
   af_compiled_t** return_stack_base;
+  af_wordlist_t* current_wordlist;
+  af_wordlist_t** wordlist_order;
+  af_cell_t wordlist_order_count;
+  af_cell_t wordlist_order_max_count;
   void* data_space_current;
   void* data_space_top;
   void* data_space_base;

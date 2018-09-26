@@ -134,9 +134,9 @@ void af_unlock(af_global_t* global);
 
 void af_print_state(af_global_t* global, af_task_t* task);
 
-af_task_t* af_spawn(af_global_t* global);
+af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task);
 
-af_task_t* af_spawn_no_data(af_global_t* global);
+af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task);
 
 void af_set_init_word(af_global_t* global, af_task_t* task,
 		      af_word_t* word);
@@ -188,6 +188,8 @@ void af_handle_no_word_created(af_global_t* global, af_task_t* task);
 
 void af_handle_not_interactive(af_global_t* global, af_task_t* task);
 
+void af_handle_wordlist_too_large(af_global_t* global, af_task_t* task);
+
 void* af_guarantee(af_global_t* global, af_task_t* task, size_t size);
 
 void* af_allocate(af_global_t* global, af_task_t* task, size_t size);
@@ -216,7 +218,10 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
 			    af_byte_t* name, af_prim_t prim,
 			    af_bool_t is_immediate);
 
-af_word_t* af_lookup(af_global_t* global, af_byte_t* name,
+af_word_t* af_search_wordlist(af_wordlist_t* wordlist, af_byte_t* name,
+			      af_cell_t name_length);
+
+af_word_t* af_lookup(af_global_t* global, af_task_t* task, af_byte_t* name,
 		     af_cell_t name_length);
 
 #endif /* AF_INNER_H */

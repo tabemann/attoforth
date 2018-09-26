@@ -57,29 +57,37 @@ af_global_t* af_global_init(void) {
   if(!global) {
     return NULL;
   }
+  if(!(global->forth_wordlist = malloc(sizeof(af_wordlist_t)))) {
+    free(global);
+    return NULL;
+  }
   global->first_task = NULL;
   global->tasks_active_count = 0;
   if(!af_cond_init(&global->cond)) {
+    free(global->forth_wordlist);
     free(global);
     return NULL;
   }
   if(pthread_mutex_init(&global->mutex, NULL)) {
     af_cond_destroy(&global->cond);
+    free(global->forth_wordlist);
     free(global);
     return NULL;
   }
-  global->first_word = NULL;
+  global->forth_wordlist->first_word = NULL;
   global->default_data_stack_count = 16384;
   global->default_return_stack_count = 15872;
   global->min_guaranteed_data_space_size = 8192;
   global->default_data_space_size = 130048;
   global->default_cycles_before_yield = 1024;
+  global->default_wordlist_order_max_count = 128;
   global->builtin_literal_runtime = NULL;
   global->builtin_exit = NULL;
   global->default_abort = NULL;
   if(!(af_io_init(&global->io, global))) {
     pthread_mutex_destroy(&global->mutex);
     af_cond_destroy(&global->cond);
+    free(global->forth_wordlist);
     free(global);
     return NULL;
   }
@@ -87,7 +95,7 @@ af_global_t* af_global_init(void) {
 }
 
 void af_global_execute(af_global_t* global) {
-  af_task_t* task = af_spawn(global);
+  af_task_t* task = af_spawn(global, NULL);
   if(!task) {
     return;
   }
@@ -151,7 +159,7 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
       char* print_text = malloc(length + 1);
       memcpy(print_text, text, length);
       print_text[length] = '\0';
-      af_word_t* word = af_lookup(global, text, length);
+      af_word_t* word = af_lookup(global, task, text, length);
       if(word) {
 	if(task->is_compiling && !word->is_immediate) {
 	  /*printf("COMPILING WORD: %s\n", print_text);*/
@@ -201,6 +209,7 @@ void af_free_task(af_task_t* task) {
   if(task->free_data_on_exit) {
     free(task->data_space_base);
   }
+  free(task->wordlist_order);
   free(task->data_stack_top);
   free(task->return_stack_top);
   free(task);
@@ -255,11 +264,12 @@ void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
   abort();
 }
 
-af_task_t* af_spawn(af_global_t* global) {
+af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   af_cell_t* data_stack_top;
   af_compiled_t** return_stack_top;
   af_compiled_t* compile_space_base;
   af_compiled_t* data_space_base;
+  af_wordlist_t** wordlist_order;
   af_task_t* task;
   
   if(!(data_stack_top = malloc(global->default_data_stack_count *
@@ -277,7 +287,15 @@ af_task_t* af_spawn(af_global_t* global) {
     free(data_stack_top);
     return NULL;
   }
+  if(!(wordlist_order = malloc(global->default_wordlist_order_max_count *
+			       sizeof(af_wordlist_t*)))) {
+    free(data_space_base);
+    free(return_stack_top);
+    free(data_stack_top);
+    return NULL;
+  }
   if(!(task = malloc(sizeof(af_task_t)))) {
+    free(wordlist_order);
     free(data_space_base);
     free(return_stack_top);
     free(data_stack_top);
@@ -301,6 +319,18 @@ af_task_t* af_spawn(af_global_t* global) {
     data_space_base;
   task->data_space_top =
     data_space_base + global->default_data_space_size;
+  task->wordlist_order_max_count = global->default_wordlist_order_max_count;
+  task->wordlist_order = wordlist_order;
+  if(parent_task) {
+    memcpy(task->wordlist_order, parent_task->wordlist_order,
+	  parent_task->wordlist_order_count);
+    task->wordlist_order_count = parent_task->wordlist_order_count;
+    task->current_wordlist = parent_task->current_wordlist;
+  } else {
+    *task->wordlist_order = global->forth_wordlist;
+    task->wordlist_order_count = 1;
+    task->current_wordlist = global->forth_wordlist;
+  }
   task->most_recent_word = NULL;
   task->console_input = NULL;
   task->console_output = NULL;
@@ -316,11 +346,12 @@ af_task_t* af_spawn(af_global_t* global) {
   return task;
 }
 
-af_task_t* af_spawn_no_data(af_global_t* global) {
+af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   af_cell_t* data_stack_top;
   af_compiled_t** return_stack_top;
   af_compiled_t* compile_space_base;
   af_compiled_t* data_space_base;
+  af_wordlist_t** wordlist_order;
   af_task_t* task;
   
   if(!(data_stack_top = malloc(global->default_data_stack_count *
@@ -332,7 +363,14 @@ af_task_t* af_spawn_no_data(af_global_t* global) {
     free(data_stack_top);
     return NULL;
   }
+  if(!(wordlist_order = malloc(global->default_wordlist_order_max_count *
+			       sizeof(af_wordlist_t*)))) {
+    free(return_stack_top);
+    free(data_stack_top);
+    return NULL;
+  }
   if(!(task = malloc(sizeof(af_task_t)))) {
+    free(wordlist_order);
     free(return_stack_top);
     free(data_stack_top);
     return NULL;
@@ -354,6 +392,18 @@ af_task_t* af_spawn_no_data(af_global_t* global) {
   task->data_space_base = NULL;
   task->data_space_current = NULL;
   task->data_space_top = NULL;
+  task->wordlist_order_max_count = global->default_wordlist_order_max_count;
+  task->wordlist_order = wordlist_order;
+  if(parent_task) {
+    memcpy(task->wordlist_order, parent_task->wordlist_order,
+	  parent_task->wordlist_order_count);
+    task->wordlist_order_count = parent_task->wordlist_order_count;
+    task->current_wordlist = parent_task->current_wordlist;
+  } else {
+    *task->wordlist_order = global->forth_wordlist;
+    task->wordlist_order_count = 1;
+    task->current_wordlist = global->forth_wordlist;
+  }
   task->most_recent_word = NULL;
   task->console_input = NULL;
   task->console_output = NULL;
@@ -521,6 +571,11 @@ void af_handle_not_interactive(af_global_t* global, af_task_t* task) {
   af_reset(global, task);
 }
 
+void af_handle_wordlist_too_large(af_global_t* global, af_task_t* task) {
+  printf("Wordlist too large\n");
+  af_reset(global, task);
+}
+
 void* af_guarantee(af_global_t* global, af_task_t* task, size_t size) {
   size_t size_remaining = task->data_space_top - task->data_space_current;
   if((size <= size_remaining) &&
@@ -560,9 +615,9 @@ void* af_allot(af_global_t* global, af_task_t* task, ssize_t size) {
   }
 }
 
-af_word_t* af_lookup(af_global_t* global, af_byte_t* name,
-		     af_cell_t name_length) {
-  af_word_t* current_word = global->first_word;
+af_word_t* af_search_wordlist(af_wordlist_t* wordlist, af_byte_t* name,
+			      af_cell_t name_length) {
+  af_word_t* current_word = wordlist->first_word;
   while(current_word) {
     af_byte_t current_word_length = AF_WORD_NAME_LEN(current_word);
     if(name_length == current_word_length) {
@@ -581,6 +636,19 @@ af_word_t* af_lookup(af_global_t* global, af_byte_t* name,
       }
     }
     current_word = current_word->next_word;
+  }
+  return NULL;
+}
+
+af_word_t* af_lookup(af_global_t* global, af_task_t* task, af_byte_t* name,
+		     af_cell_t name_length) {
+  af_wordlist_t** wordlist = task->wordlist_order;
+  af_cell_t wordlist_count = task->wordlist_order_count;
+  while(wordlist_count--) {
+    af_word_t* word = af_search_wordlist(*wordlist++, name, name_length);
+    if(word) {
+      return word;
+    }
   }
   return NULL;
 }
@@ -804,8 +872,8 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
     size_t name_length = strlen(name) * sizeof(af_byte_t);
     AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
     memcpy(AF_WORD_NAME_DATA(word), name, name_length);
-    word->next_word = global->first_word;
-    global->first_word = word;
+    word->next_word = global->forth_wordlist->first_word;
+    global->forth_wordlist->first_word = word;
   } else {
     AF_WORD_NAME_LEN(word) = 0;
     word->next_word = NULL;

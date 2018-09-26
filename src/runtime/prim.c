@@ -361,6 +361,27 @@ void af_prim_cell_size(af_global_t* global, af_task_t* task);
 /* REFILL primitive */
 void af_prim_refill(af_global_t* global, af_task_t* task);
 
+/* FORTH-WORDLIST primitive */
+void af_prim_forth_wordlist(af_global_t* global, af_task_t* task);
+
+/* GET-CURRENT primitive */
+void af_prim_get_current(af_global_t* global, af_task_t* task);
+
+/* GET-ORDER primitive */
+void af_prim_get_order(af_global_t* global, af_task_t* task);
+
+/* SEARCH-WORDLIST primitive */
+void af_prim_search_wordlist(af_global_t* global, af_task_t* task);
+
+/* SET-CURRENT primitive */
+void af_prim_set_current(af_global_t* global, af_task_t* task);
+
+/* SET-ORDER primitive */
+void af_prim_set_order(af_global_t* global, af_task_t* task);
+
+/* WORDLIST primitive */
+void af_prim_wordlist(af_global_t* global, af_task_t* task);
+
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_task_t* task);
 
@@ -688,6 +709,15 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "DEPTH", af_prim_depth, FALSE);
   af_register_prim(global, task, "CELL-SIZE", af_prim_cell_size, FALSE);
   af_register_prim(global, task, "REFILL", af_prim_refill, FALSE);
+  af_register_prim(global, task, "FORTH-WORDLIST",
+		   af_prim_forth_wordlist, FALSE);
+  af_register_prim(global, task, "GET-CURRENT", af_prim_get_current, FALSE);
+  af_register_prim(global, task, "GET-ORDER", af_prim_get_order, FALSE);
+  af_register_prim(global, task, "SEARCH-WORDLIST",
+		   af_prim_search_wordlist, FALSE);
+  af_register_prim(global, task, "SET-CURRENT", af_prim_set_current, FALSE);
+  af_register_prim(global, task, "SET-ORDER", af_prim_set_order, FALSE);
+  af_register_prim(global, task, "WORDLIST", af_prim_wordlist, FALSE);
   af_register_prim(global, task, "IO-ACTION-DESTROY",
 		   af_prim_io_action_destroy, FALSE);
   af_register_prim(global, task, "IO-ACTION-GET-STATE",
@@ -887,8 +917,8 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
   word->data = word_space + sizeof(af_word_t) + name_size;
   word->secondary = NULL;
   task->most_recent_word = word;
-  word->next_word = global->first_word;
-  global->first_word = word;
+  word->next_word = task->current_wordlist->first_word;
+  task->current_wordlist->first_word = word;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -928,13 +958,13 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
   free(buffer);*/
 
 
-  word->next_word = global->first_word;
+  word->next_word = task->current_wordlist->first_word;
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
   word->data = NULL;
   word->secondary = word_space + sizeof(af_word_t) + name_size;
   task->most_recent_word = word;
-  global->first_word = word;
+  task->current_wordlist->first_word = word;
   task->is_compiling = TRUE;
   AF_ADVANCE_IP(task, 1);
 }
@@ -1387,7 +1417,7 @@ void af_prim_tick(af_global_t* global, af_task_t* task) {
   fprintf(stderr, "Got name: \"%s\"\n", buffer);
   free(buffer);*/
 
-  if(!(word = af_lookup(global, name, name_length))) {
+  if(!(word = af_lookup(global, task, name, name_length))) {
     af_handle_word_not_found(global, task);
     return;
   }
@@ -1411,7 +1441,7 @@ void af_prim_bracket_tick(af_global_t* global, af_task_t* task) {
     return;
   }
   name = af_parse_name(global, task, &name_length);
-  if(!(word = af_lookup(global, name, name_length))) {
+  if(!(word = af_lookup(global, task, name, name_length))) {
     af_handle_word_not_found(global, task);
     return;
   }
@@ -1807,7 +1837,7 @@ void af_prim_find_word(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 2);
   text = (af_byte_t*)(*(task->data_stack_current + 1));
   length = *task->data_stack_current;
-  word = af_lookup(global, text, length);
+  word = af_lookup(global, task, text, length);
   if(!word) {
     AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
     *(--task->data_stack_current) = 0;
@@ -1863,7 +1893,7 @@ void af_prim_this_task(af_global_t* global, af_task_t* task) {
 void af_prim_spawn(af_global_t* global, af_task_t* task) {
   af_task_t* new_task;
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-  if(!(new_task = af_spawn(global))) {
+  if(!(new_task = af_spawn(global, task))) {
     return;
   }
   *(--task->data_stack_current) = (af_cell_t)new_task;
@@ -1874,7 +1904,7 @@ void af_prim_spawn(af_global_t* global, af_task_t* task) {
 void af_prim_spawn_no_data(af_global_t* global, af_task_t* task) {
   af_task_t* new_task;
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-  if(!(new_task = af_spawn_no_data(global))) {
+  if(!(new_task = af_spawn_no_data(global, task))) {
     return;
   }
   *(--task->data_stack_current) = (af_cell_t)new_task;
@@ -2110,6 +2140,94 @@ void af_prim_refill(af_global_t* global, af_task_t* task) {
     AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
     *(--task->data_stack_current) = (af_cell_t)TRUE;
   }
+}
+
+/* FORTH-WORDLIST primitive */
+void af_prim_forth_wordlist(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)global->forth_wordlist;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* GET-CURRENT primitive */
+void af_prim_get_current(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)task->current_wordlist;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* GET-ORDER primitive */
+void af_prim_get_order(af_global_t* global, af_task_t* task) {
+  af_wordlist_t** current = task->wordlist_order + task->wordlist_order_count;
+  af_cell_t count = task->wordlist_order_count;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, task->wordlist_order_count + 1);
+  while(count--) {
+    *(--task->data_stack_current) = (af_cell_t)(*(--current));
+  }
+  *(--task->data_stack_current) = task->wordlist_order_count;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SEARCH-WORDLIST primitive */
+void af_prim_search_wordlist(af_global_t* global, af_task_t* task) {
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  if(!(word = af_search_wordlist((af_wordlist_t*)(*task->data_stack_current),
+				 (af_byte_t*)(*(task->data_stack_current + 2)),
+				 *(task->data_stack_current + 1)))) {
+    task->data_stack_current += 2;
+    *task->data_stack_current = 0;
+  } else {
+    task->data_stack_current++;
+    *(task->data_stack_current + 1) = (af_cell_t)word;
+    *task->data_stack_current = word->is_immediate ? 1 : (af_cell_t)(-1);
+  }
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SET-CURRENT primitive */
+void af_prim_set_current(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  task->current_wordlist = (af_wordlist_t*)(*task->data_stack_current++);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SET-ORDER primitive */
+void af_prim_set_order(af_global_t* global, af_task_t* task) {
+  af_cell_t count;
+  af_wordlist_t** current = task->wordlist_order;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  count = *task->data_stack_current;
+  if(count != (af_cell_t)-1) {
+    AF_VERIFY_DATA_STACK_READ(global, task, count + 1);
+    if(count > task->wordlist_order_max_count) {
+      af_handle_wordlist_too_large(global, task);
+      return;
+    }
+    task->wordlist_order_count = count;
+    task->data_stack_current++;
+    while(count--) {
+      *current++ = (af_wordlist_t*)(*task->data_stack_current++);
+    }
+  } else {
+    task->wordlist_order_count = 1;
+    task->data_stack_current++;
+    *current = global->forth_wordlist;
+  }
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* WORDLIST primitive */
+void af_prim_wordlist(af_global_t* global, af_task_t* task) {
+  af_wordlist_t* wordlist;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  if(!(wordlist = malloc(sizeof(af_wordlist_t)))) {
+    af_handle_out_of_memory(global, task);
+    return;
+  }
+  wordlist->first_word = NULL;
+  *(--task->data_stack_current) = (af_cell_t)wordlist;
+  AF_ADVANCE_IP(task, 1);
 }
 
 /* IO-ACTION-DESTROY primitive */
