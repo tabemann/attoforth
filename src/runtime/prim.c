@@ -109,6 +109,12 @@ void af_prim_div(af_global_t* global, af_task_t* task);
 /* MOD primitive */
 void af_prim_mod(af_global_t* global, af_task_t* task);
 
+/* U/ primitive */
+void af_prim_u_div(af_global_t* global, af_task_t* task);
+
+/* UMOD primitive */
+void af_prim_u_mod(af_global_t* global, af_task_t* task);
+
 /* INVERT primitive */
 void af_prim_invert(af_global_t* global, af_task_t* task);
 
@@ -144,6 +150,18 @@ void af_prim_eq(af_global_t* global, af_task_t* task);
 
 /* <> primitive */
 void af_prim_ne(af_global_t* global, af_task_t* task);
+
+/* U< primitive */
+void af_prim_u_lt(af_global_t* global, af_task_t* task);
+
+/* U<= primitive */
+void af_prim_u_lte(af_global_t* global, af_task_t* task);
+
+/* U> primitive */
+void af_prim_u_gt(af_global_t* global, af_task_t* task);
+
+/* U>= primitive */
+void af_prim_u_gte(af_global_t* global, af_task_t* task);
 
 /* @ primitive */
 void af_prim_fetch(af_global_t* global, af_task_t* task);
@@ -273,6 +291,9 @@ void af_prim_parse_number(af_global_t* global, af_task_t* task);
 
 /* FORMAT-NUMBER primitive */
 void af_prim_format_number(af_global_t* global, af_task_t* task);
+
+/* FORMAT-UNSIGNED-NUMBER primitive */
+void af_prim_format_unsigned_number(af_global_t* global, af_task_t* task);
 
 /* BASE primitive */
 void af_prim_base(af_global_t* global, af_task_t* task);
@@ -616,6 +637,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "*", af_prim_mul, FALSE);
   af_register_prim(global, task, "/", af_prim_div, FALSE);
   af_register_prim(global, task, "MOD", af_prim_mod, FALSE);
+  af_register_prim(global, task, "U/", af_prim_u_div, FALSE);
+  af_register_prim(global, task, "UMOD", af_prim_u_mod, FALSE);
   af_register_prim(global, task, "INVERT", af_prim_invert, FALSE);
   af_register_prim(global, task, "AND", af_prim_and, FALSE);
   af_register_prim(global, task, "OR", af_prim_or, FALSE);
@@ -628,6 +651,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, ">=", af_prim_gte, FALSE);
   af_register_prim(global, task, "=", af_prim_eq, FALSE);
   af_register_prim(global, task, "<>", af_prim_ne, FALSE);
+  af_register_prim(global, task, "U<", af_prim_u_lt, FALSE);
+  af_register_prim(global, task, "U<=", af_prim_u_lte, FALSE);
+  af_register_prim(global, task, "U>", af_prim_u_gt, FALSE);
+  af_register_prim(global, task, "U>=", af_prim_u_gte, FALSE);
   af_register_prim(global, task, "@", af_prim_fetch, FALSE);
   af_register_prim(global, task, "!", af_prim_store, FALSE);
   af_register_prim(global, task, "+!", af_prim_add_store, FALSE);
@@ -673,6 +700,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "PARSE-NAME", af_prim_parse_name, FALSE);
   af_register_prim(global, task, "PARSE-NUMBER", af_prim_parse_number, FALSE);
   af_register_prim(global, task, "FORMAT-NUMBER", af_prim_format_number, FALSE);
+  af_register_prim(global, task, "FORMAT-UNSIGNED-NUMBER",
+		   af_prim_format_unsigned_number, FALSE);
   af_register_prim(global, task, "BASE", af_prim_base, FALSE);
   af_register_prim(global, task, "FIND-WORD", af_prim_find_word, FALSE);
   af_register_prim(global, task, "CAS", af_prim_cas, FALSE);
@@ -1156,6 +1185,36 @@ void af_prim_mod(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* U/ primitive */
+void af_prim_u_div(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  if(value1 == 0) {
+    af_handle_divide_by_zero(global, task);
+    return;
+  }
+  *(++task->data_stack_current) = (af_cell_t)(value0 / value1);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* UMOD primitive */
+void af_prim_u_mod(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  if(value1 == 0) {
+    af_handle_divide_by_zero(global, task);
+    return;
+  }
+  *(++task->data_stack_current) = (af_cell_t)(value0 % value1);
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* INVERT primitive */
 void af_prim_invert(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
@@ -1281,6 +1340,50 @@ void af_prim_ne(af_global_t* global, af_task_t* task) {
   value0 = *((af_sign_cell_t*)task->data_stack_current + 1);
   value1 = *(af_sign_cell_t*)task->data_stack_current;
   *(++task->data_stack_current) = (af_cell_t)(value0 != value1 ? -1 : 0);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* U< primitive */
+void af_prim_u_lt(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = (af_cell_t)(value0 < value1 ? -1 : 0);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* U<= primitive */
+void af_prim_u_lte(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = (af_cell_t)(value0 <= value1 ? -1 : 0);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* U> primitive */
+void af_prim_u_gt(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = (af_cell_t)(value0 > value1 ? -1 : 0);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* U>= primitive */
+void af_prim_u_gte(af_global_t* global, af_task_t* task) {
+  af_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = (af_cell_t)(value0 >= value1 ? -1 : 0);
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -1786,7 +1889,10 @@ void af_prim_format_number(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   value = *task->data_stack_current;
-  if(task->base == 10) {
+  if(value == 0) {
+    *(--current) = '0';
+    length++;
+  } else if(task->base == 10) {
     af_sign_cell_t signed_value = (af_sign_cell_t)value;
     if(signed_value < 0) {
       negative = TRUE;
@@ -1803,6 +1909,38 @@ void af_prim_format_number(af_global_t* global, af_task_t* task) {
       *(--current) = '-';
       length++;
     }
+  } else if(task->base >= 2 && task->base <= 36) {
+    while(value > 0) {
+      af_byte_t part = value % task->base;
+      if(part < 10) {
+	part += '0';
+      } else {
+	part += 'A' - 10;
+      }
+      value /= task->base;
+      *(--current) = part;
+      length++;
+    }
+  }
+  memcpy(task->data_space_current, current, length);
+  *task->data_stack_current = (af_cell_t)task->data_space_current;
+  *(--task->data_stack_current) = length;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* FORMAT-UNSIGNED-NUMBER primitive */
+void af_prim_format_unsigned_number(af_global_t* global, af_task_t* task) {
+  af_byte_t buffer[64];
+  af_byte_t* current = buffer + sizeof(buffer);
+  af_cell_t length = 0;
+  af_cell_t value;
+  af_bool_t negative = FALSE;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  value = *task->data_stack_current;
+  if(value == 0) {
+    *(--current) = '0';
+    length++;
   } else if(task->base >= 2 && task->base <= 36) {
     while(value > 0) {
       af_byte_t part = value % task->base;

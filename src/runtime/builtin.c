@@ -131,6 +131,7 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     "    DROP "
     "  THEN ; "
     ": . FORMAT-NUMBER TYPE ; "
+    ": U. FORMAT-UNSIGNED-NUMBER TYPE ; "
     ": BASE. ['] . SWAP BASE-EXECUTE ; "
     ": ERROR-TYPE THIS-TASK ERROR> DUP IF "
     "    DUP OUTPUT-WRITE @ ?EXECUTE1 "
