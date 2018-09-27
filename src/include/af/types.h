@@ -114,10 +114,9 @@ typedef union af_compiled_t {
 } af_compiled_t;
 
 typedef struct af_word_t {
+  af_prim_t code;
   af_word_t* next_word;
   af_bool_t is_immediate;
-  af_prim_t code;
-  af_cell_t* data;
   af_compiled_t* secondary;
 } af_word_t;
 

@@ -1071,7 +1071,8 @@ void af_prim_exit(af_global_t* global, af_task_t* task) {
 void af_prim_push_data(af_global_t* global, af_task_t* task) {
   if(task->data_stack_current > task->data_stack_top) {
     *(--task->data_stack_current) =
-      (af_cell_t)task->current_word->data;
+      (af_cell_t)(AF_WORD_NAME_DATA(task->current_word) +
+		  AF_WORD_NAME_LEN(task->current_word));
     AF_ADVANCE_IP(task, 1);
   } else {
     af_handle_data_stack_overflow(global, task);
@@ -1082,7 +1083,9 @@ void af_prim_push_data(af_global_t* global, af_task_t* task) {
 void af_prim_do_does(af_global_t* global, af_task_t* task) {
   if(task->data_stack_current > task->data_stack_top) {
     if(task->return_stack_current > task->return_stack_top) {
-      *(--task->data_stack_current) = (af_cell_t)task->current_word->data;
+    *(--task->data_stack_current) =
+      (af_cell_t)(AF_WORD_NAME_DATA(task->current_word) +
+		  AF_WORD_NAME_LEN(task->current_word));
       *(--task->return_stack_current) =
 	task->interpreter_pointer ? task->interpreter_pointer + 1 : NULL;
       task->interpreter_pointer = task->current_word->secondary;
@@ -1141,7 +1144,6 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
   memmove(AF_WORD_NAME_DATA(word), name, name_length);
   word->is_immediate = FALSE;
   word->code = af_prim_push_data;
-  word->data = word_space + sizeof(af_word_t) + name_size;
   word->secondary = NULL;
   task->most_recent_word = word;
   word->next_word = task->current_wordlist->first_word;
@@ -1188,7 +1190,6 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
   word->next_word = task->current_wordlist->first_word;
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
-  word->data = NULL;
   word->secondary = word_space + sizeof(af_word_t) + name_size;
   task->most_recent_word = word;
   task->current_wordlist->first_word = word;
@@ -1209,7 +1210,6 @@ void af_prim_colon_noname(af_global_t* global, af_task_t* task) {
   word->next_word = NULL;
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
-  word->data = NULL;
   word->secondary = word_space + sizeof(af_word_t) + sizeof(af_byte_t);
   AF_WORD_NAME_LEN(word) = 0;
   task->most_recent_word = word;
@@ -1670,9 +1670,11 @@ void af_prim_does(af_global_t* global, af_task_t* task) {
 
 /* >BODY primitive */
 void af_prim_to_body(af_global_t* global, af_task_t* task) {
+  af_word_t* word;
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  word = (af_word_t*)(*task->data_stack_current);
   *task->data_stack_current =
-    (af_cell_t)(((af_word_t*)(*task->data_stack_current))->data);
+    (af_cell_t)(AF_WORD_NAME_DATA(word) + AF_WORD_NAME_LEN(word));
   AF_ADVANCE_IP(task, 1);
 }
 
