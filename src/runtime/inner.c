@@ -873,25 +873,23 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
 			    af_bool_t is_immediate, af_wordlist_t* wordlist) {
   void* word_space;
   af_word_t* word;
+  af_cell_t name_length;
+  size_t name_size;
   if(name) {
-    size_t name_length = strlen(name) * sizeof(af_byte_t);
-    word_space = af_allocate(global, task,
-			     sizeof(af_word_t) +
-			     ((name_length + 1) * sizeof(af_byte_t)));
+    name_length = strlen(name);
   } else {
-    word_space = af_allocate(global, task,
-			     sizeof(af_word_t) + sizeof(af_byte_t));
+    name_length = 0;
   }
-  word = word_space;
+  name_size = (name_length + 1) * sizeof(af_byte_t);
+  word_space = af_allocate(global, task, sizeof(af_word_t) + name_size);
+  word = word_space + name_size;
   word->is_immediate = is_immediate;
+  AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   if(name) {
-    size_t name_length = strlen(name) * sizeof(af_byte_t);
-    AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
     memcpy(AF_WORD_NAME_DATA(word), name, name_length);
     word->next_word = wordlist->first_word;
     wordlist->first_word = word;
   } else {
-    AF_WORD_NAME_LEN(word) = 0;
     word->next_word = NULL;
   }
   task->most_recent_word = word;
