@@ -142,6 +142,8 @@ typedef struct af_global_t {
   af_word_t* default_abort;
   af_word_t* default_drop_input;
   af_wordlist_t* forth_wordlist;
+  af_wordlist_t* io_wordlist;
+  af_wordlist_t* task_wordlist;
   af_cell_t default_wordlist_order_max_count;
 } af_global_t;
 

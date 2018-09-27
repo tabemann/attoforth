@@ -385,6 +385,12 @@ void af_prim_refill(af_global_t* global, af_task_t* task);
 /* FORTH-WORDLIST primitive */
 void af_prim_forth_wordlist(af_global_t* global, af_task_t* task);
 
+/* IO-WORDLIST primitive */
+void af_prim_io_wordlist(af_global_t* global, af_task_t* task);
+
+/* TASK-WORDLIST primitive */
+void af_prim_task_wordlist(af_global_t* global, af_task_t* task);
+
 /* GET-CURRENT primitive */
 void af_prim_get_current(af_global_t* global, af_task_t* task);
 
@@ -616,237 +622,429 @@ void af_prim_debugger(af_global_t* global, af_task_t* task);
 void af_register_prims(af_global_t* global, af_task_t* task) {
   global->builtin_literal_runtime =
     af_register_prim(global, task, "(LITERAL)", af_prim_literal_runtime,
-		     FALSE);
+		     FALSE,
+		     global->forth_wordlist);
   global->builtin_exit =
-    af_register_prim(global, task, "EXIT", af_prim_exit, FALSE);
-  af_register_prim(global, task, "CREATE", af_prim_create, FALSE);
-  af_register_prim(global, task, ":", af_prim_colon, FALSE);
-  af_register_prim(global, task, ":NONAME", af_prim_colon_noname, FALSE);
-  af_register_prim(global, task, ";", af_prim_semi, TRUE);
-  af_register_prim(global, task, "IMMEDIATE", af_prim_immediate, FALSE);
-  af_register_prim(global, task, "IS-IMMEDIATE", af_prim_is_immediate, FALSE);
-  af_register_prim(global, task, "DUP", af_prim_dup, FALSE);
-  af_register_prim(global, task, "DROP", af_prim_drop, FALSE);
-  af_register_prim(global, task, "SWAP", af_prim_swap, FALSE);
-  af_register_prim(global, task, "OVER", af_prim_over, FALSE);
-  af_register_prim(global, task, "ROT", af_prim_rot, FALSE);
-  af_register_prim(global, task, "PICK", af_prim_pick, FALSE);
-  af_register_prim(global, task, "ROLL", af_prim_roll, FALSE);
-  af_register_prim(global, task, "+", af_prim_add, FALSE);
-  af_register_prim(global, task, "-", af_prim_sub, FALSE);
-  af_register_prim(global, task, "*", af_prim_mul, FALSE);
-  af_register_prim(global, task, "/", af_prim_div, FALSE);
-  af_register_prim(global, task, "MOD", af_prim_mod, FALSE);
-  af_register_prim(global, task, "U/", af_prim_u_div, FALSE);
-  af_register_prim(global, task, "UMOD", af_prim_u_mod, FALSE);
-  af_register_prim(global, task, "INVERT", af_prim_invert, FALSE);
-  af_register_prim(global, task, "AND", af_prim_and, FALSE);
-  af_register_prim(global, task, "OR", af_prim_or, FALSE);
-  af_register_prim(global, task, "XOR", af_prim_xor, FALSE);
-  af_register_prim(global, task, "LSHIFT", af_prim_lshift, FALSE);
-  af_register_prim(global, task, "RSHIFT", af_prim_rshift, FALSE);
-  af_register_prim(global, task, "<", af_prim_lt, FALSE);
-  af_register_prim(global, task, "<=", af_prim_lte, FALSE);
-  af_register_prim(global, task, ">", af_prim_gt, FALSE);
-  af_register_prim(global, task, ">=", af_prim_gte, FALSE);
-  af_register_prim(global, task, "=", af_prim_eq, FALSE);
-  af_register_prim(global, task, "<>", af_prim_ne, FALSE);
-  af_register_prim(global, task, "U<", af_prim_u_lt, FALSE);
-  af_register_prim(global, task, "U<=", af_prim_u_lte, FALSE);
-  af_register_prim(global, task, "U>", af_prim_u_gt, FALSE);
-  af_register_prim(global, task, "U>=", af_prim_u_gte, FALSE);
-  af_register_prim(global, task, "@", af_prim_fetch, FALSE);
-  af_register_prim(global, task, "!", af_prim_store, FALSE);
-  af_register_prim(global, task, "+!", af_prim_add_store, FALSE);
-  af_register_prim(global, task, "C@", af_prim_c_fetch, FALSE);
-  af_register_prim(global, task, "C!", af_prim_c_store, FALSE);
-  af_register_prim(global, task, ">R", af_prim_to_r, FALSE);
-  af_register_prim(global, task, "R>", af_prim_from_r, FALSE);
-  af_register_prim(global, task, "R@", af_prim_r_fetch, FALSE);
-  af_register_prim(global, task, "HERE", af_prim_here, FALSE);
-  af_register_prim(global, task, "DOES>", af_prim_does, FALSE);
-  af_register_prim(global, task, ">BODY", af_prim_to_body, FALSE);
-  af_register_prim(global, task, "SP@", af_prim_sp_fetch, FALSE);
-  af_register_prim(global, task, "SP0", af_prim_sp0, FALSE);
-  af_register_prim(global, task, "LITTLE-ENDIAN", af_prim_little_endian, FALSE);
-  af_register_prim(global, task, "'", af_prim_tick, FALSE);
-  af_register_prim(global, task, "[']", af_prim_bracket_tick, TRUE);
-  af_register_prim(global, task, "EXECUTE", af_prim_execute, FALSE);
-  af_register_prim(global, task, "STATE", af_prim_state, FALSE);
-  af_register_prim(global, task, "LATESTXT", af_prim_latestxt, FALSE);
-  af_register_prim(global, task, ">IN", af_prim_to_in, FALSE);
-  af_register_prim(global, task, "SOURCE", af_prim_source, FALSE);
-  af_register_prim(global, task, ">INPUT", af_prim_to_input, FALSE);
-  af_register_prim(global, task, "INPUT>", af_prim_from_input, FALSE);
-  af_register_prim(global, task, ">OUTPUT", af_prim_to_output, FALSE);
-  af_register_prim(global, task, "OUTPUT>", af_prim_from_output, FALSE);
-  af_register_prim(global, task, ">ERROR", af_prim_to_error, FALSE);
-  af_register_prim(global, task, "ERROR>", af_prim_from_error, FALSE);
-  af_register_prim(global, task, ">DATA", af_prim_to_data, FALSE);
-  af_register_prim(global, task, ">RETURN", af_prim_to_return, FALSE);
-  af_register_prim(global, task, ">ABORT", af_prim_to_abort, FALSE);
-  af_register_prim(global, task, "ABORT>", af_prim_from_abort, FALSE);
+    af_register_prim(global, task, "EXIT", af_prim_exit, FALSE,
+		     global->forth_wordlist);
+  af_register_prim(global, task, "CREATE", af_prim_create, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ":", af_prim_colon, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ":NONAME", af_prim_colon_noname, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ";", af_prim_semi, TRUE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "IMMEDIATE", af_prim_immediate, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "IS-IMMEDIATE", af_prim_is_immediate, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "DUP", af_prim_dup, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "DROP", af_prim_drop, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SWAP", af_prim_swap, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "OVER", af_prim_over, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ROT", af_prim_rot, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "PICK", af_prim_pick, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ROLL", af_prim_roll, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "+", af_prim_add, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "-", af_prim_sub, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "*", af_prim_mul, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "/", af_prim_div, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "MOD", af_prim_mod, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "U/", af_prim_u_div, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "UMOD", af_prim_u_mod, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "INVERT", af_prim_invert, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "AND", af_prim_and, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "OR", af_prim_or, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "XOR", af_prim_xor, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "LSHIFT", af_prim_lshift, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "RSHIFT", af_prim_rshift, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "<", af_prim_lt, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "<=", af_prim_lte, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">", af_prim_gt, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">=", af_prim_gte, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "=", af_prim_eq, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "<>", af_prim_ne, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "U<", af_prim_u_lt, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "U<=", af_prim_u_lte, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "U>", af_prim_u_gt, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "U>=", af_prim_u_gte, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "@", af_prim_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "!", af_prim_store, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "+!", af_prim_add_store, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "C@", af_prim_c_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "C!", af_prim_c_store, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">R", af_prim_to_r, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "R>", af_prim_from_r, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "R@", af_prim_r_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "HERE", af_prim_here, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "DOES>", af_prim_does, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">BODY", af_prim_to_body, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SP@", af_prim_sp_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SP0", af_prim_sp0, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "LITTLE-ENDIAN", af_prim_little_endian, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "'", af_prim_tick, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "[']", af_prim_bracket_tick, TRUE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "EXECUTE", af_prim_execute, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "STATE", af_prim_state, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "LATESTXT", af_prim_latestxt, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">IN", af_prim_to_in, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SOURCE", af_prim_source, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">INPUT", af_prim_to_input, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT>", af_prim_from_input, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, ">OUTPUT", af_prim_to_output, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "OUTPUT>", af_prim_from_output, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, ">ERROR", af_prim_to_error, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "ERROR>", af_prim_from_error, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, ">DATA", af_prim_to_data, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">RETURN", af_prim_to_return, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">ABORT", af_prim_to_abort, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ABORT>", af_prim_from_abort, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, ">DEFAULT-ABORT",
-		   af_prim_to_default_abort, FALSE);
+		   af_prim_to_default_abort, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "DEFAULT-ABORT>",
-		   af_prim_from_default_abort, FALSE);
-  af_register_prim(global, task, "ALLOCATE", af_prim_allocate, FALSE);
+		   af_prim_from_default_abort, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ALLOCATE", af_prim_allocate, FALSE,
+		   global->forth_wordlist);
   global->builtin_free =
-    af_register_prim(global, task, "FREE", af_prim_free, FALSE);
-  af_register_prim(global, task, "RESIZE", af_prim_resize, FALSE);
-  af_register_prim(global, task, "ALIGN", af_prim_align, FALSE);
-  af_register_prim(global, task, "ALLOT", af_prim_allot, FALSE);
-  af_register_prim(global, task, "WORD", af_prim_word, FALSE);
-  af_register_prim(global, task, "PARSE-NAME", af_prim_parse_name, FALSE);
-  af_register_prim(global, task, "PARSE-NUMBER", af_prim_parse_number, FALSE);
-  af_register_prim(global, task, "FORMAT-NUMBER", af_prim_format_number, FALSE);
+    af_register_prim(global, task, "FREE", af_prim_free, FALSE,
+		     global->forth_wordlist);
+  af_register_prim(global, task, "RESIZE", af_prim_resize, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ALIGN", af_prim_align, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ALLOT", af_prim_allot, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "WORD", af_prim_word, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "PARSE-NAME", af_prim_parse_name, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "PARSE-NUMBER", af_prim_parse_number, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "FORMAT-NUMBER", af_prim_format_number, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "FORMAT-UNSIGNED-NUMBER",
-		   af_prim_format_unsigned_number, FALSE);
-  af_register_prim(global, task, "BASE", af_prim_base, FALSE);
-  af_register_prim(global, task, "FIND-WORD", af_prim_find_word, FALSE);
-  af_register_prim(global, task, "CAS", af_prim_cas, FALSE);
-  af_register_prim(global, task, "2CAS", af_prim_2cas, FALSE);
-  af_register_prim(global, task, "THIS-TASK", af_prim_this_task, FALSE);
-  af_register_prim(global, task, "SPAWN", af_prim_spawn, FALSE);
-  af_register_prim(global, task, "SPAWN-NO-DATA", af_prim_spawn_no_data, FALSE);
+		   af_prim_format_unsigned_number, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "BASE", af_prim_base, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "FIND-WORD", af_prim_find_word, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "CAS", af_prim_cas, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "2CAS", af_prim_2cas, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "THIS-TASK", af_prim_this_task, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "SPAWN", af_prim_spawn, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "SPAWN-NO-DATA", af_prim_spawn_no_data, FALSE,
+		   global->task_wordlist);
   af_register_prim(global, task, ">FREE-DATA-ON-EXIT",
-		   af_prim_free_data_on_exit, FALSE);
+		   af_prim_free_data_on_exit, FALSE,
+		   global->task_wordlist);
   af_register_prim(global, task, ">CONSOLE-INPUT", af_prim_to_console_input,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, ">CONSOLE-OUTPUT", af_prim_to_console_output,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, ">CONSOLE-ERROR", af_prim_to_console_error,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "CONSOLE-INPUT>",
-		   af_prim_from_console_input, FALSE);
+		   af_prim_from_console_input, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "CONSOLE-OUTPUT>",
-		   af_prim_from_console_output, FALSE);
+		   af_prim_from_console_output, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "CONSOLE-ERROR>",
-		   af_prim_from_console_error, FALSE);
-  af_register_prim(global, task, ">INIT-WORD", af_prim_to_init_word, FALSE);
-  af_register_prim(global, task, "START", af_prim_start, FALSE);
-  af_register_prim(global, task, "KILL", af_prim_kill, FALSE);
-  af_register_prim(global, task, "YIELD", af_prim_yield, FALSE);
-  af_register_prim(global, task, "WAIT", af_prim_wait, FALSE);
-  af_register_prim(global, task, "WAKE", af_prim_wake, FALSE);
-  af_register_prim(global, task, "RESET", af_prim_reset, FALSE);
-  af_register_prim(global, task, "[", af_prim_open_bracket, TRUE);
-  af_register_prim(global, task, "]", af_prim_close_bracket, FALSE);
-  af_register_prim(global, task, "BRANCH", af_prim_branch, FALSE);
-  af_register_prim(global, task, "?BRANCH", af_prim_cond_branch, FALSE);
-  af_register_prim(global, task, "MOVE", af_prim_move, FALSE);
-  af_register_prim(global, task, "DEPTH", af_prim_depth, FALSE);
-  af_register_prim(global, task, "CELL-SIZE", af_prim_cell_size, FALSE);
-  af_register_prim(global, task, "REFILL", af_prim_refill, FALSE);
+		   af_prim_from_console_error, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, ">INIT-WORD", af_prim_to_init_word, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "START", af_prim_start, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "KILL", af_prim_kill, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "YIELD", af_prim_yield, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "WAIT", af_prim_wait, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "WAKE", af_prim_wake, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "RESET", af_prim_reset, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "[", af_prim_open_bracket, TRUE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "]", af_prim_close_bracket, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "BRANCH", af_prim_branch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "?BRANCH", af_prim_cond_branch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "MOVE", af_prim_move, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "DEPTH", af_prim_depth, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "CELL-SIZE", af_prim_cell_size, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "REFILL", af_prim_refill, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "FORTH-WORDLIST",
-		   af_prim_forth_wordlist, FALSE);
-  af_register_prim(global, task, "GET-CURRENT", af_prim_get_current, FALSE);
-  af_register_prim(global, task, "GET-ORDER", af_prim_get_order, FALSE);
+		   af_prim_forth_wordlist, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "IO-WORDLIST",
+		   af_prim_io_wordlist, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "TASK-WORDLIST",
+		   af_prim_task_wordlist, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "GET-CURRENT", af_prim_get_current, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "GET-ORDER", af_prim_get_order, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "SEARCH-WORDLIST",
-		   af_prim_search_wordlist, FALSE);
-  af_register_prim(global, task, "SET-CURRENT", af_prim_set_current, FALSE);
-  af_register_prim(global, task, "SET-ORDER", af_prim_set_order, FALSE);
-  af_register_prim(global, task, "WORDLIST", af_prim_wordlist, FALSE);
+		   af_prim_search_wordlist, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SET-CURRENT", af_prim_set_current, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SET-ORDER", af_prim_set_order, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "WORDLIST", af_prim_wordlist, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "IO-ACTION-DESTROY",
-		   af_prim_io_action_destroy, FALSE);
+		   af_prim_io_action_destroy, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-ACTION-GET-STATE",
-		   af_prim_io_action_get_state, FALSE);
+		   af_prim_io_action_get_state, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-DESTROY", af_prim_io_state_destroy,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-IS-DONE",
-		   af_prim_io_state_is_done, FALSE);
+		   af_prim_io_state_is_done, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-IS-CLOSED",
-		   af_prim_io_state_is_closed, FALSE);
+		   af_prim_io_state_is_closed, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-HAS-HANGUP",
-		   af_prim_io_state_has_hangup, FALSE);
+		   af_prim_io_state_has_hangup, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-HAS-ERROR",
-		   af_prim_io_state_has_error, FALSE);
+		   af_prim_io_state_has_error, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-GET-BUFFER",
-		   af_prim_io_state_get_buffer, FALSE);
+		   af_prim_io_state_get_buffer, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-GET-INDEX",
-		   af_prim_io_state_get_index, FALSE);
+		   af_prim_io_state_get_index, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-STATE-GET-COUNT",
-		   af_prim_io_state_get_count, FALSE);
-  af_register_prim(global, task, "IO-OPEN", af_prim_io_open, FALSE);
-  af_register_prim(global, task, "IO-PIPE", af_prim_io_pipe, FALSE);
+		   af_prim_io_state_get_count, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-OPEN", af_prim_io_open, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-PIPE", af_prim_io_pipe, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-GET-MONOTONIC-TIME",
-		   af_prim_io_get_monotonic_time, FALSE);
-  af_register_prim(global, task, "IO-SLEEP", af_prim_io_sleep, FALSE);
+		   af_prim_io_get_monotonic_time, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-SLEEP", af_prim_io_sleep, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-CLOSE-BLOCK", af_prim_io_close_block,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-CLOSE-ASYNC", af_prim_io_close_async,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-SEEK-BLOCK", af_prim_io_seek_block,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-SEEK-ASYNC", af_prim_io_seek_async,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-READ-BLOCK", af_prim_io_read_block,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-WRITE-BLOCK", af_prim_io_write_block,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-READ-ASYNC", af_prim_io_read_async,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-WRITE-ASYNC", af_prim_io_write_async,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-READ-NONBLOCK", af_prim_io_read_nonblock,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-WRITE-NONBLOCK",
-		   af_prim_io_write_nonblock, FALSE);
-  af_register_prim(global, task, "IO-STDIN", af_prim_io_stdin, FALSE);
-  af_register_prim(global, task, "IO-STDOUT", af_prim_io_stdout, FALSE);
-  af_register_prim(global, task, "IO-STDERR", af_prim_io_stderr, FALSE);
-  af_register_prim(global, task, "IO-RDONLY", af_prim_io_rdonly, FALSE);
-  af_register_prim(global, task, "IO-WRONLY", af_prim_io_wronly, FALSE);
-  af_register_prim(global, task, "IO-RDWR", af_prim_io_rdwr, FALSE);
-  af_register_prim(global, task, "IO-APPEND", af_prim_io_append, FALSE);
-  af_register_prim(global, task, "IO-TRUNC", af_prim_io_trunc, FALSE);
-  af_register_prim(global, task, "IO-CREAT", af_prim_io_creat, FALSE);
-  af_register_prim(global, task, "IO-EXCL", af_prim_io_excl, FALSE);
-  af_register_prim(global, task, "IO-IRWXU", af_prim_io_irwxu, FALSE);
-  af_register_prim(global, task, "IO-IRUSR", af_prim_io_irusr, FALSE);
-  af_register_prim(global, task, "IO-IWUSR", af_prim_io_iwusr, FALSE);
-  af_register_prim(global, task, "IO-IXUSR", af_prim_io_ixusr, FALSE);
-  af_register_prim(global, task, "IO-IRWXG", af_prim_io_irwxg, FALSE);
-  af_register_prim(global, task, "IO-IRGRP", af_prim_io_irgrp, FALSE);
-  af_register_prim(global, task, "IO-IWGRP", af_prim_io_iwgrp, FALSE);
-  af_register_prim(global, task, "IO-IXGRP", af_prim_io_ixgrp, FALSE);
-  af_register_prim(global, task, "IO-IRWXO", af_prim_io_irwxo, FALSE);
-  af_register_prim(global, task, "IO-IROTH", af_prim_io_iroth, FALSE);
-  af_register_prim(global, task, "IO-IWOTH", af_prim_io_iwoth, FALSE);
-  af_register_prim(global, task, "IO-IXOTH", af_prim_io_ixoth, FALSE);
-  af_register_prim(global, task, "IO-ISUID", af_prim_io_isuid, FALSE);
-  af_register_prim(global, task, "IO-ISGID", af_prim_io_isgid, FALSE);
-  af_register_prim(global, task, "IO-ISVTX", af_prim_io_isvtx, FALSE);
+		   af_prim_io_write_nonblock, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-STDIN", af_prim_io_stdin, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-STDOUT", af_prim_io_stdout, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-STDERR", af_prim_io_stderr, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-RDONLY", af_prim_io_rdonly, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-WRONLY", af_prim_io_wronly, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-RDWR", af_prim_io_rdwr, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-APPEND", af_prim_io_append, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-TRUNC", af_prim_io_trunc, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-CREAT", af_prim_io_creat, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-EXCL", af_prim_io_excl, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IRWXU", af_prim_io_irwxu, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IRUSR", af_prim_io_irusr, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IWUSR", af_prim_io_iwusr, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IXUSR", af_prim_io_ixusr, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IRWXG", af_prim_io_irwxg, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IRGRP", af_prim_io_irgrp, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IWGRP", af_prim_io_iwgrp, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IXGRP", af_prim_io_ixgrp, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IRWXO", af_prim_io_irwxo, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IROTH", af_prim_io_iroth, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IWOTH", af_prim_io_iwoth, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-IXOTH", af_prim_io_ixoth, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-ISUID", af_prim_io_isuid, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-ISGID", af_prim_io_isgid, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-ISVTX", af_prim_io_isvtx, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-SEEK-SET",
-		   af_prim_io_seek_set, FALSE);
+		   af_prim_io_seek_set, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-SEEK-CUR",
-		   af_prim_io_seek_cur, FALSE);
+		   af_prim_io_seek_cur, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-SEEK-END",
-		   af_prim_io_seek_end, FALSE);
-  af_register_prim(global, task, "INPUT-SIZE", af_prim_input_size, FALSE);
+		   af_prim_io_seek_end, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-SIZE", af_prim_input_size, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "INPUT-NEXT-INPUT", af_prim_input_next_input,
-		   FALSE);
-  af_register_prim(global, task, "INPUT-BUFFER", af_prim_input_buffer, FALSE);
-  af_register_prim(global, task, "INPUT-COUNT", af_prim_input_count, FALSE);
-  af_register_prim(global, task, "INPUT-INDEX", af_prim_input_index, FALSE);
+		   FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-BUFFER", af_prim_input_buffer, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-COUNT", af_prim_input_count, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-INDEX", af_prim_input_index, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "INPUT-IS-CLOSED", af_prim_input_is_closed,
-		   FALSE);
+		   FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "INPUT-CLEANUP", af_prim_input_cleanup,
-		   FALSE);
-  af_register_prim(global, task, "INPUT-REFILL", af_prim_input_refill, FALSE);
-  af_register_prim(global, task, "INPUT-ARG", af_prim_input_arg, FALSE);
-  af_register_prim(global, task, "OUTPUT-SIZE", af_prim_output_size, FALSE);
+		   FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-REFILL", af_prim_input_refill, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-ARG", af_prim_input_arg, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "OUTPUT-SIZE", af_prim_output_size, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "OUTPUT-NEXT-OUTPUT",
-		   af_prim_output_next_output, FALSE);
-  af_register_prim(global, task, "OUTPUT-WRITE", af_prim_output_write, FALSE);
+		   af_prim_output_next_output, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "OUTPUT-WRITE", af_prim_output_write, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "OUTPUT-CLEANUP", af_prim_output_cleanup,
-		   FALSE);
-  af_register_prim(global, task, "OUTPUT-ARG", af_prim_output_arg, FALSE);
+		   FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "OUTPUT-ARG", af_prim_output_arg, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "EMPTY-DATA-STACK",
-		   af_prim_empty_data_stack, FALSE);
+		   af_prim_empty_data_stack, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "EMPTY-RETURN-STACK",
-		   af_prim_empty_return_stack, FALSE);
-  af_register_prim(global, task, "DEBUGGER", af_prim_debugger, FALSE);
+		   af_prim_empty_return_stack, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "DEBUGGER", af_prim_debugger, FALSE,
+		   global->forth_wordlist);
 }
 
 /* Docol primitive */
@@ -2284,6 +2482,20 @@ void af_prim_refill(af_global_t* global, af_task_t* task) {
 void af_prim_forth_wordlist(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = (af_cell_t)global->forth_wordlist;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-WORDLIST primitive */
+void af_prim_io_wordlist(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)global->io_wordlist;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* TASK-WORDLIST primitive */
+void af_prim_task_wordlist(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)global->task_wordlist;
   AF_ADVANCE_IP(task, 1);
 }
 

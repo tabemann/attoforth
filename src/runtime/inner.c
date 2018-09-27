@@ -61,20 +61,34 @@ af_global_t* af_global_init(void) {
     free(global);
     return NULL;
   }
+  if(!(global->io_wordlist = malloc(sizeof(af_wordlist_t)))) {
+    free(global);
+    return NULL;
+  }
+  if(!(global->task_wordlist = malloc(sizeof(af_wordlist_t)))) {
+    free(global);
+    return NULL;
+  }
   global->first_task = NULL;
   global->tasks_active_count = 0;
   if(!af_cond_init(&global->cond)) {
+    free(global->task_wordlist);
+    free(global->io_wordlist);
     free(global->forth_wordlist);
     free(global);
     return NULL;
   }
   if(pthread_mutex_init(&global->mutex, NULL)) {
     af_cond_destroy(&global->cond);
+    free(global->task_wordlist);
+    free(global->io_wordlist);
     free(global->forth_wordlist);
     free(global);
     return NULL;
   }
   global->forth_wordlist->first_word = NULL;
+  global->io_wordlist->first_word = NULL;
+  global->task_wordlist->first_word = NULL;
   global->default_data_stack_count = 16384;
   global->default_return_stack_count = 15872;
   global->min_guaranteed_data_space_size = 8192;
@@ -87,6 +101,8 @@ af_global_t* af_global_init(void) {
   if(!(af_io_init(&global->io, global))) {
     pthread_mutex_destroy(&global->mutex);
     af_cond_destroy(&global->cond);
+    free(global->task_wordlist);
+    free(global->io_wordlist);
     free(global->forth_wordlist);
     free(global);
     return NULL;
@@ -854,7 +870,7 @@ af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
 
 af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
 			    af_byte_t* name, af_prim_t prim,
-			    af_bool_t is_immediate) {
+			    af_bool_t is_immediate, af_wordlist_t* wordlist) {
   void* word_space;
   af_word_t* word;
   if(name) {
@@ -872,8 +888,8 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
     size_t name_length = strlen(name) * sizeof(af_byte_t);
     AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
     memcpy(AF_WORD_NAME_DATA(word), name, name_length);
-    word->next_word = global->forth_wordlist->first_word;
-    global->forth_wordlist->first_word = word;
+    word->next_word = wordlist->first_word;
+    wordlist->first_word = word;
   } else {
     AF_WORD_NAME_LEN(word) = 0;
     word->next_word = NULL;

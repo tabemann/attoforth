@@ -216,7 +216,7 @@ af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
 
 af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
 			    af_byte_t* name, af_prim_t prim,
-			    af_bool_t is_immediate);
+			    af_bool_t is_immediate, af_wordlist_t* wordlist);
 
 af_word_t* af_search_wordlist(af_wordlist_t* wordlist, af_byte_t* name,
 			      af_cell_t name_length);
