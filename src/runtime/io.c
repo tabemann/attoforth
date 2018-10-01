@@ -151,6 +151,7 @@ void af_io_action_get_state(af_io_action_t* action, af_io_state_t* state) {
   state->buffer = action->buffer;
   state->count = action->count;
   state->index = action->index;
+  state->offset = action->offset;
   state->is_done = action->is_done;
   state->is_closed = action->is_closed;
   state->has_hangup = action->has_hangup;
@@ -184,13 +185,18 @@ af_byte_t* af_io_state_get_buffer(af_io_state_t* state) {
 }
 
 /* Get IO action buffer index */
-af_io_size_t af_io_state_get_index(af_io_state_t* state) {
+af_cell_t af_io_state_get_index(af_io_state_t* state) {
   return state->index;
 }
 
 /* Get IO action buffer count */
-af_io_size_t af_io_state_get_count(af_io_state_t* state) {
+af_cell_t af_io_state_get_count(af_io_state_t* state) {
   return state->count;
+}
+
+/* Get IO action file offset */
+af_sign_cell_t af_io_state_get_offset(af_io_state_t* state) {
+  return state->offset;
 }
 
 /* Open a file */
@@ -225,6 +231,63 @@ af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error) {
   }
 }
 
+/* Delete a file */
+af_bool_t af_io_delete(af_byte_t* path, af_io_size_t count,
+		       af_io_error_t* error) {
+  af_byte_t* path_buffer = malloc(sizeof(af_byte_t) * (count + 1));
+  memcpy(path_buffer, path, count);
+  path_buffer[count] = 0;
+  if(!unlink(path_buffer)) {
+    *error = 0;
+    free(path_buffer);
+    return TRUE;
+  } else {
+    *error = errno;
+    free(path_buffer);
+    return FALSE;
+  }
+}
+
+/* Delete a file */
+af_bool_t af_io_delete_dir(af_byte_t* path, af_io_size_t count,
+			   af_io_error_t* error) {
+  af_byte_t* path_buffer = malloc(sizeof(af_byte_t) * (count + 1));
+  memcpy(path_buffer, path, count);
+  path_buffer[count] = 0;
+  if(!unlink(path_buffer)) {
+    *error = 0;
+    free(path_buffer);
+    return TRUE;
+  } else {
+    *error = errno;
+    free(path_buffer);
+    return FALSE;
+  }
+}
+
+/* Rename a file */
+af_bool_t af_io_rename(af_byte_t* path1, af_io_size_t count1,
+		       af_byte_t* path2, af_io_size_t count2,
+		       af_io_error_t* error) {
+  af_byte_t* path_buffer1 = malloc(sizeof(af_byte_t) * (count1 + 1));
+  af_byte_t* path_buffer2 = malloc(sizeof(af_byte_t) * (count2 + 1));
+  memcpy(path_buffer1, path1, count1);
+  path_buffer1[count1] = 0;
+  memcpy(path_buffer2, path2, count2);
+  path_buffer2[count2] = 0;
+  if(!rename(path_buffer1, path_buffer2)) {
+    *error = 0;
+    free(path_buffer1);
+    free(path_buffer2);
+    return TRUE;
+  } else {
+    *error = errno;
+    free(path_buffer1);
+    free(path_buffer2);
+    return TRUE;
+  }
+}
+
 /* Get monotonic time */
 void af_io_get_monotonic_time(af_time_t* monotonic_time) {
   struct timespec time;
@@ -250,6 +313,32 @@ af_io_action_t* af_io_sleep(af_io_t* io, af_time_t* sleep_until,
   action->whence = AF_IO_SEEK_CUR;
   action->sleep_until.tv_sec = sleep_until->sec;
   action->sleep_until.tv_nsec = sleep_until->nsec;
+  action->is_buffer_freeable = FALSE;
+  action->task_to_wake = task_to_wake;
+  action->is_done = FALSE;
+  action->is_closed = FALSE;
+  action->has_hangup = FALSE;
+  action->has_error = FALSE;
+  af_io_add(io, action);
+  return action;
+}
+
+af_io_action_t* af_io_tell(af_io_t* io, af_io_fd_t fd,
+			   af_task_t* task_to_wake) {
+  af_io_action_t* action;
+  if(!(action = malloc(sizeof(af_io_action_t)))) {
+    return NULL;
+  }
+  action->type = AF_IO_TYPE_TELL;
+  action->to_be_destroyed = FALSE;
+  action->fd = fd;
+  action->buffer = NULL;
+  action->count = 0;
+  action->index = 0;
+  action->offset = 0;
+  action->whence = AF_IO_SEEK_CUR;
+  action->sleep_until.tv_sec = 0;
+  action->sleep_until.tv_nsec = 0;
   action->is_buffer_freeable = FALSE;
   action->task_to_wake = task_to_wake;
   action->is_done = FALSE;
@@ -603,6 +692,13 @@ void* af_io_main(void* arg) {
 	    current_action->has_error = TRUE;
 	  }
 	  still_looping = TRUE;
+	} else if(current_action->type == AF_IO_TYPE_TELL) {
+	  current_action->is_done = TRUE;
+	  if((current_action->offset =
+	      lseek(current_action->fd, 0, SEEK_CUR)) == -1) {
+	    current_action->has_error = TRUE;
+	  }
+	  still_looping = TRUE;
 	} else if(current_action->type == AF_IO_TYPE_SLEEP) {
 	  if(current_time.tv_sec > current_action->sleep_until.tv_sec ||
 	     (current_time.tv_sec == current_action->sleep_until.tv_sec &&
@@ -648,6 +744,7 @@ void* af_io_main(void* arg) {
     while(current_action) {
       if(current_action->type != AF_IO_TYPE_CLOSE &&
 	 current_action->type != AF_IO_TYPE_SEEK &&
+	 current_action->type != AF_IO_TYPE_TELL &&
 	 current_action->type != AF_IO_TYPE_SLEEP) {
 	fds[current_index].fd = current_action->fd;
 	if(current_action->type == AF_IO_TYPE_READ) {

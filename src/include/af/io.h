@@ -43,6 +43,7 @@
 #define AF_IO_TYPE_CLOSE ((af_io_type_t)2)
 #define AF_IO_TYPE_SEEK ((af_io_type_t)3)
 #define AF_IO_TYPE_SLEEP ((af_io_type_t)4)
+#define AF_IO_TYPE_TELL ((af_io_type_t)5)
 #define AF_IO_STDIN ((af_io_fd_t)STDIN_FILENO)
 #define AF_IO_STDOUT ((af_io_fd_t)STDOUT_FILENO)
 #define AF_IO_STDERR ((af_io_fd_t)STDERR_FILENO)
@@ -102,10 +103,13 @@ af_bool_t af_io_state_has_error(af_io_state_t* state);
 af_byte_t* af_io_state_get_buffer(af_io_state_t* state);
 
 /* Get IO action buffer index */
-af_io_size_t af_io_state_get_index(af_io_state_t* state);
+af_cell_t af_io_state_get_index(af_io_state_t* state);
 
 /* Get IO action buffer count */
-af_io_size_t af_io_state_get_count(af_io_state_t* state);
+af_cell_t af_io_state_get_count(af_io_state_t* state);
+
+/* Get IO action file offset */
+af_sign_cell_t af_io_state_get_offset(af_io_state_t* state);
 
 /* Open a file */
 af_io_fd_t af_io_open(af_byte_t* path, af_io_size_t count, af_io_flags_t flags,
@@ -114,12 +118,29 @@ af_io_fd_t af_io_open(af_byte_t* path, af_io_size_t count, af_io_flags_t flags,
 /* Open a pipe */
 af_bool_t af_io_pipe(af_io_fd_t* in, af_io_fd_t* out, af_io_error_t* error);
 
+/* Delete a file */
+af_bool_t af_io_delete(af_byte_t* path, af_io_size_t count,
+		       af_io_error_t* error);
+
+/* Delete a directory */
+af_bool_t af_io_delete_dir(af_byte_t* path, af_io_size_t count,
+			   af_io_error_t* error);
+
+/* Rename a file */
+af_bool_t af_io_rename(af_byte_t* path1, af_io_size_t count1,
+		       af_byte_t* path2, af_io_size_t count2,
+		       af_io_error_t* error);
+
 /* Get monotonic time */
 void af_io_get_monotonic_time(af_time_t* monotonic_time);
 
 /* Sleep */
 af_io_action_t* af_io_sleep(af_io_t* io, af_time_t* sleep_until,
 			    af_task_t* task_to_wake);
+
+/* Get current offset in file */
+af_io_action_t* af_io_tell(af_io_t* io, af_io_fd_t fd,
+			   af_task_t* task_to_wake);
 
 /* Blocking close of file descriptor */
 af_io_action_t* af_io_close_block(af_io_t* io, af_io_fd_t fd,

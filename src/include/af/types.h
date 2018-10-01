@@ -190,6 +190,7 @@ typedef struct af_input_t {
   af_bool_t is_closed;
   af_word_t* cleanup;
   af_word_t* refill;
+  af_sign_cell_t source_id;
   af_cell_t arg;
 } af_input_t;
 
@@ -225,6 +226,7 @@ typedef struct af_io_state_t {
   af_byte_t* buffer;
   af_cell_t count;
   af_cell_t index;
+  af_sign_cell_t offset;
   af_bool_t is_done;
   af_bool_t is_closed;
   af_bool_t has_hangup;

@@ -835,21 +835,6 @@ af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
   return buffer + start_index;
 }
 
-void af_refill(af_global_t* global, af_task_t* task) {
-  if(task->current_input) {
-    if(task->current_input->refill) {
-      AF_VERIFY_RETURN_STACK_EXPAND(global, task, 1);
-      AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-      *(--task->data_stack_current) = (af_cell_t)task->current_input;
-      AF_WORD_EXECUTE(global, task, task->current_input->refill);
-    } else {
-      task->current_input->is_closed = TRUE;
-      task->current_input->index = 0;
-      task->current_input->count = 0;
-    }
-  }
-}
-
 af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
 				af_cell_t count) {
   af_input_t* input;
@@ -864,6 +849,7 @@ af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
   input->is_closed = TRUE;
   input->cleanup = global->builtin_free;
   input->refill = NULL;
+  input->source_id = -1;
   input->arg = 0;
   return input;
 }

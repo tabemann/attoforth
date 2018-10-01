@@ -379,9 +379,6 @@ void af_prim_depth(af_global_t* global, af_task_t* task);
 /* CELL-SIZE primitive */
 void af_prim_cell_size(af_global_t* global, af_task_t* task);
 
-/* REFILL primitive */
-void af_prim_refill(af_global_t* global, af_task_t* task);
-
 /* FORTH-WORDLIST primitive */
 void af_prim_forth_wordlist(af_global_t* global, af_task_t* task);
 
@@ -439,17 +436,32 @@ void af_prim_io_state_get_index(af_global_t* global, af_task_t* task);
 /* IO-STATE-GET-COUNT primitive */
 void af_prim_io_state_get_count(af_global_t* global, af_task_t* task);
 
+/* IO-STATE-GET-OFFSET primitive */
+void af_prim_io_state_get_offset(af_global_t* global, af_task_t* task);
+
 /* IO-OPEN primitive */
 void af_prim_io_open(af_global_t* global, af_task_t* task);
 
 /* IO-PIPE primitive */
 void af_prim_io_pipe(af_global_t* global, af_task_t* task);
 
+/* IO-DELETE primitive */
+void af_prim_io_delete(af_global_t* global, af_task_t* task);
+
+/* IO-DELETE-DIR primitive */
+void af_prim_io_delete_dir(af_global_t* global, af_task_t* task);
+
+/* IO-RENAME primitive */
+void af_prim_io_rename(af_global_t* global, af_task_t* task);
+
 /* IO-GET-MONOTONIC-TIME primitive */
 void af_prim_io_get_monotonic_time(af_global_t* global, af_task_t* task);
 
 /* IO-SLEEP primitive */
 void af_prim_io_sleep(af_global_t* global, af_task_t* task);
+
+/* IO-TELL primitive */
+void af_prim_io_tell(af_global_t* global, af_task_t* task);
 
 /* IO-CLOSE-BLOCK primitive */
 void af_prim_io_close_block(af_global_t* global, af_task_t* task);
@@ -588,6 +600,9 @@ void af_prim_input_cleanup(af_global_t* global, af_task_t* task);
 
 /* INPUT-REFILL primitive */
 void af_prim_input_refill(af_global_t* global, af_task_t* task);
+
+/* INPUT-SOURCE-ID primitive */
+void af_prim_input_source_id(af_global_t* global, af_task_t* task);
 
 /* INPUT-ARG primitive */
 void af_prim_input_arg(af_global_t* global, af_task_t* task);
@@ -852,8 +867,6 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "CELL-SIZE", af_prim_cell_size, FALSE,
 		   global->forth_wordlist);
-  af_register_prim(global, task, "REFILL", af_prim_refill, FALSE,
-		   global->forth_wordlist);
   af_register_prim(global, task, "FORTH-WORDLIST",
 		   af_prim_forth_wordlist, FALSE,
 		   global->forth_wordlist);
@@ -906,14 +919,25 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "IO-STATE-GET-COUNT",
 		   af_prim_io_state_get_count, FALSE,
 		   global->io_wordlist);
+  af_register_prim(global, task, "IO-STATE-GET-OFFSET",
+		   af_prim_io_state_get_offset, FALSE,
+		   global->io_wordlist);
   af_register_prim(global, task, "IO-OPEN", af_prim_io_open, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-PIPE", af_prim_io_pipe, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-DELETE", af_prim_io_delete, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-DELETE-DIR", af_prim_io_delete_dir, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-RENAME", af_prim_io_rename, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-GET-MONOTONIC-TIME",
 		   af_prim_io_get_monotonic_time, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-SLEEP", af_prim_io_sleep, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-TELL", af_prim_io_tell, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-CLOSE-BLOCK", af_prim_io_close_block,
 		   FALSE,
@@ -1023,6 +1047,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->io_wordlist);
   af_register_prim(global, task, "INPUT-REFILL", af_prim_input_refill, FALSE,
 		   global->io_wordlist);
+  af_register_prim(global, task, "INPUT-SOURCE-ID", af_prim_input_source_id,
+		   FALSE, global->io_wordlist);
   af_register_prim(global, task, "INPUT-ARG", af_prim_input_arg, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, "OUTPUT-SIZE", af_prim_output_size, FALSE,
@@ -2464,19 +2490,6 @@ void af_prim_cell_size(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
-/* REFILL primitive */
-void af_prim_refill(af_global_t* global, af_task_t* task) {
-  af_refill(global, task);
-  if(!task->current_input || (task->current_input->is_closed &&
-				!task->current_input->count)) {
-    AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-    *(--task->data_stack_current) = (af_cell_t)FALSE;
-  } else {
-    AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-    *(--task->data_stack_current) = (af_cell_t)TRUE;
-  }
-}
-
 /* FORTH-WORDLIST primitive */
 void af_prim_forth_wordlist(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
@@ -2662,6 +2675,15 @@ void af_prim_io_state_get_count(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* IO-STATE-GET-OFFSET primitive */
+void af_prim_io_state_get_offset(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current =
+    (af_cell_t) af_io_state_get_offset((af_io_state_t*)
+				       (*task->data_stack_current));
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* IO-OPEN primitive */
 void af_prim_io_open(af_global_t* global, af_task_t* task) {
   af_io_fd_t fd;
@@ -2691,6 +2713,41 @@ void af_prim_io_pipe(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* IO-DELETE primitive */
+void af_prim_io_delete(af_global_t* global, af_task_t* task) {
+  af_io_error_t error;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  af_io_delete((af_byte_t*)(*(task->data_stack_current + 1)),
+	       *task->data_stack_current, &error);
+  task->data_stack_current++;
+  *task->data_stack_current = (af_cell_t)error;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-DELETE-DIR primitive */
+void af_prim_io_delete_dir(af_global_t* global, af_task_t* task) {
+  af_io_error_t error;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  af_io_delete_dir((af_byte_t*)(*(task->data_stack_current + 1)),
+		   *task->data_stack_current, &error);
+  task->data_stack_current++;
+  *task->data_stack_current = (af_cell_t)error;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-RENAME primitive */
+void af_prim_io_rename(af_global_t* global, af_task_t* task) {
+  af_io_error_t error;
+  AF_VERIFY_DATA_STACK_READ(global, task, 4);
+  af_io_rename((af_byte_t*)(*(task->data_stack_current + 3)),
+	       *(task->data_stack_current + 2),
+	       (af_byte_t*)(*(task->data_stack_current + 1)),
+	       *task->data_stack_current, &error);
+  task->data_stack_current += 3;
+  *task->data_stack_current = (af_cell_t)error;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* IO-GET-MONOTONIC-TIME primitive */
 void af_prim_io_get_monotonic_time(af_global_t* global, af_task_t* task) {
   af_time_t monotonic_time;
@@ -2710,6 +2767,17 @@ void af_prim_io_sleep(af_global_t* global, af_task_t* task) {
   sleep_until.sec = *task->data_stack_current++;
   action = af_io_sleep(&global->io, &sleep_until, task);
   af_io_action_destroy(action);
+  AF_ADVANCE_IP(task, 1);
+  af_wait(global, task);
+}
+
+/* IO-TELL primitive */
+void af_prim_io_tell(af_global_t* global, af_task_t* task) {
+  af_io_action_t* action;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  action = af_io_tell(&global->io, (af_io_fd_t)(*task->data_stack_current),
+		      task);
+  *task->data_stack_current = (af_cell_t)action;
   AF_ADVANCE_IP(task, 1);
   af_wait(global, task);
 }
@@ -3112,6 +3180,14 @@ void af_prim_input_refill(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   *task->data_stack_current =
     (af_cell_t)(&((af_input_t*)(*task->data_stack_current))->refill);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* INPUT-SOURCE-ID primitive */
+void af_prim_input_source_id(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current =
+    (af_cell_t)(&((af_input_t*)(*task->data_stack_current))->source_id);
   AF_ADVANCE_IP(task, 1);
 }
 

@@ -213,8 +213,6 @@ af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
 af_bool_t af_parse_number(af_global_t* global, af_byte_t* text,
 			  size_t length, af_sign_cell_t* result);
 
-void af_refill(af_global_t* global, af_task_t* task);
-
 af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
 				af_cell_t count);
 
