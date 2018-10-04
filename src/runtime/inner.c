@@ -847,7 +847,7 @@ af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
   input->count = count;
   input->index = 0;
   input->is_closed = TRUE;
-  input->cleanup = global->builtin_free;
+  input->cleanup = NULL;
   input->refill = NULL;
   input->source_id = -1;
   input->arg = 0;
