@@ -244,6 +244,7 @@ void af_print_state(af_global_t* global, af_task_t* task) {
   af_byte_t* buffer = malloc((length + 1) * sizeof(af_byte_t));
   af_cell_t* data_stack = task->data_stack_current;
   af_cell_t return_count = task->return_stack_base - task->return_stack_current;
+  af_cell_t stack_count = 4;
   memcpy(buffer, AF_WORD_NAME_DATA(task->current_word),
 	 length * sizeof(af_byte_t));
   buffer[length] = 0;
@@ -251,11 +252,15 @@ void af_print_state(af_global_t* global, af_task_t* task) {
   while(return_count--) {
     fprintf(stderr, "  ");
   }
-  fprintf(stderr, "%s\n", buffer);
-  /*while(data_stack < task->data_stack_base) {
-    printf(" %lld", *data_stack++);
+  fprintf(stderr, "%s", buffer);
+  while(stack_count && data_stack < task->data_stack_base) {
+    fprintf(stderr, " %lld", *data_stack++);
+    stack_count--;
   }
-  printf("\n");*/
+  if(!stack_count && data_stack != task->data_stack_base) {
+    fprintf(stderr, " ...");
+  }
+  fprintf(stderr, "\n");
   free(buffer);
 }
 
