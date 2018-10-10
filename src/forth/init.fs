@@ -405,7 +405,18 @@ DEFER HANDLE-CHAR
 
 : FIND-PREV-SPACE ( source -- offset count )
   DUP TERMINAL-INSERT-OFFSET @ BEGIN
-    OVER 0> IF
+    DUP 0> IF
+      OVER INPUT-BUFFER @ OVER 1- + C@ DUP BL = SWAP TAB = OR IF
+        1- FALSE
+      ELSE
+        TRUE
+      THEN
+    ELSE
+      TRUE
+    THEN
+  UNTIL
+  BEGIN
+    DUP 0> IF
       OVER INPUT-BUFFER @ OVER 1- + C@ DUP BL = SWAP TAB = OR IF
         TRUE
       ELSE
