@@ -116,6 +116,7 @@ typedef union af_compiled_t {
 typedef struct af_word_t {
   af_prim_t code;
   af_word_t* next_word;
+  af_word_t* next_of_all_words;
   af_bool_t is_immediate;
   af_compiled_t* secondary;
 } af_word_t;
@@ -136,6 +137,7 @@ typedef struct af_global_t {
   size_t default_data_space_size;
   af_cell_t default_cycles_before_yield;
   af_word_t* builtin_literal_runtime;
+  af_word_t* first_of_all_words;
   af_word_t* builtin_exit;
   af_word_t* builtin_free;
   af_word_t* default_abort;

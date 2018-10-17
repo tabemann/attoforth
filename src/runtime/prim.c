@@ -208,6 +208,12 @@ void af_prim_name_to_next(af_global_t* global, af_task_t* task);
 /* FIRST-WORD primitive */
 void af_prim_first_word(af_global_t* global, af_task_t* task);
 
+/* ALL-WORDS primitive */
+void af_prim_all_words(af_global_t* global, af_task_t* task);
+
+/* NAME>NEXT-ALL primitive */
+void af_prim_name_to_next_all(af_global_t* global, af_task_t* task);
+
 /* >BODY primitive */
 void af_prim_to_body(af_global_t* global, af_task_t* task);
 
@@ -771,6 +777,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "FIRST-WORD", af_prim_first_word, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "ALL-WORDS", af_prim_all_words, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "NAME>NEXT-ALL", af_prim_name_to_next_all,
+		   FALSE, global->forth_wordlist);
   af_register_prim(global, task, ">BODY", af_prim_to_body, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "SP@", af_prim_sp_fetch, FALSE,
@@ -1214,6 +1224,8 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
   word->is_immediate = FALSE;
   word->code = af_prim_push_data;
   word->secondary = NULL;
+  word->next_of_all_words = global->first_of_all_words;
+  global->first_of_all_words = word;
   task->most_recent_word = word;
   word->next_word = task->current_wordlist->first_word;
   task->current_wordlist->first_word = word;
@@ -1260,6 +1272,8 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
   word->is_immediate = FALSE;
   word->code = af_prim_docol;
   word->secondary = (af_compiled_t*)(word + 1);
+  word->next_of_all_words = global->first_of_all_words;
+  global->first_of_all_words = word;
   task->most_recent_word = word;
   task->current_wordlist->first_word = word;
   task->is_compiling = TRUE;
@@ -1782,6 +1796,21 @@ void af_prim_first_word(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   *task->data_stack_current =
     (af_cell_t)(((af_wordlist_t*)(*task->data_stack_current))->first_word);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* ALL-WORDS primitive */
+void af_prim_all_words(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)global->first_of_all_words;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* NAME>NEXT-ALL primitive */
+void af_prim_name_to_next_all(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current =
+    (af_cell_t)(((af_word_t*)(*task->data_stack_current))->next_of_all_words);
   AF_ADVANCE_IP(task, 1);
 }
 

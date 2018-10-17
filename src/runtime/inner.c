@@ -86,6 +86,7 @@ af_global_t* af_global_init(void) {
     free(global);
     return NULL;
   }
+  global->first_of_all_words = NULL;
   global->forth_wordlist->first_word = NULL;
   global->io_wordlist->first_word = NULL;
   global->task_wordlist->first_word = NULL;
@@ -882,6 +883,8 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
   } else {
     word->next_word = NULL;
   }
+  word->next_of_all_words = global->first_of_all_words;
+  global->first_of_all_words = word;
   task->most_recent_word = word;
   word->code = prim;
   word->secondary = NULL;
