@@ -46,7 +46,6 @@ typedef struct af_wordlist_t af_wordlist_t;
 typedef struct af_global_t af_global_t;
 typedef struct af_task_t af_task_t;
 typedef struct af_input_t af_input_t;
-typedef struct af_output_t af_output_t;
 typedef struct af_io_t af_io_t;
 typedef struct af_io_action_t af_io_action_t;
 typedef struct af_io_state_t af_io_state_t;
@@ -146,6 +145,8 @@ typedef struct af_global_t {
   af_wordlist_t* io_wordlist;
   af_wordlist_t* task_wordlist;
   af_cell_t default_wordlist_order_max_count;
+  af_cell_t task_local_space_size;
+  af_cell_t task_local_space_size_allocated;
 } af_global_t;
 
 typedef struct af_task_t {
@@ -172,16 +173,13 @@ typedef struct af_task_t {
   void* data_space_base;
   af_word_t* most_recent_word;
   af_input_t* console_input;
-  af_output_t* console_output;
-  af_output_t* console_error;
   af_input_t* current_input;
-  af_output_t* current_output;
-  af_output_t* current_error;
   af_cell_t base;
   af_word_t* current_word;
   af_word_t* abort;
   af_word_t* drop_input;
   af_bool_t free_data_on_exit;
+  void* task_local_space_base;
 } af_task_t;
 
 typedef struct af_input_t {
@@ -195,13 +193,6 @@ typedef struct af_input_t {
   af_sign_cell_t source_id;
   af_cell_t arg;
 } af_input_t;
-
-typedef struct af_output_t {
-  af_output_t* next_output;
-  af_word_t* write;
-  af_word_t* cleanup;
-  af_cell_t arg;
-} af_output_t;
 
 typedef struct af_io_action_t {
   af_io_action_t* prev_action;
