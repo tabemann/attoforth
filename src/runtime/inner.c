@@ -98,10 +98,21 @@ af_global_t* af_global_init(void) {
   global->default_wordlist_order_max_count = 128;
   global->task_local_space_size = 512;
   global->task_local_space_size_allocated = 0;
+  if(!(global->default_task_local_space_base =
+       malloc(global->task_local_space_size * sizeof(af_byte_t)))) {
+    pthread_mutex_destroy(&global->mutex);
+    af_cond_destroy(&global->cond);
+    free(global->task_wordlist);
+    free(global->io_wordlist);
+    free(global->forth_wordlist);
+    free(global);
+    return NULL;
+  }
   global->builtin_literal_runtime = NULL;
   global->builtin_exit = NULL;
   global->default_abort = NULL;
   if(!(af_io_init(&global->io, global))) {
+    free(global->default_task_local_space_base);
     pthread_mutex_destroy(&global->mutex);
     af_cond_destroy(&global->cond);
     free(global->task_wordlist);
@@ -334,7 +345,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
     free(data_stack_top);
     return NULL;
   }
-  memset(task_local_space_base, 0,
+  memcpy(task_local_space_base, global->default_task_local_space_base,
 	 global->task_local_space_size * sizeof(af_byte_t));
   task->next_task = global->first_task;
   global->first_task = task;
@@ -368,7 +379,6 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
     task->current_wordlist = global->forth_wordlist;
   }
   task->most_recent_word = NULL;
-  task->console_input = NULL;
   task->current_input = NULL;
   task->base = 10;
   task->init_word = NULL;
@@ -415,7 +425,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
     free(data_stack_top);
     return NULL;
   }
-  memset(task_local_space_base, 0,
+  memcpy(task_local_space_base, global->default_task_local_space_base,
 	 global->task_local_space_size * sizeof(af_byte_t));
   task->next_task = global->first_task;
   global->first_task = task;
@@ -448,7 +458,6 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
     task->current_wordlist = global->forth_wordlist;
   }
   task->most_recent_word = NULL;
-  task->console_input = NULL;
   task->current_input = NULL;
   task->base = 10;
   task->init_word = NULL;

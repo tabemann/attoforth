@@ -226,6 +226,15 @@ void af_prim_sp_store(af_global_t* global, af_task_t* task);
 /* SP0 primitive */
 void af_prim_sp0(af_global_t* global, af_task_t* task);
 
+/* RP@ primitive */
+void af_prim_rp_fetch(af_global_t* global, af_task_t* task);
+
+/* RP! primitive */
+void af_prim_rp_store(af_global_t* global, af_task_t* task);
+
+/* RP0 primitive */
+void af_prim_rp0(af_global_t* global, af_task_t* task);
+
 /* T@ primitive */
 void af_prim_t_fetch(af_global_t* global, af_task_t* task);
 
@@ -616,12 +625,6 @@ void af_prim_input_source_id(af_global_t* global, af_task_t* task);
 /* INPUT-ARG primitive */
 void af_prim_input_arg(af_global_t* global, af_task_t* task);
 
-/* EMPTY-DATA-STACK primitive */
-void af_prim_empty_data_stack(af_global_t* global, af_task_t* task);
-
-/* EMPTY-RETURN-STACK primitive */
-void af_prim_empty_return_stack(af_global_t* global, af_task_t* task);
-
 /* DEBUGGER primitive */
 void af_prim_debugger(af_global_t* global, af_task_t* task);
 
@@ -758,6 +761,12 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "SP!", af_prim_sp_store, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "SP0", af_prim_sp0, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "RP@", af_prim_rp_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "RP!", af_prim_rp_store, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "RP0", af_prim_rp0, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "T@", af_prim_t_fetch, FALSE,
 		   global->task_wordlist);
@@ -1056,12 +1065,6 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   FALSE, global->io_wordlist);
   af_register_prim(global, task, "INPUT-ARG", af_prim_input_arg, FALSE,
 		   global->io_wordlist);
-  af_register_prim(global, task, "EMPTY-DATA-STACK",
-		   af_prim_empty_data_stack, FALSE,
-		   global->forth_wordlist);
-  af_register_prim(global, task, "EMPTY-RETURN-STACK",
-		   af_prim_empty_return_stack, FALSE,
-		   global->forth_wordlist);
   af_register_prim(global, task, "DEBUGGER", af_prim_debugger, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "PRIM-DOCOL", af_prim_prim_docol, FALSE,
@@ -1778,9 +1781,8 @@ void af_prim_sp_fetch(af_global_t* global, af_task_t* task) {
 
 /* SP! primitive */
 void af_prim_sp_store(af_global_t* global, af_task_t* task) {
-  af_cell_t* addr;
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
-  task->data_stack_current = (af_cell_t*)(*task->data_stack_current);
+  task->data_stack_current = (af_cell_t*)(*task->data_stack_current++);
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -1788,6 +1790,27 @@ void af_prim_sp_store(af_global_t* global, af_task_t* task) {
 void af_prim_sp0(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = (af_cell_t)task->data_stack_base;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* RP@ primitive */
+void af_prim_rp_fetch(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)task->return_stack_current;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* RP! primitive */
+void af_prim_rp_store(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  task->return_stack_current = (af_compiled_t**)(*task->data_stack_current++);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* RP0 primitive */
+void af_prim_rp0(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)task->return_stack_base;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -1818,26 +1841,36 @@ void af_prim_t_store(af_global_t* global, af_task_t* task) {
 
 /* TASK-LOCAL primitive */
 void af_prim_task_local(af_global_t* global, af_task_t* task) {
+  void* default_data;
   af_cell_t size;
   af_cell_t allocated_size;
-  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  af_task_t* current_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  default_data = (void*)(*(task->data_stack_current + 1));
   size = *task->data_stack_current;
   allocated_size = global->task_local_space_size_allocated;
   if(allocated_size + size > global->task_local_space_size) {
     af_cell_t new_space_size = global->task_local_space_size * 2;
-    af_task_t* current_task = global->first_task;
+    current_task = global->first_task;
     if(new_space_size < allocated_size + size) {
       new_space_size = allocated_size + size;
     }
+    global->default_task_local_space_base =
+      realloc(global->default_task_local_space_base, new_space_size);
     while(current_task) {
       current_task->task_local_space_base =
 	realloc(current_task->task_local_space_base, new_space_size);
-      memset(current_task->task_local_space_base +
-	     global->task_local_space_size, 0,
-	     new_space_size - global->task_local_space_size);
       current_task = current_task->next_task;
     }
     global->task_local_space_size = new_space_size;
+  }
+  memcpy(global->default_task_local_space_base + allocated_size,
+	 default_data, size);
+  current_task = global->first_task;
+  while(current_task) {
+    memcpy(current_task->task_local_space_base + allocated_size,
+	   default_data, size);
+    current_task = current_task->next_task;
   }
   *task->data_stack_current = allocated_size;
   global->task_local_space_size_allocated += size;
@@ -2376,26 +2409,33 @@ void af_prim_free_data_on_exit(af_global_t* global, af_task_t* task) {
 void af_prim_to_console_input(af_global_t* global, af_task_t* task) {
   af_task_t* target_task;
   af_input_t* current_input;
+  af_input_t* console_input;
   AF_VERIFY_DATA_STACK_READ(global, task, 2);
   target_task = (af_task_t*)(*task->data_stack_current++);
-  target_task->console_input = (af_input_t*)(*task->data_stack_current++);
+  console_input = (af_input_t*)(*task->data_stack_current++);
   current_input = target_task->current_input;
   while(current_input && current_input->next_input) {
     current_input = current_input->next_input;
   }
   if(current_input) {
-    current_input->next_input = target_task->console_input;
+    current_input->next_input = console_input;
   } else {
-    target_task->current_input = target_task->console_input;
+    target_task->current_input = console_input;
   }
   AF_ADVANCE_IP(task, 1);
 }
 
 /* CONSOLE-INPUT> primitive */
 void af_prim_from_console_input(af_global_t* global, af_task_t* task) {
+  af_task_t* target_task;
+  af_input_t* current_input;
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
-  *task->data_stack_current =
-    (af_cell_t)((af_task_t*)(*task->data_stack_current))->console_input;
+  target_task = (af_task_t*)(*task->data_stack_current);
+  current_input = target_task->current_input;
+  while(current_input && current_input->next_input) {
+    current_input = current_input->next_input;
+  }
+  *task->data_stack_current = (af_cell_t)current_input;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -2463,7 +2503,6 @@ void af_prim_reset(af_global_t* global, af_task_t* task) {
 
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_task_t* task) {
-  AF_VERIFY_COMPILING(global, task);
   task->is_compiling = FALSE;
   AF_ADVANCE_IP(task, 1);
 }
@@ -3233,18 +3272,6 @@ void af_prim_input_arg(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   *task->data_stack_current =
     (af_cell_t)(&((af_input_t*)(*task->data_stack_current))->arg);
-  AF_ADVANCE_IP(task, 1);
-}
-
-/* EMPTY-DATA-STACK primitive */
-void af_prim_empty_data_stack(af_global_t* global, af_task_t* task) {
-  task->data_stack_current = task->data_stack_base;
-  AF_ADVANCE_IP(task, 1);
-}
-
-/* EMPTY-RETURN-STACK primitive */
-void af_prim_empty_return_stack(af_global_t* global, af_task_t* task) {
-  task->return_stack_current = task->return_stack_base;
   AF_ADVANCE_IP(task, 1);
 }
 

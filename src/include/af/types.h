@@ -147,6 +147,7 @@ typedef struct af_global_t {
   af_cell_t default_wordlist_order_max_count;
   af_cell_t task_local_space_size;
   af_cell_t task_local_space_size_allocated;
+  void* default_task_local_space_base;
 } af_global_t;
 
 typedef struct af_task_t {
@@ -172,7 +173,6 @@ typedef struct af_task_t {
   void* data_space_top;
   void* data_space_base;
   af_word_t* most_recent_word;
-  af_input_t* console_input;
   af_input_t* current_input;
   af_cell_t base;
   af_word_t* current_word;
