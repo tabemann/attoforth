@@ -98,6 +98,7 @@ af_global_t* af_global_init(void) {
   global->default_wordlist_order_max_count = 128;
   global->task_local_space_size = 512;
   global->task_local_space_size_allocated = 0;
+  global->do_trace = FALSE;
   if(!(global->default_task_local_space_base =
        malloc(global->task_local_space_size * sizeof(af_byte_t)))) {
     pthread_mutex_destroy(&global->mutex);
@@ -385,6 +386,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->current_word = NULL;
   task->abort = global->default_abort;
   task->free_data_on_exit = FALSE;
+  task->do_trace = FALSE;
   return task;
 }
 
@@ -464,6 +466,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->current_word = NULL;
   task->abort = global->default_abort;
   task->free_data_on_exit = FALSE;
+  task->do_trace = FALSE;
   return task;
 }
 

@@ -148,6 +148,7 @@ typedef struct af_global_t {
   af_cell_t task_local_space_size;
   af_cell_t task_local_space_size_allocated;
   void* default_task_local_space_base;
+  af_bool_t do_trace;
 } af_global_t;
 
 typedef struct af_task_t {
@@ -180,6 +181,7 @@ typedef struct af_task_t {
   af_word_t* drop_input;
   af_bool_t free_data_on_exit;
   void* task_local_space_base;
+  af_bool_t do_trace;
 } af_task_t;
 
 typedef struct af_input_t {

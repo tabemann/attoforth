@@ -121,7 +121,9 @@
     af_task_t* _task_ = (task);	      \
     af_global_t* _global_ = (global); \
     (_task_)->current_word = (_word_);	      \
-    /*af_print_state((_global_), (_task_));*/ \
+    if(_task_->do_trace || _global_->do_trace) { \
+      af_print_state((_global_), (_task_));	 \
+    }					 \
     (_word_)->code((_global_), (_task_)); }
 
 /* Function declarations */

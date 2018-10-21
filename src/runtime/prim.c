@@ -244,6 +244,12 @@ void af_prim_t_store(af_global_t* global, af_task_t* task);
 /* TASK-LOCAL primitive */
 void af_prim_task_local(af_global_t* global, af_task_t* task);
 
+/* TASK-TRACE primitive */
+void af_prim_task_trace(af_global_t* global, af_task_t* task);
+
+/* GLOBAL-TRACE primitive */
+void af_prim_global_trace(af_global_t* global, af_task_t* task);
+
 /* LITTLE-ENDIAN primitive */
 void af_prim_little_endian(af_global_t* global, af_task_t* task);
 
@@ -774,6 +780,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "TASK-LOCAL",
 		   af_prim_task_local, FALSE, global->task_wordlist);
+  af_register_prim(global, task, "TASK-TRACE",
+		   af_prim_task_trace, FALSE, global->task_wordlist);
+  af_register_prim(global, task, "GLOBAL-TRACE",
+		   af_prim_global_trace, FALSE, global->task_wordlist);
   af_register_prim(global, task, "LITTLE-ENDIAN", af_prim_little_endian, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "'", af_prim_tick, FALSE,
@@ -1874,6 +1884,22 @@ void af_prim_task_local(af_global_t* global, af_task_t* task) {
   }
   *task->data_stack_current = allocated_size;
   global->task_local_space_size_allocated += size;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* TASK-TRACE primitive */
+void af_prim_task_trace(af_global_t* global, af_task_t* task) {
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  target_task = (af_task_t*)(*(task->data_stack_current++));
+  target_task->do_trace = (af_bool_t)(*(task->data_stack_current++));
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* GLOBAL-TRACE primitive */
+void af_prim_global_trace(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  global->do_trace = (af_bool_t)(*(task->data_stack_current++));
   AF_ADVANCE_IP(task, 1);
 }
 
