@@ -761,39 +761,42 @@ DEFER HANDLE-CHAR
 
 : HANDLE-SPECIAL ( source -- continue )
   DUP READ-CHAR IF
-    C@ DUP [CHAR] [ = IF
-      DROP DUP READ-CHAR IF
-        C@ DUP [CHAR] C = IF
-          DROP HANDLE-FORWARD TRUE
-        ELSE DUP [CHAR] D = IF
-          DROP HANDLE-BACKWARD TRUE
-        ELSE DUP [CHAR] A = IF
-          DROP HANDLE-UP TRUE
-        ELSE DUP [CHAR] B = IF
-          DROP HANDLE-DOWN TRUE
-        ELSE DUP [CHAR] 3 = IF
-          DROP DUP READ-CHAR IF
-            C@ [CHAR] ~ = IF
-              HANDLE-DELETE-FORWARD TRUE
-            ELSE
-              DROP TRUE
-            THEN
-          ELSE
-            TRUE SWAP INPUT-IS-CLOSED ! FALSE
-          THEN
-        ELSE [CHAR] 1 = IF
-          DUP READ-CHAR IF
-            C@ [CHAR] ; = IF
+    C@ CASE
+      [CHAR] [ OF
+        DUP READ-CHAR IF
+          C@ CASE
+            [CHAR] C OF HANDLE-FORWARD TRUE ENDOF
+            [CHAR] D OF HANDLE-BACKWARD TRUE ENDOF
+            [CHAR] A OF HANDLE-UP TRUE ENDOF
+            [CHAR] B OF HANDLE-DOWN TRUE ENDOF
+            [CHAR] 3 OF
+              DROP DUP READ-CHAR IF
+                C@ [CHAR] ~ = IF
+                  HANDLE-DELETE-FORWARD TRUE
+                ELSE
+                  DROP TRUE
+                THEN
+              ELSE
+                TRUE SWAP INPUT-IS-CLOSED ! FALSE
+              THEN
+            ENDOF
+            [CHAR] 1 OF
               DUP READ-CHAR IF
-                C@ [CHAR] 5 = IF
+                C@ [CHAR] ; = IF
                   DUP READ-CHAR IF
-                    C@ DUP [CHAR] C = IF
-                      DROP HANDLE-FORWARD-WORD TRUE
-                    ELSE [CHAR] D = IF
-                      HANDLE-BACKWARD-WORD TRUE
+                    C@ [CHAR] 5 = IF
+                      DUP READ-CHAR IF
+                        C@ CASE
+                          [CHAR] C OF HANDLE-FORWARD-WORD TRUE ENDOF
+                          [CHAR] D OF HANDLE-BACKWARD-WORD TRUE ENDOF
+                          TRUE SWAP
+                        ENDCASE
+                      ELSE
+                        TRUE SWAP INPUT-IS-CLOSED ! FALSE
+                      THEN
                     ELSE
                       DROP TRUE
-                    THEN THEN
+                    THEN
                   ELSE
                     TRUE SWAP INPUT-IS-CLOSED ! FALSE
                   THEN
@@ -803,31 +806,20 @@ DEFER HANDLE-CHAR
               ELSE
                 TRUE SWAP INPUT-IS-CLOSED ! FALSE
               THEN
-            ELSE
-              DROP TRUE
-            THEN
-          ELSE
-            TRUE SWAP INPUT-IS-CLOSED ! FALSE
-          THEN
+            ENDOF
+            TRUE SWAP
+          ENDCASE
         ELSE
-          DROP TRUE
-        THEN THEN THEN THEN THEN THEN
-      ELSE
-        DROP TRUE SWAP INPUT-IS-CLOSED ! FALSE
-      THEN
-    ELSE DUP [CHAR] f = IF
-      DROP HANDLE-FORWARD-WORD TRUE
-    ELSE DUP [CHAR] b = IF
-      DROP HANDLE-BACKWARD-WORD TRUE
-    ELSE DUP [CHAR] y = IF
-      DROP HANDLE-YANK-PREV TRUE
-    ELSE DUP [CHAR] d = IF
-      DROP HANDLE-KILL-TO-NEXT-SPACE TRUE
-    ELSE DUP DELETE = IF
-      DROP HANDLE-KILL-TO-PREV-SPACE TRUE
-    ELSE
-      HANDLE-CHAR
-    THEN THEN THEN THEN THEN THEN
+          DROP TRUE SWAP INPUT-IS-CLOSED ! FALSE
+        THEN
+      ENDOF
+      [CHAR] f OF HANDLE-FORWARD-WORD TRUE ENDOF
+      [CHAR] b OF HANDLE-BACKWARD-WORD TRUE ENDOF
+      [CHAR] y OF HANDLE-YANK-PREV TRUE ENDOF
+      [CHAR] d OF HANDLE-KILL-TO-NEXT-SPACE TRUE ENDOF
+      DELETE OF HANDLE-KILL-TO-PREV-SPACE TRUE ENDOF
+      DUP >R HANDLE-CHAR R>
+    ENDCASE
   ELSE
     DROP TRUE SWAP INPUT-IS-CLOSED ! FALSE
   THEN ;
@@ -842,34 +834,20 @@ DEFER HANDLE-CHAR
   DUP TERMINAL-INSERT-OFFSET @ 1+ SWAP TERMINAL-INSERT-OFFSET ! ;
 
 :NONAME ( source c -- continue )
-  DUP NEWLINE = IF
-    DROP HANDLE-NEWLINE FALSE
-  ELSE DUP DELETE = IF
-    DROP HANDLE-DELETE TRUE
-  ELSE DUP ESCAPE = IF
-    DROP HANDLE-SPECIAL
-  ELSE DUP CTRL-A = IF
-    DROP HANDLE-START TRUE
-  ELSE DUP CTRL-E = IF
-    DROP HANDLE-END TRUE
-  ELSE DUP CTRL-F = IF
-    DROP HANDLE-FORWARD TRUE
-  ELSE DUP CTRL-B = IF
-    DROP HANDLE-BACKWARD TRUE
-  ELSE DUP CTRL-K = IF
-    DROP HANDLE-KILL TRUE
-  ELSE DUP CTRL-L = IF
-    DROP HANDLE-REFRESH TRUE
-  ELSE DUP CTRL-W = IF
-    DROP HANDLE-KILL-TO-PREV-SPACE TRUE
-  ELSE DUP CTRL-Y = IF
-    DROP HANDLE-YANK TRUE
-  ELSE DUP $20 < IF
-    DROP TRUE
-  ELSE
-    HANDLE-NORMAL-CHAR TRUE
-  THEN THEN THEN THEN THEN THEN THEN THEN THEN THEN THEN THEN ;
-' HANDLE-CHAR DEFER!
+  CASE
+    NEWLINE OF HANDLE-NEWLINE FALSE ENDOF
+    DELETE OF HANDLE-DELETE TRUE ENDOF
+    ESCAPE OF HANDLE-SPECIAL ENDOF
+    CTRL-A OF HANDLE-START TRUE ENDOF
+    CTRL-E OF HANDLE-END TRUE ENDOF
+    CTRL-F OF HANDLE-FORWARD TRUE ENDOF
+    CTRL-B OF HANDLE-BACKWARD TRUE ENDOF
+    CTRL-K OF HANDLE-KILL TRUE ENDOF
+    CTRL-L OF HANDLE-REFRESH TRUE ENDOF
+    CTRL-W OF HANDLE-KILL-TO-PREV-SPACE TRUE ENDOF
+    CTRL-Y OF HANDLE-YANK TRUE ENDOF
+    DUP $20 < IF NIP TRUE SWAP ELSE TUCK HANDLE-NORMAL-CHAR TRUE SWAP THEN
+  ENDCASE ; ' HANDLE-CHAR DEFER!
 
 : READ-TERMINAL-CHAR ( source -- continue )
   DUP READ-CHAR IF
