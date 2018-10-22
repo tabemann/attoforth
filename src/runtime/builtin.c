@@ -96,6 +96,8 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     ": & POSTPONE POSTPONE ; IMMEDIATE "
     ": ENDIF & THEN ; IMMEDIATE "
     ": RECURSE LATESTXT COMPILE, ; IMMEDIATE "
+    ": [: & BRANCH HERE 0 , LATESTXT :NONAME ; IMMEDIATE "
+    ": ;] & EXIT 0 , ROT HERE SWAP ! & (LITERAL) , >LATESTXT ; IMMEDIATE "
     ": ?DUP DUP IF DUP THEN ; "
     ": CHARS ; "
     ": CHAR+ 1+ ; "

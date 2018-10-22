@@ -268,6 +268,9 @@ void af_prim_state(af_global_t* global, af_task_t* task);
 /* LATESTXT primitive */
 void af_prim_latestxt(af_global_t* global, af_task_t* task);
 
+/* >LATESTXT primitive */
+void af_prim_to_latestxt(af_global_t* global, af_task_t* task);
+
 /* >IN primitive */
 void af_prim_to_in(af_global_t* global, af_task_t* task);
 
@@ -795,6 +798,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "STATE", af_prim_state, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "LATESTXT", af_prim_latestxt, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">LATESTXT", af_prim_to_latestxt, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, ">IN", af_prim_to_in, FALSE,
 		   global->forth_wordlist);
@@ -1979,6 +1984,13 @@ void af_prim_state(af_global_t* global, af_task_t* task) {
 void af_prim_latestxt(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = (af_cell_t)task->most_recent_word;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* >LATESTXT primitive */
+void af_prim_to_latestxt(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  task->most_recent_word = (af_word_t*)(*(task->data_stack_current++));
   AF_ADVANCE_IP(task, 1);
 }
 
