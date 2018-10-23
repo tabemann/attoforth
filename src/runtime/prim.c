@@ -64,6 +64,9 @@ void af_prim_colon(af_global_t* global, af_task_t* task);
 /* :NONAME primitive */
 void af_prim_colon_noname(af_global_t* global, af_task_t* task);
 
+/* CREATE-NONAME-AT primitive */
+void af_prim_create_noname_at(af_global_t* global, af_task_t* task);
+
 /* ; primitive - immediate */
 void af_prim_semi(af_global_t* global, af_task_t* task);
 
@@ -192,6 +195,9 @@ void af_prim_here(af_global_t* global, af_task_t* task);
 
 /* DOES> primitive */
 void af_prim_does(af_global_t* global, af_task_t* task);
+
+/* DOES-AT> primitive */
+void af_prim_does_at(af_global_t* global, af_task_t* task);
 
 /* NAME>STRING primitive */
 void af_prim_name_to_string(af_global_t* global, af_task_t* task);
@@ -663,6 +669,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, ":NONAME", af_prim_colon_noname, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "CREATE-NONAME-AT", af_prim_create_noname_at,
+		   FALSE, global->forth_wordlist);
   af_register_prim(global, task, ";", af_prim_semi, TRUE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "IMMEDIATE", af_prim_immediate, FALSE,
@@ -749,6 +757,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "DOES>", af_prim_does, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "DOES-AT>", af_prim_does_at, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "NAME>STRING", af_prim_name_to_string, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "NAME>CODE", af_prim_name_to_code, FALSE,
@@ -786,7 +796,7 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "TASK-TRACE",
 		   af_prim_task_trace, FALSE, global->task_wordlist);
   af_register_prim(global, task, "GLOBAL-TRACE",
-		   af_prim_global_trace, FALSE, global->task_wordlist);
+		   af_prim_global_trace, FALSE, global->forth_wordlist);
   af_register_prim(global, task, "LITTLE-ENDIAN", af_prim_little_endian, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "'", af_prim_tick, FALSE,
@@ -1263,6 +1273,24 @@ void af_prim_colon_noname(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* CREATE-NONAME-AT primitive */
+void af_prim_create_noname_at(af_global_t* global, af_task_t* task) {
+  void* word_space;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  word_space = (void*)(*task->data_stack_current);
+  word = word_space + sizeof(af_byte_t);
+  word->next_word = NULL;
+  word->is_immediate = FALSE;
+  word->code = af_prim_push_data;
+  word->secondary = (af_compiled_t*)(word + 1);
+  AF_WORD_NAME_LEN(word) = 0;
+  task->most_recent_word = word;
+  task->is_compiling = FALSE;
+  *task->data_stack_current = (af_cell_t)word;
+  AF_ADVANCE_IP(task, 1);  
+}
+
 /* ; primitive - immediate */
 void af_prim_semi(af_global_t* global, af_task_t* task) {
   void* space;
@@ -1712,6 +1740,16 @@ void af_prim_does(af_global_t* global, af_task_t* task) {
   task->most_recent_word->code = af_prim_do_does;
   task->most_recent_word->secondary = task->interpreter_pointer + 1;
   task->interpreter_pointer = *task->return_stack_current++;
+}
+
+/* DOES-AT> primitive */
+void af_prim_does_at(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_WORD_CREATED(global, task);
+  AF_VERIFY_NOT_INTERACTIVE(global, task);
+  task->most_recent_word->code = af_prim_do_does;
+  task->most_recent_word->secondary =
+    (af_compiled_t*)((task->interpreter_pointer + 1)->compiled_cell);
+  AF_ADVANCE_IP(task, 2);
 }
 
 /* NAME>STRING primitive */
