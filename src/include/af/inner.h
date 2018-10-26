@@ -43,6 +43,8 @@
   { (task)->interpreter_pointer = (task)->interpreter_pointer ?	\
       (task)->interpreter_pointer + (increment) : NULL; }
 
+#ifdef DEBUG
+
 /* Verify data stack has room to read */
 #define AF_VERIFY_DATA_STACK_READ(global, task, cells) \
   { if((task)->data_stack_current >=		    \
@@ -103,6 +105,42 @@
       return; \
     } }
 
+#else /* DEBUG */
+
+/* Verify data stack has room to read */
+#define AF_VERIFY_DATA_STACK_READ(global, task, cells) \
+  {  }
+
+/* Verify data stack has room to expand */
+#define AF_VERIFY_DATA_STACK_EXPAND(global, task, cells) \
+  {  }
+
+/* Verify return stack has room to read */
+#define AF_VERIFY_RETURN_STACK_READ(global, task, cells) \
+  {  }
+
+/* Verify return stack has room to expand */
+#define AF_VERIFY_RETURN_STACK_EXPAND(global, task, cells) \
+  {  }
+
+/* Verify that a task is compiling */
+#define AF_VERIFY_COMPILING(global, task) \
+  {  }
+
+/* Verify that a task is interpreting */
+#define AF_VERIFY_INTERPRETING(global, task) \
+  {  }
+
+/* Verify that a task is not interactive */
+#define AF_VERIFY_NOT_INTERACTIVE(global, task) \
+  {  }
+
+/* Verify that a word has been created in the current task */
+#define AF_VERIFY_WORD_CREATED(global, task) \
+  {  }
+
+#endif /* DEBUG */
+
 /* Macro to get name length of word */
 #define AF_WORD_NAME_LEN(word) \
   (*((af_byte_t*)(word) - 1))
@@ -115,6 +153,8 @@
 #define AF_WORD_DATA(word) \
   ((af_byte_t*)((af_word_t*)(word) + 1))
 
+#ifdef DEBUG
+
 /* Macro to execute word */
 #define AF_WORD_EXECUTE(global, task, word) \
   { af_word_t* _word_ = (word); \
@@ -125,6 +165,18 @@
       af_print_state((_global_), (_task_));	 \
     }					 \
     (_word_)->code((_global_), (_task_)); }
+
+#else /* DEBUG */
+
+/* Macro to execute word */
+#define AF_WORD_EXECUTE(global, task, word) \
+  { af_word_t* _word_ = (word); \
+    af_task_t* _task_ = (task);	      \
+    af_global_t* _global_ = (global); \
+    (_task_)->current_word = (_word_);	      \
+    (_word_)->code((_global_), (_task_)); }
+
+#endif /* DEBUG */
 
 /* Function declarations */
 

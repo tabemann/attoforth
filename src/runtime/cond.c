@@ -42,8 +42,10 @@ af_bool_t af_cond_init(af_cond_t* cond) {
   }
   if(pthread_mutex_init(&cond->mutex, NULL)) {
     pthread_cond_destroy(&cond->cond);
+    return FALSE;
   }
   cond->count = 0;
+  return TRUE;
 }
 
 void af_cond_destroy(af_cond_t* cond) {

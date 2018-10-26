@@ -1,6 +1,6 @@
 IDIR =src/include
 CC=gcc
-CFLAGS=-I$(IDIR) -g
+CFLAGS=-O2
 
 ODIR=obj
 
@@ -15,10 +15,10 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: src/runtime/%.c $(DEPS)
 	mkdir -p obj
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< -I$(IDIR) $(CFLAGS)
 
 attoforth: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ -I$(IDIR) $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 
