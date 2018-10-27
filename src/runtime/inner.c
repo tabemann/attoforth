@@ -92,6 +92,8 @@ af_global_t* af_global_init(void) {
   global->task_wordlist->first_word = NULL;
   global->default_data_stack_count = 1024;
   global->default_return_stack_count = 1024;
+  global->default_data_stack_base_room_count = 16;
+  global->default_return_stack_base_room_count = 16;
   global->min_guaranteed_data_space_size = 8192;
   global->default_data_space_size = 130048;
   global->default_cycles_before_yield = 1024;
@@ -132,6 +134,7 @@ void af_global_execute(af_global_t* global) {
   }
   af_register_prims(global, task);
   af_compile_builtin(global, task);
+  task->interpreter_pointer = &global->base_interpreter_code[0];
   af_start(global, task);
   af_task_loop(global);
 }
@@ -174,65 +177,11 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
   if(task->init_word) {
     AF_WORD_EXECUTE(global, task, task->init_word);
   }
-  if(task->current_cycles_left ||
-     (task->current_cycles_before_yield && !task->interpreter_pointer)) {
-    task->init_word = NULL;
-  }
-  while(task->current_cycles_left-- && task->interpreter_pointer) {
+  task->init_word = NULL;
+  while(task->current_cycles_left--) {
     af_compiled_t* interpreter_pointer = task->interpreter_pointer;
     af_word_t* word = interpreter_pointer->compiled_call;
     AF_WORD_EXECUTE(global, task, word);
-  }
-  if(task->current_cycles_before_yield && !task->interpreter_pointer) {
-    if(af_parse_name_available(global, task)) {
-      af_cell_t length;
-      af_byte_t* text = af_parse_name(global, task, &length);
-      char* print_text = malloc(length + 1);
-      memcpy(print_text, text, length);
-      print_text[length] = '\0';
-      af_word_t* word = af_lookup(global, task, text, length);
-      if(word) {
-	if(task->is_compiling && !word->is_immediate) {
-	  /*printf("COMPILING WORD: %s\n", print_text);*/
-	  af_compiled_t* slot = af_allot(global, task,
-					 sizeof(af_compiled_t));
-	  if(slot) {
-	    slot->compiled_call = word;
-	  }
-	} else {
-	  /*printf("EXECUTING WORD: %s\n", print_text);*/
-	  AF_WORD_EXECUTE(global, task, word);
-	}
-      } else {
-	af_sign_cell_t result;
-	if(af_parse_number(global, text, (size_t)length, &result)) {
-	  if(task->is_compiling) {
-	    af_compiled_t* slot = af_allot(global, task,
-					   sizeof(af_compiled_t) * 2);
-	    if(slot) {
-	      slot->compiled_call = global->builtin_literal_runtime;
-	      (slot + 1)->compiled_sign_cell = result;
-	    }
-	  } else {
-	    if(--task->data_stack_current >= task->data_stack_top) {
-	      *task->data_stack_current = (af_cell_t)result;
-	    } else {
-	      af_handle_data_stack_overflow(global, task);
-	    }
-	  }
-	} else {
-	  char* buffer = malloc(length + 1);
-	  memcpy(buffer, text, length);
-	  buffer[length] = 0;
-	  printf("%s: ", buffer);
-	  free(buffer);
-	  af_handle_parse_error(global, task);
-	}
-      }
-      free(print_text);
-    } else {
-      af_wait(global, task);
-    }
   }
 }
 
@@ -357,9 +306,11 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->is_to_be_freed = FALSE;
   task->interpreter_pointer = NULL;
   task->data_stack_current = task->data_stack_base =
-    data_stack_top + global->default_data_stack_count;
+    (data_stack_top + global->default_data_stack_count) -
+    global->default_data_stack_base_room_count;
   task->return_stack_current = task->return_stack_base =
-    return_stack_top + global->default_return_stack_count;
+    (return_stack_top + global->default_return_stack_count) -
+    global->default_return_stack_base_room_count;
   task->data_stack_top = data_stack_top;
   task->return_stack_top = return_stack_top;
   task->data_space_current = task->data_space_base =
@@ -438,9 +389,11 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->is_to_be_freed = FALSE;
   task->interpreter_pointer = NULL;
   task->data_stack_current = task->data_stack_base =
-    data_stack_top + global->default_data_stack_count;
+    (data_stack_top + global->default_data_stack_count) -
+    global->default_data_stack_base_room_count;
   task->return_stack_current = task->return_stack_base =
-    return_stack_top + global->default_return_stack_count;
+    (return_stack_top + global->default_return_stack_count) -
+    global->default_return_stack_base_room_count;
   task->data_stack_top = data_stack_top;
   task->return_stack_top = return_stack_top;
   task->data_space_base = NULL;

@@ -132,6 +132,8 @@ typedef struct af_global_t {
   af_io_t io;
   af_cell_t default_data_stack_count;
   af_cell_t default_return_stack_count;
+  af_cell_t default_data_stack_base_room_count;
+  af_cell_t default_return_stack_base_room_count;
   size_t min_guaranteed_data_space_size;
   size_t default_data_space_size;
   af_cell_t default_cycles_before_yield;
@@ -148,6 +150,7 @@ typedef struct af_global_t {
   af_cell_t task_local_space_size;
   af_cell_t task_local_space_size_allocated;
   void* default_task_local_space_base;
+  af_compiled_t base_interpreter_code[2];
   af_bool_t do_trace;
 } af_global_t;
 

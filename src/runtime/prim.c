@@ -232,6 +232,9 @@ void af_prim_sp_store(af_global_t* global, af_task_t* task);
 /* SP0 primitive */
 void af_prim_sp0(af_global_t* global, af_task_t* task);
 
+/* SPF primitive */
+void af_prim_spf(af_global_t* global, af_task_t* task);
+
 /* RP@ primitive */
 void af_prim_rp_fetch(af_global_t* global, af_task_t* task);
 
@@ -240,6 +243,9 @@ void af_prim_rp_store(af_global_t* global, af_task_t* task);
 
 /* RP0 primitive */
 void af_prim_rp0(af_global_t* global, af_task_t* task);
+
+/* RPF primitive */
+void af_prim_rpf(af_global_t* global, af_task_t* task);
 
 /* T@ primitive */
 void af_prim_t_fetch(af_global_t* global, af_task_t* task);
@@ -652,10 +658,14 @@ void af_prim_prim_push(af_global_t* global, af_task_t* task);
 /* PRIM-DOES primitive */
 void af_prim_prim_does(af_global_t* global, af_task_t* task);
 
+/* BASE-INTERPRETER primitive */
+void af_prim_base_interpreter(af_global_t* global, af_task_t* task);
+
 /* Function definitions */
 
 /* Register primitives */
 void af_register_prims(af_global_t* global, af_task_t* task) {
+  af_word_t* base_interpreter;
   global->builtin_literal_runtime =
     af_register_prim(global, task, "(LITERAL)", af_prim_literal_runtime,
 		     FALSE,
@@ -781,11 +791,15 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "SP0", af_prim_sp0, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "SPF", af_prim_spf, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "RP@", af_prim_rp_fetch, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "RP!", af_prim_rp_store, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "RP0", af_prim_rp0, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "RPF", af_prim_rpf, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "T@", af_prim_t_fetch, FALSE,
 		   global->task_wordlist);
@@ -1098,13 +1112,17 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "PRIM-DOES", af_prim_prim_does, FALSE,
 		   global->forth_wordlist);
+  base_interpreter =
+    af_register_prim(global, task, "BASE-INTERPRETER", af_prim_base_interpreter,
+		     FALSE, global->forth_wordlist);
+  global->base_interpreter_code[0].compiled_call = base_interpreter;
+  global->base_interpreter_code[1].compiled_call = base_interpreter;
 }
 
 /* Docol primitive */
 void af_prim_docol(af_global_t* global, af_task_t* task) {
   if(task->return_stack_current > task->return_stack_top) {
-    *(--task->return_stack_current) =
-      task->interpreter_pointer ? task->interpreter_pointer + 1 : NULL;
+    *(--task->return_stack_current) = task->interpreter_pointer + 1;
     task->interpreter_pointer = task->current_word->secondary;
   } else {
     af_handle_return_stack_overflow(global, task);
@@ -1846,6 +1864,13 @@ void af_prim_sp0(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* SPF primitive */
+void af_prim_spf(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)task->data_stack_top;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* RP@ primitive */
 void af_prim_rp_fetch(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
@@ -1864,6 +1889,13 @@ void af_prim_rp_store(af_global_t* global, af_task_t* task) {
 void af_prim_rp0(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = (af_cell_t)task->return_stack_base;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* RPF primitive */
+void af_prim_rpf(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)task->return_stack_top;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -3375,4 +3407,55 @@ void af_prim_prim_does(af_global_t* global, af_task_t* task)  {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = (af_cell_t)af_prim_do_does;
   AF_ADVANCE_IP(task, 1);
+}
+
+/* BASE-INTERPRETER primitive */
+void af_prim_base_interpreter(af_global_t* global, af_task_t* task) {
+  task->interpreter_pointer = &global->base_interpreter_code[0];
+  if(af_parse_name_available(global, task)) {
+    af_cell_t length;
+    af_byte_t* text = af_parse_name(global, task, &length);
+    char* print_text = malloc(length + 1);
+    memcpy(print_text, text, length);
+    print_text[length] = '\0';
+    af_word_t* word = af_lookup(global, task, text, length);
+    if(word) {
+      if(task->is_compiling && !word->is_immediate) {
+	af_compiled_t* slot = af_allot(global, task,
+				       sizeof(af_compiled_t));
+	if(slot) {
+	  slot->compiled_call = word;
+	}
+      } else {
+	AF_WORD_EXECUTE(global, task, word);
+      }
+    } else {
+      af_sign_cell_t result;
+      if(af_parse_number(global, text, (size_t)length, &result)) {
+	if(task->is_compiling) {
+	  af_compiled_t* slot = af_allot(global, task,
+					 sizeof(af_compiled_t) * 2);
+	  if(slot) {
+	    slot->compiled_call = global->builtin_literal_runtime;
+	    (slot + 1)->compiled_sign_cell = result;
+	  }
+	} else {
+	  if(--task->data_stack_current >= task->data_stack_top) {
+	    *task->data_stack_current = (af_cell_t)result;
+	  } else {
+	    af_handle_data_stack_overflow(global, task);
+	  }
+	}
+      } else {
+	char* buffer = malloc(length + 1);
+	memcpy(buffer, text, length);
+	buffer[length] = 0;
+	printf("%s: ", buffer);
+	free(buffer);
+	af_handle_parse_error(global, task);
+      }
+    }
+  } else {
+    af_kill(global, task);
+  }
 }
