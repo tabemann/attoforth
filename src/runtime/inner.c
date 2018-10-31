@@ -230,7 +230,7 @@ void af_print_state(af_global_t* global, af_task_t* task) {
 }
 
 void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
-  af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
+  /*  af_byte_t length = AF_WORD_NAME_LEN(task->current_word);
   af_byte_t* buffer = malloc(length * sizeof(af_byte_t));
   memcpy(buffer, AF_WORD_NAME_DATA(task->current_word),
 	 length * sizeof(af_byte_t));
@@ -246,7 +246,7 @@ void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
     buffer[length] = 0;
     printf("Next word: %s\n", buffer);
     free(buffer);
-  }
+    }*/
 }
 
 af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {

@@ -805,7 +805,7 @@ DEFER HANDLE-CHAR
             [CHAR] A OF HANDLE-UP TRUE ENDOF
             [CHAR] B OF HANDLE-DOWN TRUE ENDOF
             [CHAR] 3 OF
-              DROP DUP READ-CHAR IF
+              DUP READ-CHAR IF
                 C@ [CHAR] ~ = IF
                   HANDLE-DELETE-FORWARD TRUE
                 ELSE
@@ -824,7 +824,7 @@ DEFER HANDLE-CHAR
                         C@ CASE
                           [CHAR] C OF HANDLE-FORWARD-WORD TRUE ENDOF
                           [CHAR] D OF HANDLE-BACKWARD-WORD TRUE ENDOF
-                          TRUE SWAP
+                          NIP TRUE SWAP
                         ENDCASE
                       ELSE
                         TRUE SWAP INPUT-IS-CLOSED ! FALSE
@@ -842,7 +842,7 @@ DEFER HANDLE-CHAR
                 TRUE SWAP INPUT-IS-CLOSED ! FALSE
               THEN
             ENDOF
-            TRUE SWAP
+            NIP TRUE SWAP
           ENDCASE
         ELSE
           DROP TRUE SWAP INPUT-IS-CLOSED ! FALSE
