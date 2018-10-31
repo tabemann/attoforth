@@ -624,7 +624,8 @@ af_word_t* af_search_wordlist(af_wordlist_t* wordlist, af_byte_t* name,
   af_word_t* current_word = wordlist->first_word;
   while(current_word) {
     af_byte_t current_word_length = AF_WORD_NAME_LEN(current_word);
-    if(name_length == current_word_length) {
+    if(name_length == current_word_length &&
+       !(current_word->flags & AF_WORD_HIDDEN)) {
       af_byte_t* current_name = name;
       af_byte_t* current_word_name = AF_WORD_NAME_DATA(current_word);
       af_byte_t current_name_length = name_length;
@@ -857,7 +858,7 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
   name_size = (name_length + 1) * sizeof(af_byte_t);
   word_space = af_allocate(global, task, sizeof(af_word_t) + name_size);
   word = word_space + name_size;
-  word->is_immediate = is_immediate;
+  word->flags = is_immediate ? AF_WORD_IMMEDIATE : 0;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   if(name) {
     memcpy(AF_WORD_NAME_DATA(word), name, name_length);

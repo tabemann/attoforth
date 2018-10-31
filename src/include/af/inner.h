@@ -36,6 +36,11 @@
 #include "af/types.h"
 #include "af/cond.h"
 
+/* Constants */
+
+#define AF_WORD_IMMEDIATE (1)
+#define AF_WORD_HIDDEN (2)
+
 /* Macros */
 
 /* Macro to advance interpreter pointer */

@@ -116,7 +116,7 @@ typedef struct af_word_t {
   af_prim_t code;
   af_word_t* next_word;
   af_word_t* next_of_all_words;
-  af_bool_t is_immediate;
+  af_bool_t flags;
   af_compiled_t* secondary;
 } af_word_t;
 

@@ -76,6 +76,9 @@ void af_prim_immediate(af_global_t* global, af_task_t* task);
 /* IS-IMMEDIATE primitive */
 void af_prim_is_immediate(af_global_t* global, af_task_t* task);
 
+/* IS-HIDDEN primitive */
+void af_prim_is_hidden(af_global_t* global, af_task_t* task);
+
 /* DUP primitive */
 void af_prim_dup(af_global_t* global, af_task_t* task);
 
@@ -687,6 +690,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "IS-IMMEDIATE", af_prim_is_immediate, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "IS-HIDDEN", af_prim_is_hidden, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "DUP", af_prim_dup, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "DROP", af_prim_drop, FALSE,
@@ -1211,7 +1216,7 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
   word = word_space + name_size;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   memmove(AF_WORD_NAME_DATA(word), name, name_length);
-  word->is_immediate = FALSE;
+  word->flags = 0;
   word->code = af_prim_push_data;
   word->secondary = NULL;
   word->next_of_all_words = global->first_of_all_words;
@@ -1259,7 +1264,7 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
 
 
   word->next_word = task->current_wordlist->first_word;
-  word->is_immediate = FALSE;
+  word->flags = AF_WORD_HIDDEN;
   word->code = af_prim_docol;
   word->secondary = (af_compiled_t*)(word + 1);
   word->next_of_all_words = global->first_of_all_words;
@@ -1281,7 +1286,7 @@ void af_prim_colon_noname(af_global_t* global, af_task_t* task) {
   }
   word = word_space + sizeof(af_byte_t);
   word->next_word = NULL;
-  word->is_immediate = FALSE;
+  word->flags = AF_WORD_HIDDEN;
   word->code = af_prim_docol;
   word->secondary = (af_compiled_t*)(word + 1);
   AF_WORD_NAME_LEN(word) = 0;
@@ -1299,7 +1304,7 @@ void af_prim_create_noname_at(af_global_t* global, af_task_t* task) {
   word_space = (void*)(*task->data_stack_current);
   word = word_space + sizeof(af_byte_t);
   word->next_word = NULL;
-  word->is_immediate = FALSE;
+  word->flags = 0;
   word->code = af_prim_push_data;
   word->secondary = (af_compiled_t*)(word + 1);
   AF_WORD_NAME_LEN(word) = 0;
@@ -1318,6 +1323,7 @@ void af_prim_semi(af_global_t* global, af_task_t* task) {
   }
   ((af_compiled_t*)space)->compiled_call = global->builtin_exit;
   ((af_compiled_t*)space + 1)->compiled_cell = 0;
+  task->most_recent_word->flags &= ~AF_WORD_HIDDEN;
   task->is_compiling = FALSE;
   AF_ADVANCE_IP(task, 1);
 }
@@ -1325,7 +1331,7 @@ void af_prim_semi(af_global_t* global, af_task_t* task) {
 /* IMMEDIATE primitive */
 void af_prim_immediate(af_global_t* global, af_task_t* task) {
   AF_VERIFY_WORD_CREATED(global, task);
-  task->most_recent_word->is_immediate = TRUE;
+  task->most_recent_word->flags |= AF_WORD_IMMEDIATE;
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -1333,7 +1339,19 @@ void af_prim_immediate(af_global_t* global, af_task_t* task) {
 void af_prim_is_immediate(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   *task->data_stack_current =
-    (af_bool_t)((af_word_t*)(*task->data_stack_current))->is_immediate;
+    (af_cell_t)(((af_word_t*)
+		 (*task->data_stack_current))->flags
+		& AF_WORD_IMMEDIATE ? TRUE : FALSE);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IS-HIDDEN primitive */
+void af_prim_is_hidden(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current =
+    (af_cell_t)(((af_word_t*)
+		 (*task->data_stack_current))->flags
+		& AF_WORD_HIDDEN ? TRUE : FALSE);
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -2436,7 +2454,8 @@ void af_prim_find_word(af_global_t* global, af_task_t* task) {
     *(--task->data_stack_current) = 0;
   } else {
     *(task->data_stack_current + 1) = (af_cell_t)word;
-    *task->data_stack_current = word->is_immediate ? 1 : (af_cell_t)(-1);
+    *task->data_stack_current =
+      (word->flags & AF_WORD_IMMEDIATE) ? 1 : (af_cell_t)(-1);
   }
   AF_ADVANCE_IP(task, 1);
 }
@@ -2726,7 +2745,8 @@ void af_prim_search_wordlist(af_global_t* global, af_task_t* task) {
   } else {
     task->data_stack_current++;
     *(task->data_stack_current + 1) = (af_cell_t)word;
-    *task->data_stack_current = word->is_immediate ? 1 : (af_cell_t)(-1);
+    *task->data_stack_current =
+      (word->flags & AF_WORD_IMMEDIATE) ? 1 : (af_cell_t)(-1);
   }
   AF_ADVANCE_IP(task, 1);
 }
@@ -3420,7 +3440,7 @@ void af_prim_base_interpreter(af_global_t* global, af_task_t* task) {
     print_text[length] = '\0';
     af_word_t* word = af_lookup(global, task, text, length);
     if(word) {
-      if(task->is_compiling && !word->is_immediate) {
+      if(task->is_compiling && !(word->flags & AF_WORD_IMMEDIATE)) {
 	af_compiled_t* slot = af_allot(global, task,
 				       sizeof(af_compiled_t));
 	if(slot) {
