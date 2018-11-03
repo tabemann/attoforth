@@ -978,15 +978,21 @@ af_word_t* af_register_prim(af_global_t* global, af_task_t* task,
   void* word_space;
   af_word_t* word;
   af_cell_t name_length;
+  size_t data_space_current = (size_t)task->data_space_current;
   size_t name_size;
+  size_t pad_size;
   if(name) {
     name_length = strlen(name);
   } else {
     name_length = 0;
   }
   name_size = (name_length + 1) * sizeof(af_byte_t);
-  word_space = af_allocate(global, task, sizeof(af_word_t) + name_size);
-  word = word_space + name_size;
+  pad_size = ((data_space_current + name_size) % sizeof(af_cell_t)) == 0 ?
+    0 * sizeof(af_byte_t) :
+    sizeof(af_cell_t) - ((data_space_current + name_size) % sizeof(af_cell_t));
+  word_space = af_allocate(global, task,
+			   sizeof(af_word_t) + name_size + pad_size);
+  word = word_space + name_size + pad_size;
   word->flags = is_immediate ? AF_WORD_IMMEDIATE : 0;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   if(name) {

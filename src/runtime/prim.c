@@ -1368,7 +1368,9 @@ void af_prim_literal(af_global_t* global, af_task_t* task) {
 void af_prim_create(af_global_t* global, af_task_t* task) {
   af_byte_t* name;
   af_cell_t name_length;
+  size_t data_space_current = (size_t)task->data_space_current;
   size_t name_size;
+  size_t pad_size;
   void* word_space;
   af_word_t* word;
   af_compiled_t* secondary;
@@ -1379,10 +1381,14 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
   name = af_parse_name(global, task, &name_length);
   name_length = name_length < 256 ? name_length : 255;
   name_size = (name_length + 1) * sizeof(af_byte_t);
-  if(!(word_space = af_allocate(global, task, sizeof(af_word_t) + name_size))) {
+  pad_size = ((data_space_current + name_size) % sizeof(af_cell_t)) == 0 ?
+    0 * sizeof(af_byte_t) :
+    sizeof(af_cell_t) - ((data_space_current + name_size) % sizeof(af_cell_t));
+  if(!(word_space = af_allocate(global, task,
+				sizeof(af_word_t) + name_size + pad_size))) {
     return;
   }
-  word = word_space + name_size;
+  word = word_space + name_size + pad_size;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   memmove(AF_WORD_NAME_DATA(word), name, name_length);
   word->flags = 0;
@@ -1400,7 +1406,9 @@ void af_prim_create(af_global_t* global, af_task_t* task) {
 void af_prim_colon(af_global_t* global, af_task_t* task) {
   af_byte_t* name;
   af_cell_t name_length;
+  size_t data_space_current = (size_t)task->data_space_current;
   size_t name_size;
+  size_t pad_size;
   void* word_space;
   af_word_t* word;
   if(!af_parse_name_available(global, task)) {
@@ -1409,29 +1417,17 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
   }
   name = af_parse_name(global, task, &name_length);
   name_length = name_length < 256 ? name_length : 255;
-
-  /*af_byte_t* buffer = malloc(name_length + 1);
-  memcpy(buffer, name, name_length);
-  buffer[name_length] = 0;
-  fprintf(stderr, "Compiling word: \"%s\"\n", buffer);
-  free(buffer);*/
-
   name_size = (name_length + 1) * sizeof(af_byte_t);
-  if(!(word_space = af_allocate(global, task, sizeof(af_word_t) + name_size))) {
+  pad_size = ((data_space_current + name_size) % sizeof(af_cell_t)) == 0 ?
+    0 * sizeof(af_byte_t) :
+    sizeof(af_cell_t) - ((data_space_current + name_size) % sizeof(af_cell_t));
+  if(!(word_space = af_allocate(global, task,
+				sizeof(af_word_t) + name_size + pad_size))) {
     return;
   }
-  word = word_space + name_size;
+  word = word_space + name_size + pad_size;
   AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
   memmove(AF_WORD_NAME_DATA(word), name, name_length);
-
-  /* TESTING */
-  /*  char* buffer = malloc(name_length + 1);
-  memcpy(buffer, name, name_length);
-  buffer[name_length] = '\0';
-  printf("STARTING COMPILING: %s\n", buffer);
-  free(buffer);*/
-
-
   word->next_word = task->current_wordlist->first_word;
   word->flags = AF_WORD_HIDDEN;
   word->code = af_prim_docol;
@@ -1447,13 +1443,19 @@ void af_prim_colon(af_global_t* global, af_task_t* task) {
 /* :NONAME primitive - immediate */
 void af_prim_colon_noname(af_global_t* global, af_task_t* task) {
   void* word_space;
+  size_t data_space_current = (size_t)task->data_space_current;
+  size_t name_size = sizeof(af_byte_t);
+  size_t pad_size;
   af_word_t* word;
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  pad_size = ((data_space_current + name_size) % sizeof(af_cell_t)) == 0 ?
+    0 * sizeof(af_byte_t) :
+    sizeof(af_cell_t) - ((data_space_current + name_size) % sizeof(af_cell_t));
   if(!(word_space = af_allocate(global, task,
-				sizeof(af_word_t) + sizeof(af_byte_t)))) {
+				sizeof(af_word_t) + name_size + pad_size))) {
     return;
   }
-  word = word_space + sizeof(af_byte_t);
+  word = word_space + name_size + pad_size;;
   word->next_word = NULL;
   word->flags = AF_WORD_HIDDEN;
   word->code = af_prim_docol;
@@ -1468,10 +1470,15 @@ void af_prim_colon_noname(af_global_t* global, af_task_t* task) {
 /* CREATE-NONAME-AT primitive */
 void af_prim_create_noname_at(af_global_t* global, af_task_t* task) {
   void* word_space;
+  size_t name_size = sizeof(af_byte_t);
+  size_t pad_size;
   af_word_t* word;
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   word_space = (void*)(*task->data_stack_current);
-  word = word_space + sizeof(af_byte_t);
+  pad_size = (((size_t)word_space + name_size) % sizeof(af_cell_t)) == 0 ?
+    0 * sizeof(af_byte_t) :
+    sizeof(af_cell_t) - (((size_t)word_space + name_size) % sizeof(af_cell_t));
+  word = word_space + name_size + pad_size;
   word->next_word = NULL;
   word->flags = 0;
   word->code = af_prim_push_data;
