@@ -407,9 +407,6 @@ void af_prim_free(af_global_t* global, af_task_t* task);
 /* RESIZE primitive */
 void af_prim_resize(af_global_t* global, af_task_t* task);
 
-/* ALIGN primitive */
-void af_prim_align(af_global_t* global, af_task_t* task);
-
 /* ALLOT primitive */
 void af_prim_allot(af_global_t* global, af_task_t* task);
 
@@ -1002,8 +999,6 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
     af_register_prim(global, task, "FREE", af_prim_free, FALSE,
 		     global->forth_wordlist);
   af_register_prim(global, task, "RESIZE", af_prim_resize, FALSE,
-		   global->forth_wordlist);
-  af_register_prim(global, task, "ALIGN", af_prim_align, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "ALLOT", af_prim_allot, FALSE,
 		   global->forth_wordlist);
@@ -2631,17 +2626,6 @@ void af_prim_resize(af_global_t* global, af_task_t* task) {
   }
   *(task->data_stack_current + 1) = (af_cell_t)data;
   *task->data_stack_current = 0;
-  AF_ADVANCE_IP(task, 1);
-}
-
-/* ALIGN primitive */
-void af_prim_align(af_global_t* global, af_task_t* task) {
-  af_cell_t extra = (af_cell_t)task->data_space_current % sizeof(af_cell_t);
-  if(extra) {
-    if(!af_allot(global, task, sizeof(af_cell_t) - extra)) {
-      return;
-    }
-  }
   AF_ADVANCE_IP(task, 1);
 }
 
