@@ -66,6 +66,22 @@
       return; \
     } }
 
+/* Verify float stack has room to read */
+#define AF_VERIFY_FLOAT_STACK_READ(global, task, cells) \
+  { if((task)->float_stack_current >=		    \
+       ((task)->float_stack_base - ((cells) - 1))) { \
+      af_handle_float_stack_underflow((global), (task));	\
+      return; \
+    } }
+
+/* Verify float stack has room to expand */
+#define AF_VERIFY_FLOAT_STACK_EXPAND(global, task, cells) \
+  { if((task)->float_stack_current <=		      \
+       ((task)->float_stack_top + ((cells) - 1))) {  \
+      af_handle_float_stack_overflow((global), (task));	\
+      return; \
+    } }
+
 /* Verify return stack has room to read */
 #define AF_VERIFY_RETURN_STACK_READ(global, task, cells) \
   { if((task)->return_stack_current >=		    \
@@ -118,6 +134,14 @@
 
 /* Verify data stack has room to expand */
 #define AF_VERIFY_DATA_STACK_EXPAND(global, task, cells) \
+  {  }
+
+/* Verify float stack has room to read */
+#define AF_VERIFY_FLOAT_STACK_READ(global, task, cells) \
+  {  }
+
+/* Verify float stack has room to expand */
+#define AF_VERIFY_FLOAT_STACK_EXPAND(global, task, cells) \
   {  }
 
 /* Verify return stack has room to read */
@@ -225,9 +249,13 @@ void af_reset(af_global_t* global, af_task_t* task);
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task);
 
+void af_handle_float_stack_overflow(af_global_t* global, af_task_t* task);
+
 void af_handle_return_stack_overflow(af_global_t* global, af_task_t* task);
 
 void af_handle_data_stack_underflow(af_global_t* global, af_task_t* task);
+
+void af_handle_float_stack_underflow(af_global_t* global, af_task_t* task);
 
 void af_handle_return_stack_underflow(af_global_t* global, af_task_t* task);
 
@@ -269,8 +297,11 @@ af_bool_t af_parse_name_available(af_global_t* global, af_task_t* task);
 af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
 		       af_cell_t* length);
 
-af_bool_t af_parse_number(af_global_t* global, af_byte_t* text,
+af_bool_t af_parse_number(af_global_t* global, af_cell_t base, af_byte_t* text,
 			  size_t length, af_sign_cell_t* result);
+
+af_bool_t af_parse_float(af_global_t* global, af_byte_t* text,
+			 size_t length, af_float_t* result);
 
 af_input_t* af_new_string_input(af_global_t* global, af_byte_t* buffer,
 				af_cell_t count);

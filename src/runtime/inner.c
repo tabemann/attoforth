@@ -91,8 +91,10 @@ af_global_t* af_global_init(void) {
   global->io_wordlist->first_word = NULL;
   global->task_wordlist->first_word = NULL;
   global->default_data_stack_count = 1024;
+  global->default_float_stack_count = 1024;
   global->default_return_stack_count = 1024;
   global->default_data_stack_base_room_count = 16;
+  global->default_float_stack_base_room_count = 16;
   global->default_return_stack_base_room_count = 16;
   global->min_guaranteed_data_space_size = 8192;
   global->default_data_space_size = 130048;
@@ -112,6 +114,7 @@ af_global_t* af_global_init(void) {
     return NULL;
   }
   global->builtin_literal_runtime = NULL;
+  global->builtin_f_literal_runtime = NULL;
   global->builtin_exit = NULL;
   global->default_abort = NULL;
   if(!(af_io_init(&global->io, global))) {
@@ -192,6 +195,7 @@ void af_free_task(af_task_t* task) {
   free(task->task_local_space_base);
   free(task->wordlist_order);
   free(task->data_stack_top);
+  free(task->float_stack_top);
   free(task->return_stack_top);
   free(task);
 }
@@ -251,8 +255,9 @@ void af_print_current_return_stack(af_global_t* global, af_task_t* task) {
 
 af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   af_cell_t* data_stack_top;
+  af_float_t* float_stack_top;
   af_compiled_t** return_stack_top;
-  af_compiled_t* data_space_base;
+  af_cell_t* data_space_base;
   af_wordlist_t** wordlist_order;
   void* task_local_space_base;
   af_task_t* task;
@@ -261,14 +266,21 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
 			       sizeof(af_cell_t)))) {
     return NULL;
   }
+  if(!(float_stack_top = malloc(global->default_float_stack_count *
+				sizeof(af_float_t)))) {
+    free(data_stack_top);
+    return NULL;
+  }
   if(!(return_stack_top = malloc(global->default_return_stack_count *
 				 sizeof(af_compiled_t*)))) {
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
   if(!(data_space_base = malloc(global->default_data_space_size *
 				sizeof(af_cell_t)))) {
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -276,6 +288,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
 			       sizeof(af_wordlist_t*)))) {
     free(data_space_base);
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -284,6 +297,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
     free(wordlist_order);
     free(data_space_base);
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -292,6 +306,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
     free(wordlist_order);
     free(data_space_base);
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -308,10 +323,14 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->data_stack_current = task->data_stack_base =
     (data_stack_top + global->default_data_stack_count) -
     global->default_data_stack_base_room_count;
+  task->float_stack_current = task->float_stack_base =
+    (float_stack_top + global->default_float_stack_count) -
+    global->default_float_stack_base_room_count;
   task->return_stack_current = task->return_stack_base =
     (return_stack_top + global->default_return_stack_count) -
     global->default_return_stack_base_room_count;
   task->data_stack_top = data_stack_top;
+  task->float_stack_top = float_stack_top;
   task->return_stack_top = return_stack_top;
   task->data_space_current = task->data_space_base =
     data_space_base;
@@ -343,8 +362,9 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
 
 af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   af_cell_t* data_stack_top;
+  af_float_t* float_stack_top;
   af_compiled_t** return_stack_top;
-  af_compiled_t* data_space_base;
+  af_cell_t* data_space_base;
   af_wordlist_t** wordlist_order;
   void* task_local_space_base;
   af_task_t* task;
@@ -353,14 +373,21 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
 			       sizeof(af_cell_t)))) {
     return NULL;
   }
+  if(!(float_stack_top = malloc(global->default_float_stack_count *
+				sizeof(af_float_t)))) {
+    free(data_stack_top);
+    return NULL;
+  }
   if(!(return_stack_top = malloc(global->default_return_stack_count *
 				 sizeof(af_compiled_t*)))) {
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
   if(!(wordlist_order = malloc(global->default_wordlist_order_max_count *
 			       sizeof(af_wordlist_t*)))) {
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -368,6 +395,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
 					sizeof(af_byte_t)))) {
     free(wordlist_order);
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -375,6 +403,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
     free(task_local_space_base);
     free(wordlist_order);
     free(return_stack_top);
+    free(float_stack_top);
     free(data_stack_top);
     return NULL;
   }
@@ -391,10 +420,14 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->data_stack_current = task->data_stack_base =
     (data_stack_top + global->default_data_stack_count) -
     global->default_data_stack_base_room_count;
+  task->float_stack_current = task->float_stack_base =
+    (float_stack_top + global->default_float_stack_count) -
+    global->default_float_stack_base_room_count;
   task->return_stack_current = task->return_stack_base =
     (return_stack_top + global->default_return_stack_count) -
     global->default_return_stack_base_room_count;
   task->data_stack_top = data_stack_top;
+  task->float_stack_top = float_stack_top;
   task->return_stack_top = return_stack_top;
   task->data_space_base = NULL;
   task->data_space_current = NULL;
@@ -488,6 +521,7 @@ void af_reset(af_global_t* global, af_task_t* task) {
   task->is_compiling = FALSE;
   task->interpreter_pointer = NULL;
   task->data_stack_current = task->data_stack_base;
+  task->float_stack_current = task->float_stack_base;
   task->return_stack_current = task->return_stack_base;
   task->most_recent_word = NULL;
   task->base = 10;
@@ -505,6 +539,12 @@ void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task) {
   af_reset(global, task);
 }
 
+void af_handle_float_stack_overflow(af_global_t* global, af_task_t* task) {
+  af_print_current_return_stack(global, task);
+  printf("Float stack overflow\n");
+  af_reset(global, task);
+}
+
 void af_handle_return_stack_overflow(af_global_t* global, af_task_t* task) {
   af_print_current_return_stack(global, task);
   printf("Return stack overflow\n");
@@ -517,8 +557,13 @@ void af_handle_data_stack_underflow(af_global_t* global, af_task_t* task) {
   af_reset(global, task);
 }
 
-void af_handle_return_stack_underflow(af_global_t* global,
-				      af_task_t* task) {
+void af_handle_float_stack_underflow(af_global_t* global, af_task_t* task) {
+  af_print_current_return_stack(global, task);
+  printf("Float stack underflow\n");
+  af_reset(global, task);
+}
+
+void af_handle_return_stack_underflow(af_global_t* global, af_task_t* task) {
   af_print_current_return_stack(global, task);
   printf("Return stack underflow\n");
   af_reset(global, task);
@@ -658,17 +703,101 @@ af_word_t* af_lookup(af_global_t* global, af_task_t* task, af_byte_t* name,
   return NULL;
 }
 
-af_bool_t af_parse_number(af_global_t* global, af_byte_t* text,
+af_bool_t af_parse_number(af_global_t* global, af_cell_t base,  af_byte_t* text,
 			  size_t length, af_sign_cell_t* result) {
+  af_sign_cell_t value = 0;
+  af_bool_t success = TRUE;
+  af_bool_t negative = FALSE;
+  if(length > 0) {
+    if(*text == '%') {
+      base = 2;
+      text++;
+      length--;
+    } else if(*text == '/') {
+      base = 8;
+      text++;
+      length--;
+    } else if(*text == '#') {
+      base = 10;
+      text++;
+      length--;
+    } else if(*text == '$') {
+      base = 16;
+      text++;
+      length--;
+    }
+    if(length > 0 && base >= 2 && base <= 36) {
+      if(*text == '-') {
+	negative = TRUE;
+	text++;
+	length--;
+      }
+      if(length > 0) {
+	while(length--) {
+	  value *= base;
+	  if(*text >= '0' && *text <= '9') {
+	    if(*text - '0' < base) {
+	      value += *text++ - '0';
+	    } else {
+	      value = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else if(*text >= 'a' && *text <= 'z') {
+	    if(*text - 'a' < base - 10) {
+	      value += (*text++ - 'a') + 10;
+	    } else {
+	      value = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else if(*text >= 'A' && *text <= 'Z') {
+	    if(*text - 'A' < base - 10) {
+	      value += (*text++ - 'A') + 10;
+	    } else {
+	      value = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else {
+	    value = 0;
+	    success = FALSE;
+	    break;
+	  }
+	}
+	if(success && negative) {
+	  value = -value;
+	}
+      } else {
+	value = 0;
+	success = FALSE;
+      }
+    } else {
+      value = 0;
+      success = FALSE;
+    }
+  } else {
+    value = 0;
+    success = FALSE;
+  }
+  *result = value;
+  return success;
+}
+
+af_bool_t af_parse_float(af_global_t* global, af_byte_t* text,
+			 size_t length, af_float_t* result) {
   char* buffer = malloc(sizeof(af_byte_t) * (length + 1));
   char* end_ptr;
-  af_sign_cell_t value;
+  af_float_t value;
   if(!buffer) {
     return FALSE;
   }
   memcpy(buffer, (void*)text, length);
   buffer[length] = '\0';
-  value = strtoll(buffer, &end_ptr, 0);
+  if(buffer[length - 1] == 'e' || buffer[length - 1] == 'E') {
+    buffer[length - 1] = '\0';
+  }
+  value = strtod(buffer, &end_ptr);
   if(*end_ptr == 0) {
     free(buffer);
     *result = value;

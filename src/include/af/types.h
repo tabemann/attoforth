@@ -61,6 +61,8 @@ typedef uint8_t af_byte_t;
 
 typedef af_sign_cell_t af_bool_t;
 
+typedef double af_float_t;
+
 typedef af_cell_t af_io_type_t;
 
 typedef int af_io_fd_t;
@@ -131,13 +133,16 @@ typedef struct af_global_t {
   pthread_mutex_t mutex;
   af_io_t io;
   af_cell_t default_data_stack_count;
+  af_cell_t default_float_stack_count;
   af_cell_t default_return_stack_count;
   af_cell_t default_data_stack_base_room_count;
+  af_cell_t default_float_stack_base_room_count;
   af_cell_t default_return_stack_base_room_count;
   size_t min_guaranteed_data_space_size;
   size_t default_data_space_size;
   af_cell_t default_cycles_before_yield;
   af_word_t* builtin_literal_runtime;
+  af_word_t* builtin_f_literal_runtime;
   af_word_t* first_of_all_words;
   af_word_t* builtin_exit;
   af_word_t* builtin_free;
@@ -164,10 +169,13 @@ typedef struct af_task_t {
   af_word_t* init_word;
   af_compiled_t* interpreter_pointer;
   af_cell_t* data_stack_current;
+  af_float_t* float_stack_current;
   af_compiled_t** return_stack_current;
   af_cell_t* data_stack_top;
+  af_float_t* float_stack_top;
   af_compiled_t** return_stack_top;
   af_cell_t* data_stack_base;
+  af_float_t* float_stack_base;
   af_compiled_t** return_stack_base;
   af_wordlist_t* current_wordlist;
   af_wordlist_t** wordlist_order;
