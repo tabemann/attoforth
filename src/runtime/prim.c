@@ -194,6 +194,12 @@ void af_prim_f_pick(af_global_t* global, af_task_t* task);
 /* FROLL primitive */
 void af_prim_f_roll(af_global_t* global, af_task_t* task);
 
+/* S>F primitive */
+void af_prim_s_to_f(af_global_t* global, af_task_t* task);
+
+/* F>S primitive */
+void af_prim_f_to_s(af_global_t* global, af_task_t* task);
+
 /* F+ primitive */
 void af_prim_f_add(af_global_t* global, af_task_t* task);
 
@@ -433,6 +439,9 @@ void af_prim_format_unsigned_number(af_global_t* global, af_task_t* task);
 
 /* FORMAT-FLOAT primitive */
 void af_prim_format_float(af_global_t* global, af_task_t* task);
+
+/* FORMAT-FLOAT-SCI primitive */
+void af_prim_format_float_sci(af_global_t* global, af_task_t* task);
 
 /* BASE primitive */
 void af_prim_base(af_global_t* global, af_task_t* task);
@@ -855,6 +864,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "FROLL", af_prim_f_roll, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "S>F", af_prim_s_to_f, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "F>S", af_prim_f_to_s, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "F+", af_prim_f_add, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "F-", af_prim_f_sub, FALSE,
@@ -1017,6 +1030,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "FORMAT-FLOAT", af_prim_format_float, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "FORMAT-FLOAT-SCI", af_prim_format_float_sci,
+		   FALSE, global->forth_wordlist);
   af_register_prim(global, task, "BASE", af_prim_base, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "FIND-WORD", af_prim_find_word, FALSE,
@@ -1926,6 +1941,29 @@ void af_prim_f_roll(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* S>F primitive */
+void af_prim_s_to_f(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  *(--task->float_stack_current) = (af_float_t)(*task->data_stack_current++);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* F>S primitive */
+void af_prim_f_to_s(af_global_t* global, af_task_t* task) {
+  af_float_t value;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  value = *task->float_stack_current++;
+  if(value > 0.0) {
+    value = floor(value);
+  } else if(value < 0.0) {
+    value = ceil(value);
+  }
+  *(--task->data_stack_current) = (af_cell_t)value;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* F+ primitive */
 void af_prim_f_add(af_global_t* global, af_task_t* task) {
   af_float_t value0;
@@ -2794,6 +2832,22 @@ void af_prim_format_float(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
   value = *task->float_stack_current++;
   snprintf(buffer, sizeof(buffer), "%f", value);
+  length = strlen(buffer);
+  memcpy(task->data_space_current, buffer, length);
+  *(--task->data_stack_current) = (af_cell_t)task->data_space_current;
+  *(--task->data_stack_current) = length;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* FORMAT-FLOAT-SCI primitive */
+void af_prim_format_float_sci(af_global_t* global, af_task_t* task) {
+  af_byte_t buffer[64];
+  af_cell_t length;
+  af_float_t value;
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
+  value = *task->float_stack_current++;
+  snprintf(buffer, sizeof(buffer), "%e", value);
   length = strlen(buffer);
   memcpy(task->data_space_current, buffer, length);
   *(--task->data_stack_current) = (af_cell_t)task->data_space_current;
