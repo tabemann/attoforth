@@ -491,9 +491,6 @@ void af_prim_wait(af_global_t* global, af_task_t* task);
 /* WAKE primitive */
 void af_prim_wake(af_global_t* global, af_task_t* task);
 
-/* RESET primitive */
-void af_prim_reset(af_global_t* global, af_task_t* task);
-
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_task_t* task);
 
@@ -1066,8 +1063,6 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "WAIT", af_prim_wait, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "WAKE", af_prim_wake, FALSE,
-		   global->task_wordlist);
-  af_register_prim(global, task, "RESET", af_prim_reset, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "[", af_prim_open_bracket, TRUE,
 		   global->forth_wordlist);
@@ -2481,13 +2476,15 @@ void af_prim_tick(af_global_t* global, af_task_t* task) {
   }
   name = af_parse_name(global, task, &name_length);
 
-  /*af_byte_t* buffer = malloc(name_length + 1);
-  memcpy(buffer, name, name_length);
-  buffer[name_length] = 0;
-  fprintf(stderr, "Got name: \"%s\"\n", buffer);
-  free(buffer);*/
-
   if(!(word = af_lookup(global, task, name, name_length))) {
+#ifdef DEBUG
+    af_byte_t* buffer = malloc(name_length + 1);
+    memcpy(buffer, name, name_length);
+    buffer[name_length] = 0;
+    fprintf(stderr, "Got name: \"%s\"\n", buffer);
+    free(buffer);
+#endif
+    
     af_handle_word_not_found(global, task);
     return;
   }
@@ -3045,15 +3042,6 @@ void af_prim_wake(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   target_task = (af_task_t*)(*task->data_stack_current++);
   af_wake(global, target_task);
-  AF_ADVANCE_IP(task, 1);
-}
-
-/* RESET primitive */
-void af_prim_reset(af_global_t* global, af_task_t* task) {
-  af_task_t* target_task;
-  AF_VERIFY_DATA_STACK_READ(global, task, 1);
-  target_task = (af_task_t*)(*task->data_stack_current++);
-  af_reset(global, target_task);
   AF_ADVANCE_IP(task, 1);
 }
 
