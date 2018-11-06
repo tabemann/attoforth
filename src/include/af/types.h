@@ -63,6 +63,10 @@ typedef af_sign_cell_t af_bool_t;
 
 typedef double af_float_t;
 
+typedef unsigned __int128 af_2cell_t;
+
+typedef __int128 af_sign_2cell_t;
+
 typedef af_cell_t af_io_type_t;
 
 typedef int af_io_fd_t;

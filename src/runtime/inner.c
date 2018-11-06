@@ -786,17 +786,28 @@ af_bool_t af_parse_number(af_global_t* global, af_cell_t base,  af_byte_t* text,
 
 af_bool_t af_parse_float(af_global_t* global, af_byte_t* text,
 			 size_t length, af_float_t* result) {
-  char* buffer = malloc(sizeof(af_byte_t) * (length + 1));
+  char* buffer;
   char* end_ptr;
   af_float_t value;
-  if(!buffer) {
+  af_bool_t found = FALSE;
+  for(af_cell_t i = 0; i < length; i++) {
+    if(text[i] == 'e' || text[i] == 'E') {
+      found = TRUE;
+      if(i == length - 1) {
+	length--;
+      }
+      break;
+    }
+  }
+  if(!found) {
+    return FALSE;
+  }
+  if(!(buffer = malloc(sizeof(af_byte_t) * (length + 1)))) {
     return FALSE;
   }
   memcpy(buffer, (void*)text, length);
   buffer[length] = '\0';
-  if(buffer[length - 1] == 'e' || buffer[length - 1] == 'E') {
-    buffer[length - 1] = '\0';
-  }
+  
   value = strtod(buffer, &end_ptr);
   if(*end_ptr == 0) {
     free(buffer);
@@ -806,6 +817,92 @@ af_bool_t af_parse_float(af_global_t* global, af_byte_t* text,
     free(buffer);
     return FALSE;
   }
+}
+
+af_bool_t af_parse_2number(af_global_t* global, af_cell_t base,
+			   af_byte_t* text, size_t length,
+			   af_sign_2cell_t* result) {
+  af_sign_2cell_t value = 0;
+  af_bool_t success = FALSE;
+  af_bool_t negative = FALSE;
+  if(length > 0) {
+    if(*text == '%') {
+      base = 2;
+      text++;
+      length--;
+    } else if(*text == '/') {
+      base = 8;
+      text++;
+      length--;
+    } else if(*text == '#') {
+      base = 10;
+      text++;
+      length--;
+    } else if(*text == '$') {
+      base = 16;
+      text++;
+      length--;
+    }
+    if(length > 0 && base >= 2 && base <= 36) {
+      if(*text == '-') {
+	negative = TRUE;
+	text++;
+	length--;
+      }
+      if(length > 0) {
+	while(length--) {
+	  if(*text == '.' && length == 0) {
+	    success = TRUE;
+	    break;
+	  }
+	  value *= base;
+	  if(*text >= '0' && *text <= '9') {
+	    if(*text - '0' < base) {
+	      value += *text++ - '0';
+	    } else {
+	      value = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else if(*text >= 'a' && *text <= 'z') {
+	    if(*text - 'a' < base - 10) {
+	      value += (*text++ - 'a') + 10;
+	    } else {
+	      value = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else if(*text >= 'A' && *text <= 'Z') {
+	    if(*text - 'A' < base - 10) {
+	      value += (*text++ - 'A') + 10;
+	    } else {
+	      value = 0;
+	      success = FALSE;
+	      break;
+	    }
+	  } else {
+	    value = 0;
+	    success = FALSE;
+	    break;
+	  }
+	}
+	if(success && negative) {
+	  value = -value;
+	}
+      } else {
+	value = 0;
+	success = FALSE;
+      }
+    } else {
+      value = 0;
+      success = FALSE;
+    }
+  } else {
+    value = 0;
+    success = FALSE;
+  }
+  *result = value;
+  return success;
 }
 
 af_bool_t af_word_available(af_global_t* global, af_task_t* task,
@@ -916,7 +1013,7 @@ af_bool_t af_parse_name_available(af_global_t* global, af_task_t* task) {
 }
 
 af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
-		       af_cell_t* length) {
+			 af_cell_t* length) {
   af_cell_t current_index;
   af_cell_t count;
   af_byte_t* buffer;

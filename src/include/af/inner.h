@@ -45,84 +45,95 @@
 
 /* Macro to advance interpreter pointer */
 #define AF_ADVANCE_IP(task, increment) \
-  { (task)->interpreter_pointer = (task)->interpreter_pointer ?	\
-      (task)->interpreter_pointer + (increment) : NULL; }
+  {  af_task_t* _task_ = (task); \
+     _task_->interpreter_pointer = _task_->interpreter_pointer ? \
+       _task_->interpreter_pointer + (increment) : NULL; }
 
 #ifdef DEBUG
 
 /* Verify data stack has room to read */
 #define AF_VERIFY_DATA_STACK_READ(global, task, cells) \
-  { if((task)->data_stack_current >=		    \
-       ((task)->data_stack_base - ((cells) - 1))) { \
-      af_handle_data_stack_underflow((global), (task));	\
+  { af_task_t* _task_ = (task); \
+    if(_task_->data_stack_current >=		    \
+       (_task_->data_stack_base - ((cells) - 1))) { \
+      af_handle_data_stack_underflow((global), _task_);	\
       return; \
     } }
 
 /* Verify data stack has room to expand */
 #define AF_VERIFY_DATA_STACK_EXPAND(global, task, cells) \
-  { if((task)->data_stack_current <=		      \
-       ((task)->data_stack_top + ((cells) - 1))) {  \
-      af_handle_data_stack_overflow((global), (task));	\
+  { af_task_t* _task_ = (task); \
+    if(_task_->data_stack_current <=		    \
+       (_task_->data_stack_top + ((cells) - 1))) {  \
+      af_handle_data_stack_overflow((global), _task_);	\
       return; \
     } }
 
 /* Verify float stack has room to read */
 #define AF_VERIFY_FLOAT_STACK_READ(global, task, cells) \
-  { if((task)->float_stack_current >=		    \
-       ((task)->float_stack_base - ((cells) - 1))) { \
-      af_handle_float_stack_underflow((global), (task));	\
+  { af_task_t* _task_ = (task); \
+    if(_task_->float_stack_current >=		     \
+       (_task_->float_stack_base - ((cells) - 1))) { \
+      af_handle_float_stack_underflow((global), _task_);	\
       return; \
     } }
 
 /* Verify float stack has room to expand */
 #define AF_VERIFY_FLOAT_STACK_EXPAND(global, task, cells) \
-  { if((task)->float_stack_current <=		      \
-       ((task)->float_stack_top + ((cells) - 1))) {  \
-      af_handle_float_stack_overflow((global), (task));	\
+  { af_task_t* _task_ = (task); \
+    if(_task_->float_stack_current <=		     \
+       (_task_->float_stack_top + ((cells) - 1))) {  \
+      af_handle_float_stack_overflow((global), _task_);	\
       return; \
     } }
 
 /* Verify return stack has room to read */
 #define AF_VERIFY_RETURN_STACK_READ(global, task, cells) \
-  { if((task)->return_stack_current >=		    \
-       ((task)->return_stack_base - ((cells) - 1))) { \
-      af_handle_return_stack_underflow((global), (task));	\
+  { af_task_t* _task_ = (task); \
+    if(_task_->return_stack_current >=		      \
+       (_task_->return_stack_base - ((cells) - 1))) { \
+      af_handle_return_stack_underflow((global), _task_);	\
       return; \
     } }
 
 /* Verify return stack has room to expand */
 #define AF_VERIFY_RETURN_STACK_EXPAND(global, task, cells) \
-  { if((task)->return_stack_current <=		      \
-       ((task)->return_stack_top + ((cells) - 1))) {  \
-      af_handle_return_stack_overflow((global), (task));	\
+  { af_task_t* _task_ = (task); \
+    if(_task_->return_stack_current <=		      \
+       (_task_->return_stack_top + ((cells) - 1))) {  \
+      af_handle_return_stack_overflow((global), _task_);	\
       return; \
     } }
 
 /* Verify that a task is compiling */
 #define AF_VERIFY_COMPILING(global, task) \
-  { if(!(task)->is_compiling) {	    \
-      af_handle_compile_only((global), (task)); \
+  { af_task_t* _task_ = (task); \
+    if(!_task_->is_compiling) {			\
+      af_handle_compile_only((global), _task_); \
       return; \
     } }
 
 /* Verify that a task is interpreting */
 #define AF_VERIFY_INTERPRETING(global, task) \
-  { if(!(task)->is_compiling) {	    \
-      af_handle_interpret_only((global), (task)); \
+  { af_task_t* _task_ = (task); \
+    if(!_task_->is_compiling) {			  \
+      af_handle_interpret_only((global), _task_); \
       return; \
     } }
 
 /* Verify that a task is not interactive */
 #define AF_VERIFY_NOT_INTERACTIVE(global, task) \
-  { if(!(task)->interpreter_pointer) {	    \
-      af_handle_compile_only((global), (task)); \
+  { af_task_t* _task_ = (task); \
+    if(!_task_->interpreter_pointer) {		\
+      af_handle_compile_only((global), _task_); \
       return; \
     } }
 
 /* Verify that a word has been created in the current task */
 #define AF_VERIFY_WORD_CREATED(global, task) \
-  { if(!(task)->most_recent_word) {	    \
-      af_handle_no_word_created((global), (task)); \
+  { af_task_t* _task_ = (task); \
+    if(!_task_->most_recent_word) {		   \
+      af_handle_no_word_created((global), _task_); \
       return; \
     } }
 
@@ -169,6 +180,35 @@
   {  }
 
 #endif /* DEBUG */
+
+
+
+/* Load an unsigned double-cell integer from data stack at cell offset */
+#define AF_LOAD_2CELL(task, offset, value) \
+  { af_task_t* _task_  = (task); \
+    af_cell_t _offset_ = (offset); \
+    af_cell_t high = *(_task_->data_stack_current + offset); \
+    af_cell_t low = *(_task_->data_stack_current + offset + 1); \
+    value = (af_2cell_t)low | ((af_2cell_t)high << (sizeof(af_cell_t) << 3)); }
+
+/* Load a signed double-cell integer from data stack at cell offset */
+#define AF_LOAD_SIGN_2CELL(task, offset, value) \
+  { af_task_t* _task_  = (task); \
+    af_cell_t _offset_ = (offset); \
+    af_cell_t high = *(_task_->data_stack_current + offset); \
+    af_cell_t low = *(_task_->data_stack_current + offset + 1); \
+    value = (af_sign_2cell_t)((af_2cell_t)low | \
+			      ((af_2cell_t)high << (sizeof(af_cell_t) << 3))); }
+
+/* Store a double-cell integer to data stack at cell offset */
+#define AF_STORE_2CELL(task, offset, value) \
+  { af_task_t* _task_ = (task); \
+    af_cell_t _offset_ = (offset); \
+    af_2cell_t _value_ = (af_2cell_t)(value);	\
+    *(_task_->data_stack_current + offset) = \
+      (af_cell_t)(value >> (sizeof(af_cell_t) << 3));	\
+    *(_task_->data_stack_current + offset + 1) = \
+      (af_cell_t)(value & ((~(af_2cell_t)0) >> (sizeof(af_cell_t) << 3))); }
 
 /* Macro to get name length of word */
 #define AF_WORD_NAME_LEN(word) \
@@ -299,6 +339,9 @@ af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
 
 af_bool_t af_parse_number(af_global_t* global, af_cell_t base, af_byte_t* text,
 			  size_t length, af_sign_cell_t* result);
+
+af_bool_t af_parse_2number(af_global_t* global, af_cell_t base, af_byte_t* text,
+			   size_t length, af_sign_2cell_t* result);
 
 af_bool_t af_parse_float(af_global_t* global, af_byte_t* text,
 			 size_t length, af_float_t* result);
