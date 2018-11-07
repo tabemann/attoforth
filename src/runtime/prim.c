@@ -3270,12 +3270,11 @@ void af_prim_format_2number(af_global_t* global, af_task_t* task) {
   af_bool_t negative = FALSE;
   AF_VERIFY_DATA_STACK_READ(global, task, 2);
   AF_LOAD_2CELL(task, 0, value);
-  value = *task->data_stack_current;
   if(value == 0) {
     *(--current) = '0';
     length++;
   } else if(task->base == 10) {
-    af_sign_cell_t signed_value = (af_sign_cell_t)value;
+    af_sign_2cell_t signed_value = (af_sign_cell_t)value;
     if(signed_value < 0) {
       negative = TRUE;
       signed_value = -signed_value;
