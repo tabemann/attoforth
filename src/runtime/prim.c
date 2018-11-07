@@ -3274,7 +3274,7 @@ void af_prim_format_2number(af_global_t* global, af_task_t* task) {
     *(--current) = '0';
     length++;
   } else if(task->base == 10) {
-    af_sign_2cell_t signed_value = (af_sign_cell_t)value;
+    af_sign_2cell_t signed_value = (af_sign_2cell_t)value;
     if(signed_value < 0) {
       negative = TRUE;
       signed_value = -signed_value;

@@ -187,18 +187,17 @@
 #define AF_LOAD_2CELL(task, offset, value) \
   { af_task_t* _task_  = (task); \
     af_cell_t _offset_ = (offset); \
-    af_cell_t high = *(_task_->data_stack_current + offset); \
-    af_cell_t low = *(_task_->data_stack_current + offset + 1); \
-    value = (af_2cell_t)low | ((af_2cell_t)high << (sizeof(af_cell_t) << 3)); }
+    af_2cell_t high = *(_task_->data_stack_current + offset); \
+    af_2cell_t low = *(_task_->data_stack_current + offset + 1); \
+    value = low | (high << (sizeof(af_cell_t) << 3)); }
 
 /* Load a signed double-cell integer from data stack at cell offset */
 #define AF_LOAD_SIGN_2CELL(task, offset, value) \
   { af_task_t* _task_  = (task); \
     af_cell_t _offset_ = (offset); \
-    af_cell_t high = *(_task_->data_stack_current + offset); \
-    af_cell_t low = *(_task_->data_stack_current + offset + 1); \
-    value = (af_sign_2cell_t)((af_2cell_t)low | \
-			      ((af_2cell_t)high << (sizeof(af_cell_t) << 3))); }
+    af_2cell_t high = *(_task_->data_stack_current + offset); \
+    af_2cell_t low = *(_task_->data_stack_current + offset + 1); \
+    value = (af_sign_2cell_t)(low | (high << (sizeof(af_cell_t) << 3))); }
 
 /* Store a double-cell integer to data stack at cell offset */
 #define AF_STORE_2CELL(task, offset, value) \
