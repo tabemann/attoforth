@@ -3197,12 +3197,12 @@ void af_prim_format_number(af_global_t* global, af_task_t* task) {
     af_sign_cell_t signed_value = (af_sign_cell_t)value;
     if(signed_value < 0) {
       negative = TRUE;
-      signed_value = -signed_value;
+      value = (af_cell_t)(-signed_value);
     }
-    while(signed_value > 0) {
-      af_byte_t part = signed_value % 10;
+    while(value > 0) {
+      af_byte_t part = value % 10;
       part += '0';
-      signed_value /= 10;
+      value /= 10;
       *(--current) = part;
       length++;
     }
@@ -3277,12 +3277,12 @@ void af_prim_format_2number(af_global_t* global, af_task_t* task) {
     af_sign_2cell_t signed_value = (af_sign_2cell_t)value;
     if(signed_value < 0) {
       negative = TRUE;
-      signed_value = -signed_value;
+      value = (af_2cell_t)(-signed_value);
     }
-    while(signed_value > 0) {
-      af_byte_t part = signed_value % 10;
+    while(value > 0) {
+      af_byte_t part = value % 10;
       part += '0';
-      signed_value /= 10;
+      value /= 10;
       *(--current) = part;
       length++;
     }
