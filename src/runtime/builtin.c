@@ -179,7 +179,7 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     ": FIELD: CREATE ALIGNED DUP , 1 CELLS + DOES> @ + ; "
     ": FFIELD: CREATE FALIGNED DUP , 1 FLOATS + DOES> @ + ; "
     ": S>D DUP 0>= IF 0 ELSE -1 THEN ; "
-    ": D>S DUP 0> IF DROP -1 1 RSHIFT ELSE 0< IF DROP -1 THEN THEN ; "
+    ": D>S DUP 0> IF 2DROP -1 1 RSHIFT ELSE 0< IF DROP -1 THEN THEN ; "
     "DEFER INTERPRET "
     ": BEGIN HERE ; IMMEDIATE "
     ": AGAIN & BRANCH , ; IMMEDIATE "
