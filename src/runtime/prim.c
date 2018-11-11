@@ -197,8 +197,14 @@ void af_prim_f_roll(af_global_t* global, af_task_t* task);
 /* S>F primitive */
 void af_prim_s_to_f(af_global_t* global, af_task_t* task);
 
+/* D>F primitive */
+void af_prim_d_to_f(af_global_t* global, af_task_t* task);
+
 /* F>S primitive */
 void af_prim_f_to_s(af_global_t* global, af_task_t* task);
+
+/* F>D primitive */
+void af_prim_f_to_d(af_global_t* global, af_task_t* task);
 
 /* F+ primitive */
 void af_prim_f_add(af_global_t* global, af_task_t* task);
@@ -941,7 +947,11 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "S>F", af_prim_s_to_f, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "D>F", af_prim_d_to_f, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "F>S", af_prim_f_to_s, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "F>D", af_prim_f_to_d, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "F+", af_prim_f_add, FALSE,
 		   global->forth_wordlist);
@@ -2082,6 +2092,17 @@ void af_prim_s_to_f(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* D>F primitive */
+void af_prim_d_to_f(af_global_t* global, af_task_t* task) {
+  af_sign_2cell_t value;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  AF_LOAD_SIGN_2CELL(task, 0, value);
+  task->data_stack_current += 2;
+  *(--task->float_stack_current) = (af_float_t)value;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* F>S primitive */
 void af_prim_f_to_s(af_global_t* global, af_task_t* task) {
   af_float_t value;
@@ -2094,6 +2115,22 @@ void af_prim_f_to_s(af_global_t* global, af_task_t* task) {
     value = ceil(value);
   }
   *(--task->data_stack_current) = (af_cell_t)value;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* F>D primitive */
+void af_prim_f_to_d(af_global_t* global, af_task_t* task) {
+  af_float_t value;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  value = *task->float_stack_current++;
+  if(value > 0.0) {
+    value = floor(value);
+  } else if(value < 0.0) {
+    value = ceil(value);
+  }
+  task->data_stack_current -= 2;
+  AF_STORE_2CELL(task, 0, (af_sign_2cell_t)value);
   AF_ADVANCE_IP(task, 1);
 }
 
