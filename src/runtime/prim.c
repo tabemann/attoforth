@@ -2890,7 +2890,7 @@ void af_prim_task_local(af_global_t* global, af_task_t* task) {
 	   default_data, size);
     current_task = current_task->next_task;
   }
-  *task->data_stack_current = allocated_size;
+  *(++task->data_stack_current) = allocated_size;
   global->task_local_space_size_allocated += size;
   AF_ADVANCE_IP(task, 1);
 }
