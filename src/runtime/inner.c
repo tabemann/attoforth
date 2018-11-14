@@ -165,6 +165,22 @@ void af_task_loop(af_global_t* global) {
 	  task = task->next_task;
 	}
       }
+      task = global->first_task;
+      prev_task = NULL;
+      while(task) {
+	if(task->is_to_be_freed) {
+	  af_task_t* old_task = task;
+	  task = task->next_task;
+	  if(prev_task) {
+	    prev_task->next_task = task;
+	  } else {
+	    global->first_task = task;
+	  }
+	  af_free_task(old_task);
+	} else {
+	  task = task->next_task;
+	}
+      }
     }
     if(global->first_task) {
       pthread_mutex_unlock(&global->mutex);
@@ -529,7 +545,9 @@ void af_reset(af_global_t* global, af_task_t* task) {
     AF_WORD_EXECUTE(global, task, task->abort);
   } else {
     task->current_cycles_before_yield = 0;
+    task->current_cycles_left = 0;
     task->is_to_be_freed = TRUE;
+    global->tasks_active_count--;
   }
 }
 
