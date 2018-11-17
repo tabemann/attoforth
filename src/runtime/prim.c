@@ -3468,15 +3468,23 @@ void af_prim_format_unsigned_2number(af_global_t* global, af_task_t* task) {
 /* FORMAT-FLOAT primitive */
 void af_prim_format_float(af_global_t* global, af_task_t* task) {
   af_byte_t buffer[64];
+  af_byte_t format[64];
   af_cell_t length;
   af_float_t value;
+  int precision;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
   AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
+  precision = *task->data_stack_current;
+  if(precision < 0) {
+    precision = 0;
+  }
   value = *task->float_stack_current++;
-  snprintf(buffer, sizeof(buffer), "%f", value);
+  snprintf(format, sizeof(format), "%%.%df", precision);
+  snprintf(buffer, sizeof(buffer), format, value);
   length = strlen(buffer);
   memcpy(task->data_space_current, buffer, length);
-  *(--task->data_stack_current) = (af_cell_t)task->data_space_current;
+  *task->data_stack_current = (af_cell_t)task->data_space_current;
   *(--task->data_stack_current) = length;
   AF_ADVANCE_IP(task, 1);
 }
@@ -3484,15 +3492,23 @@ void af_prim_format_float(af_global_t* global, af_task_t* task) {
 /* FORMAT-FLOAT-SCI primitive */
 void af_prim_format_float_sci(af_global_t* global, af_task_t* task) {
   af_byte_t buffer[64];
+  af_byte_t format[64];
   af_cell_t length;
   af_float_t value;
+  int precision;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
   AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
+  precision = *task->data_stack_current;
+  if(precision < 0) {
+    precision = 0;
+  }
   value = *task->float_stack_current++;
-  snprintf(buffer, sizeof(buffer), "%e", value);
+  snprintf(format, sizeof(format), "%%.%de", precision);
+  snprintf(buffer, sizeof(buffer), format, value);
   length = strlen(buffer);
   memcpy(task->data_space_current, buffer, length);
-  *(--task->data_stack_current) = (af_cell_t)task->data_space_current;
+  *task->data_stack_current = (af_cell_t)task->data_space_current;
   *(--task->data_stack_current) = length;
   AF_ADVANCE_IP(task, 1);
 }

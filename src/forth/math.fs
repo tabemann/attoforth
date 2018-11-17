@@ -3,10 +3,21 @@
 
 : INV-FACTORIAL ( u -- ) ( F: -- r ) 1E 1+ 1 ?DO 1E I S>F F/ F* LOOP ;
 
-: FASIN-COEFF ( u -- ) ( F: -- r )
-  1E 1+ 1 ?DO I S>F FDUP 1E F+ F/ F* 2 +LOOP ;
+3.141592653589793E FCONSTANT PI
 
-3.14159265359E FCONSTANT PI
+: FSQRT-CLOSE-ENOUGH ( F: r1 r2 -- ) ( -- f )
+  F2DUP F- FABS 2 FROLL FABS 2 FROLL FABS FMAX F/ 0.0000000000000001E F< ;
+
+: FSQRT-BETTER-GUESS ( F: r1 r2 -- r3 ) FDUP 2 FROLL 2 FROLL F/ F+ 2E F/ ;
+
+: FSQRT-TEST ( F: r1 r2 -- r3 )
+  F2DUP F/ FOVER FSQRT-CLOSE-ENOUGH IF
+    FNIP
+  ELSE
+    F2DUP FSQRT-BETTER-GUESS FNIP RECURSE
+  THEN ;
+
+: FSQRT ( F: r -- r ) FDUP 2E F/ FSQRT-TEST ;
 
 : FSIN-COMPILE ( compile-time: u -- )
   -1 SWAP & FDUP
@@ -16,7 +27,7 @@
   2 +LOOP
   & FNIP DROP ; IMMEDIATE
 
-: FSIN ( F: r -- r ) [ 100 ] FSIN-COMPILE ;
+: FSIN ( F: r -- r ) [ 30 ] FSIN-COMPILE ;
 
 : FCOS-COMPILE ( compile-time: u -- )
   -1 SWAP & (FLITERAL) 1E F,
@@ -26,31 +37,27 @@
   2 +LOOP
   & FNIP DROP ; IMMEDIATE
 
-: FCOS ( F: r -- r ) [ 100 ] FCOS-COMPILE ;
+: FCOS ( F: r -- r ) [ 30 ] FCOS-COMPILE ;
 
 : FTAN ( F: r -- r ) FDUP FSIN FSWAP FCOS F/ ;
 
-: FASIN-COMPILE ( compile-time: u -- )
-  & FDUP
-  1 ?DO
-    & FOVER I 2 + S>F & (FLITERAL) F, & F**
-    I FASIN-COEFF I 2 + S>F F/ & (FLITERAL) F, & F* & F+
-  2 +LOOP
-  & FNIP ; IMMEDIATE
+: FATAN ( F: r -- r )
+  1E
+  1 40 DO
+    FOVER I S>F F* 2E F** FSWAP F/ I 2 * 1- S>F F+
+  -1 +LOOP
+  F/ ;
 
-: FASIN ( F: r -- r ) [ 100 ] FASIN-COMPILE ;
+: FASIN ( F: r -- r )
+  FDUP 2E F** 1E F< IF
+    1E FOVER 2E F** F- FSQRT F/ FATAN
+  ELSE FDUP F0> IF
+    FDROP [ PI 2E F/ ] FLITERAL
+  ELSE
+    FDROP [ PI -2E F/ ] FLITERAL
+  THEN THEN ;
 
 : FACOS ( F: r -- r ) FASIN FNEGATE [ PI 2E F/ ] FLITERAL F+ ;
-
-: FATAN-COMPILE ( compile-time: u -- )
-  -1 SWAP & FDUP
-  3 ?DO
-    & FOVER I S>F & (FLITERAL) F, & F**
-    I S>F & (FLITERAL) F, & F/ DUP 0< IF & F- ELSE & F+ THEN NEGATE
-  2 +LOOP
-  & FNIP DROP ; IMMEDIATE
-
-: FATAN ( F: r -- r ) [ 100 ] FATAN-COMPILE ;
 
 : FATAN2 ( F: r1 r2 -- r3 ) \ ( F: y x -- angle )
   FDUP F0> IF
@@ -113,48 +120,6 @@
   FNIP ;
 
 : FLN ( F: r -- r ) 1E F- FLNP1 ;
-
-\ : FLN-COMPILE ( compile-time: u -- )
-\   & (FLITERAL) 1E F, & F- & (FLITERAL) 1E F, & FSWAP & F/
-\   & FDUP & (FLITERAL) 2E F, & F* & (FLITERAL) 1E F, & F+
-\   & (FLITERAL) 2E F, & FSWAP & F/
-\   3 ?DO
-\     & FOVER & (FLITERAL) 2E F, & F*
-\     & (FLITERAL) 1E F, & F+ I S>F & (FLITERAL) F, & F**
-\     I S>F & (FLITERAL) F, & F* & (FLITERAL) 2E F, & FSWAP & F/ & F+
-\   2 +LOOP
-\   & FNIP ; IMMEDIATE
-\ 
-\ : FLN ( F: r -- r ) [ 800 ] FLN-COMPILE ;
-
-\ double test(double x, double g) {
-\    if closeEnough(x/g, g)
-\       return g;
-\    else
-\       return test(x, betterGuess(x, g));
-\ }
-\ 
-\ boolean closeEnough(double a, double b) {
-\    return (Math.abs(a - b) / Math.max(Math.abs(a), Math.abs(b)) < .001);
-\ }
-\ 
-\ double betterGuess(double x, double g) {
-\    return ((g + x/g) / 2);
-\ }
-
-: FSQRT-CLOSE-ENOUGH ( F: r1 r2 -- ) ( -- f )
-  F2DUP F- FABS 2 FROLL FABS 2 FROLL FABS FMAX F/ 0.000001E F< ;
-
-: FSQRT-BETTER-GUESS ( F: r1 r2 -- r3 ) FDUP 2 FROLL 2 FROLL F/ F+ 2E F/ ;
-
-: FSQRT-TEST ( F: r1 r2 -- r3 )
-  F2DUP F/ FOVER FSQRT-CLOSE-ENOUGH IF
-    FNIP
-  ELSE
-    F2DUP FSQRT-BETTER-GUESS FNIP RECURSE
-  THEN ;
-
-: FSQRT ( F: r -- r ) FDUP 2E F/ FSQRT-TEST ;
 
 : FSINH ( F: r -- r ) FEXPM1 FDUP FDUP 1E F+ F/ F+ 2E F/ ;
 
