@@ -6,7 +6,7 @@
 3.141592653589793E FCONSTANT PI
 
 : FSQRT-CLOSE-ENOUGH ( F: r1 r2 -- ) ( -- f )
-  F2DUP F- FABS 2 FROLL FABS 2 FROLL FABS FMAX F/ 0.0000000000000001E F< ;
+  F2DUP F- FABS 2 FROLL FABS 2 FROLL FABS FMAX F/ 0.000000000000001E F< ;
 
 : FSQRT-BETTER-GUESS ( F: r1 r2 -- r3 ) FDUP 2 FROLL 2 FROLL F/ F+ 2E F/ ;
 
@@ -77,26 +77,6 @@
 : FSINCOS ( F: r1 -- r2 r3) \ ( F: angle -- sin cos )
   FDUP FSIN FSWAP FCOS ;
 
-\ : FSINH-COMPILE ( compile-time: u -- )
-\   & FDUP
-\   3 ?DO
-\     & FOVER I S>F & (FLITERAL) F, & F**
-\     I INV-FACTORIAL & (FLITERAL) F, & F* & F+
-\   2 +LOOP
-\   & FNIP ; IMMEDIATE
-\ 
-\ : FSINH ( F: r -- r ) [ 100 ] FSINH-COMPILE ;
-
-\ : FCOSH-COMPILE ( compile-time: u -- )
-\   & (FLITERAL) 1E F,
-\   2 ?DO
-\     & FOVER I S>F & (FLITERAL) F, & F**
-\     I INV-FACTORIAL & (FLITERAL) F, & F* & F+
-\   2 +LOOP
-\   & FNIP ; IMMEDIATE
-\ 
-\ : FCOSH ( F: r -- r ) [ 100 ] FCOSH-COMPILE ;
-
 : FEXPM1-COMPILE ( compile-time: u -- )
   & FDUP
   2 ?DO
@@ -111,15 +91,37 @@
 
 1E FEXP FCONSTANT E
 
+0.6931471805599453E FCONSTANT FLN2
+
+: ARITH-GEOM-MEAN ( F: r1 r2 -- r3 )
+  BEGIN
+    F2DUP F- FABS 0.000000000000001E F>
+  WHILE
+    F2DUP F+ 2E F/ FROT FROT F* FSQRT
+  REPEAT
+  FDROP ;
+
+\ x2^m = 2^(p/2)
+\ 2^(log2(x))2^m = 2^(p/2)
+\ log2(x) + m = p/2
+\ m = p/2 - log2(x)
+
+: ROUGH-LOG2 ( d -- u )
+  0 BEGIN
+    ROT ROT 1 DRSHIFT 2DUP D0> IF ROT 1+ FALSE ELSE 2DROP TRUE THEN
+  UNTIL ;
+
+: FLN-PRECISION ( F: r -- r )
+  [ 58 2 / S>F ] FLITERAL FSWAP F>D ROUGH-LOG2 S>F F- ;
+
 : FLNP1 ( F: r -- r )
-  1E FSWAP F/
-  FDUP 2E F* 1E F+ 2E FSWAP F/
-  1600 3 ?DO
-    FOVER 2E F* 1E F+ I S>F FDUP FROT FSWAP F** F* 2E FSWAP F/ F+
-  2 +LOOP
-  FNIP ;
+  1E F+ FDUP FLN-PRECISION
+  PI 1E 2E 2E 4 FPICK F- F** 4 FROLL F/ ARITH-GEOM-MEAN 2E F* F/
+  FSWAP FLN2 F* F- ;
 
 : FLN ( F: r -- r ) 1E F- FLNP1 ;
+
+: FLOG ( F: r -- r ) FLN [ 10E FLN ] FLITERAL F/ ;
 
 : FSINH ( F: r -- r ) FEXPM1 FDUP FDUP 1E F+ F/ F+ 2E F/ ;
 
