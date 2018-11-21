@@ -260,7 +260,7 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     "  ELSE "
     "    DROP "
     "  THEN ; "
-    ": EMIT HERE C! HERE 1 TYPE ; "
+    ": EMIT HERE $100 + C! HERE $100 + 1 TYPE ; "
     "32 CONSTANT BL "
     "10 CONSTANT NEWLINE "
     ": CR NEWLINE EMIT ; "
