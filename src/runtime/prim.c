@@ -143,6 +143,9 @@ void af_prim_lshift(af_global_t* global, af_task_t* task);
 /* RSHIFT primitive */
 void af_prim_rshift(af_global_t* global, af_task_t* task);
 
+/* ARSHIFT primitive */
+void af_prim_arshift(af_global_t* global, af_task_t* task);
+
 /* < primitive */
 void af_prim_lt(af_global_t* global, af_task_t* task);
 
@@ -280,6 +283,9 @@ void af_prim_d_lshift(af_global_t* global, af_task_t* task);
 
 /* DRSHIFT primitive */
 void af_prim_d_rshift(af_global_t* global, af_task_t* task);
+
+/* DARSHIFT primitive */
+void af_prim_d_arshift(af_global_t* global, af_task_t* task);
 
 /* D< primitive */
 void af_prim_d_lt(af_global_t* global, af_task_t* task);
@@ -935,6 +941,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "RSHIFT", af_prim_rshift, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "ARSHIFT", af_prim_arshift, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "<", af_prim_lt, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "<=", af_prim_lte, FALSE,
@@ -1026,6 +1034,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "DLSHIFT", af_prim_d_lshift, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "DRSHIFT", af_prim_d_rshift, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "DARSHIFT", af_prim_d_arshift, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "D<", af_prim_d_lt, FALSE,
 		   global->forth_wordlist);
@@ -1937,6 +1947,17 @@ void af_prim_rshift(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* ARSHIFT primitive */
+void af_prim_arshift(af_global_t* global, af_task_t* task) {
+  af_sign_cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  value0 = *(task->data_stack_current + 1);
+  value1 = *task->data_stack_current;
+  *(++task->data_stack_current) = (af_cell_t)(value0 >> value1);
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* < primitive */
 void af_prim_lt(af_global_t* global, af_task_t* task) {
   af_sign_cell_t value0;
@@ -2473,6 +2494,17 @@ void af_prim_d_rshift(af_global_t* global, af_task_t* task) {
   af_cell_t value1;
   AF_VERIFY_DATA_STACK_READ(global, task, 3);
   AF_LOAD_2CELL(task, 1, value0);
+  value1 = *task->data_stack_current++;
+  AF_STORE_2CELL(task, 0, value0 >> value1);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* DARSHIFT primitive */
+void af_prim_d_arshift(af_global_t* global, af_task_t* task) {
+  af_sign_2cell_t value0;
+  af_cell_t value1;
+  AF_VERIFY_DATA_STACK_READ(global, task, 3);
+  AF_LOAD_SIGN_2CELL(task, 1, value0);
   value1 = *task->data_stack_current++;
   AF_STORE_2CELL(task, 0, value0 >> value1);
   AF_ADVANCE_IP(task, 1);
