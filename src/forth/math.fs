@@ -90,7 +90,17 @@ FORTH-WORDLIST SET-CURRENT
   LOOP
   & FNIP ; IMMEDIATE
 
-: FEXPM1 ( F: r -- r ) [ 100 ] FEXPM1-COMPILE ;
+: FEXPM1 ( F: r -- r ) [ 155 ] FEXPM1-COMPILE ;
+
+\ : FEXPM1-COMPILE ( compile-time: -- )
+\   & FDUP & (FLITERAL) 2E F, & F** & (FLITERAL) 1E F,
+\   6 70 DO
+\     & FOVER & FSWAP & F/ I S>F & (FLITERAL) F, & F+
+\   -4 +LOOP
+\   & F/ & (FLITERAL) 2E F, & F+ & FOVER & F- & FSWAP
+\   & (FLITERAL) 2E F, & F* & FSWAP & F/ ; IMMEDIATE
+\ 
+\ : FEXPM1 ( F: r -- r ) FEXPM1-COMPILE ;
 
 : FEXP ( F: r -- r ) FEXPM1 1E F+ ;
 
