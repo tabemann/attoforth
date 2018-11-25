@@ -96,9 +96,11 @@ af_global_t* af_global_init(void) {
   global->default_data_stack_base_room_count = 16;
   global->default_float_stack_base_room_count = 16;
   global->default_return_stack_base_room_count = 16;
-  global->min_guaranteed_data_space_size = 8192;
+  global->min_guaranteed_data_space_size = 1024;
   global->default_data_space_size = 130048;
-  global->default_cycles_before_yield = 1024;
+  global->default_cycles_before_yield = 4096;
+  global->max_cycles_before_yield = 16384;
+  global->max_extra_cycles = 65536;
   global->default_wordlist_order_max_count = 128;
   global->task_local_space_size = 512;
   global->task_local_space_size_allocated = 0;
@@ -192,7 +194,19 @@ void af_task_loop(af_global_t* global) {
 }
 
 void af_inner_loop(af_global_t* global, af_task_t* task) {
-  task->current_cycles_left = task->current_cycles_before_yield;
+  if(!task->current_cycles_before_yield) {
+    return;
+  }
+  task->current_cycles_left =
+    task->current_cycles_before_yield + task->extra_cycles;
+  if(task->current_cycles_left > global->max_cycles_before_yield) {
+    task->extra_cycles =
+      task->current_cycles_left - global->max_cycles_before_yield;
+    task->current_cycles_left = global->max_cycles_before_yield;
+    if(task->extra_cycles > global->max_extra_cycles) {
+      task->extra_cycles = global->max_extra_cycles;
+    }
+  }
   if(task->init_word) {
     AF_WORD_EXECUTE(global, task, task->init_word);
   }
@@ -202,6 +216,7 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
     af_word_t* word = interpreter_pointer->compiled_call;
     AF_WORD_EXECUTE(global, task, word);
   }
+  task->yields++;
 }
 
 void af_free_task(af_task_t* task) {
@@ -331,8 +346,10 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->next_task = global->first_task;
   global->first_task = task;
   task->base_cycles_before_yield = 0;
+  task->extra_cycles = 0;
   task->current_cycles_before_yield = 0;
   task->current_cycles_left = 0;
+  task->yields = 0;
   task->is_compiling = FALSE;
   task->is_to_be_freed = FALSE;
   task->interpreter_pointer = NULL;
@@ -428,8 +445,10 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->next_task = global->first_task;
   global->first_task = task;
   task->base_cycles_before_yield = 0;
+  task->extra_cycles = 0;
   task->current_cycles_before_yield = 0;
   task->current_cycles_left = 0;
+  task->yields = 0;
   task->is_compiling = FALSE;
   task->is_to_be_freed = FALSE;
   task->interpreter_pointer = NULL;
@@ -516,10 +535,15 @@ void af_kill(af_global_t* global, af_task_t* task) {
 
 void af_yield(af_global_t* global, af_task_t* task) {
   task->current_cycles_left = 0;
+  task->extra_cycles = 0;
 }
 
 void af_wait(af_global_t* global, af_task_t* task) {
   task->current_cycles_before_yield = 0;
+  task->extra_cycles += task->current_cycles_left;
+  if(task->extra_cycles > global->max_extra_cycles) {
+    task->extra_cycles = global->max_extra_cycles;
+  }
   task->current_cycles_left = 0;
   global->tasks_active_count--;
 }
@@ -533,6 +557,7 @@ void af_wake(af_global_t* global, af_task_t* task) {
 
 void af_reset(af_global_t* global, af_task_t* task) {
   task->base_cycles_before_yield = global->default_cycles_before_yield;
+  task->extra_cycles = 0;
   task->current_cycles_before_yield = global->default_cycles_before_yield;
   task->is_compiling = FALSE;
   task->interpreter_pointer = NULL;

@@ -599,6 +599,9 @@ void af_prim_wait(af_global_t* global, af_task_t* task);
 /* WAKE primitive */
 void af_prim_wake(af_global_t* global, af_task_t* task);
 
+/* YIELDS primitive */
+void af_prim_yields(af_global_t* global, af_task_t* task);
+
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_task_t* task);
 
@@ -1250,6 +1253,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "WAIT", af_prim_wait, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "WAKE", af_prim_wake, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "YIELDS", af_prim_yields, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "[", af_prim_open_bracket, TRUE,
 		   global->forth_wordlist);
@@ -3728,6 +3733,14 @@ void af_prim_wake(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   target_task = (af_task_t*)(*task->data_stack_current++);
   af_wake(global, target_task);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* YIELDS primitive */
+void af_prim_yields(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
+  task->data_stack_current -= 2;
+  AF_STORE_2CELL(task, 0, task->yields);
   AF_ADVANCE_IP(task, 1);
 }
 

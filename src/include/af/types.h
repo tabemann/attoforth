@@ -149,6 +149,8 @@ typedef struct af_global_t {
   size_t min_guaranteed_data_space_size;
   size_t default_data_space_size;
   af_cell_t default_cycles_before_yield;
+  af_cell_t max_cycles_before_yield;
+  af_cell_t max_extra_cycles;
   af_word_t* builtin_literal_runtime;
   af_word_t* builtin_f_literal_runtime;
   af_word_t* first_of_all_words;
@@ -170,8 +172,10 @@ typedef struct af_global_t {
 typedef struct af_task_t {
   af_task_t* next_task;
   af_cell_t base_cycles_before_yield;
+  af_cell_t extra_cycles;
   af_cell_t current_cycles_before_yield;
   af_cell_t current_cycles_left;
+  af_2cell_t yields;
   af_bool_t is_compiling;
   af_bool_t is_to_be_freed;
   af_word_t* init_word;
