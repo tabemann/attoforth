@@ -14,7 +14,7 @@ VARIABLE TERMINATE FALSE TERMINATE !
     \ DUP $1000 MOD 0= IF ." ." THEN
     DUP $1000 MOD 0= IF
       YIELDS ROT 2 PICK 2 PICK 6 ROLL 6 ROLL D- D>F
-      1024E FSWAP F/ ." <" (F.) ." > "
+      1024E FSWAP F/ ." <" F. MY-CHAN COUNT-CHAN (.) ." > "
     THEN
     \ DUP $1000 MOD 0= IF DUP ." <" 16 (BASE.) ." > " THEN
   REPEAT ;
@@ -27,7 +27,7 @@ VARIABLE TERMINATE FALSE TERMINATE !
       \ $1000 MOD 0= IF ." @" THEN
       $1000 MOD 0= IF
         YIELDS 2DUP 5 ROLL 5 ROLL D- D>F
-        1024E FSWAP F/ ." [" (F.) ." ] "
+        1024E FSWAP F/ ." [" F. MY-CHAN COUNT-CHAN (.) ." ] "
       THEN
       \ DUP $1000 MOD 0= IF ." [" 16 (BASE.) ." ] " ELSE DROP THEN
     THEN
