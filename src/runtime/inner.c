@@ -98,9 +98,9 @@ af_global_t* af_global_init(void) {
   global->default_return_stack_base_room_count = 16;
   global->min_guaranteed_data_space_size = 1024;
   global->default_data_space_size = 130048;
-  global->default_cycles_before_yield = 4096;
-  global->max_cycles_before_yield = 16384;
-  global->max_extra_cycles = 65536;
+  global->default_cycles_before_yield = 1024 * 16;
+  global->max_cycles_before_yield = 1024 * 64;
+  global->max_extra_cycles = 1024 * 128;
   global->default_wordlist_order_max_count = 128;
   global->task_local_space_size = 512;
   global->task_local_space_size_allocated = 0;
