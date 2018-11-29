@@ -164,6 +164,7 @@ void af_task_loop(af_global_t* global) {
 	  pthread_mutex_unlock(&global->mutex);
 	  pthread_mutex_lock(&global->mutex);
 	  af_inner_loop(global, task);
+	  prev_task = task;
 	  task = task->next_task;
 	}
       }
@@ -180,6 +181,7 @@ void af_task_loop(af_global_t* global) {
 	  }
 	  af_free_task(old_task);
 	} else {
+	  prev_task = task;
 	  task = task->next_task;
 	}
       }
@@ -498,14 +500,6 @@ void af_set_init_word(af_global_t* global, af_task_t* task,
   }
 }
 
-void af_interpret(af_global_t* global, af_task_t* task) {
-  if(task->return_stack_current <= task->return_stack_top) {
-    af_handle_return_stack_overflow(global, task);
-    return;
-  }
-  *(--task->return_stack_current) = task->interpreter_pointer;
-  task->interpreter_pointer = NULL;
-}
 
 void af_push_data(af_global_t* global, af_task_t* task, af_cell_t data) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
@@ -522,7 +516,7 @@ void af_start(af_global_t* global, af_task_t* task) {
   if(!task->base_cycles_before_yield && !task->is_to_be_freed) {
     task->base_cycles_before_yield = task->current_cycles_before_yield =
       task->current_cycles_left = global->default_cycles_before_yield;
-    global->tasks_active_count++;
+    af_schedule(global, task);
   }
 }
 
@@ -530,7 +524,7 @@ void af_kill(af_global_t* global, af_task_t* task) {
   task->current_cycles_before_yield = 0;
   task->current_cycles_left = 0;
   task->is_to_be_freed = TRUE;
-  global->tasks_active_count--;
+  af_deschedule(global, task);
 }
 
 void af_yield(af_global_t* global, af_task_t* task) {
@@ -545,13 +539,13 @@ void af_wait(af_global_t* global, af_task_t* task) {
     task->extra_cycles = global->max_extra_cycles;
   }
   task->current_cycles_left = 0;
-  global->tasks_active_count--;
+  af_deschedule(global, task);
 }
 
 void af_wake(af_global_t* global, af_task_t* task) {
   if(!task->current_cycles_before_yield && !task->is_to_be_freed) {
     task->current_cycles_before_yield = task->base_cycles_before_yield;
-    global->tasks_active_count++;
+    af_schedule(global, task);
   }
 }
 
@@ -572,8 +566,24 @@ void af_reset(af_global_t* global, af_task_t* task) {
     task->current_cycles_before_yield = 0;
     task->current_cycles_left = 0;
     task->is_to_be_freed = TRUE;
-    global->tasks_active_count--;
+    af_deschedule(global, task);
   }
+}
+
+void af_schedule(af_global_t* global, af_task_t* task) {
+  global->tasks_active_count++;
+  /*  fprintf(stderr, "SCHEDULED task: %lld count: %lld\n",
+      (af_cell_t)task, global->tasks_active_count); */
+}
+
+void af_deschedule(af_global_t* global, af_task_t* task) {
+  global->tasks_active_count--;
+  /*  fprintf(stderr, "DESCHEDULED task: %lld count: %lld\n",
+      (af_cell_t)task, global->tasks_active_count); */
+}
+
+void af_interpret(af_global_t* global, af_task_t* task) {
+  task->interpreter_pointer = global->base_interpreter_code;
 }
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task) {

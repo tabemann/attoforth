@@ -296,6 +296,8 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     "  THEN UNTIL DROP ROT ROT 2DROP ROT ROT 2DROP ; "
     ": ( [CHAR] ) SKIP-CHARS-UNTIL ; IMMEDIATE "
     ": \\ NEWLINE SKIP-CHARS-UNTIL ; IMMEDIATE "
+    ": SIMPLE-EMIT ( c -- ) "
+    "  HERE $101 + TUCK ! 1 IO-STDOUT IO-WRITE-ASYNC IO-ACTION-DESTROY ; "
     ": TIME+ ( s1 ns1 s2 ns2 -- s ns ) "
     "  DUP 3 PICK + 1000000000 > IF "
     "    2 ROLL + 1000000000 - ROT ROT + 1+ SWAP "

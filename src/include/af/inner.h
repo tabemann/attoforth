@@ -267,8 +267,6 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task);
 void af_set_init_word(af_global_t* global, af_task_t* task,
 		      af_word_t* word);
 
-void af_interpret(af_global_t* global, af_task_t* task);
-
 void af_push_data(af_global_t* global, af_task_t* task, af_cell_t data);
 
 void af_push_return(af_global_t* global, af_task_t* task,
@@ -285,6 +283,12 @@ void af_wait(af_global_t* global, af_task_t* task);
 void af_wake(af_global_t* global, af_task_t* task);
 
 void af_reset(af_global_t* global, af_task_t* task);
+
+void af_schedule(af_global_t* global, af_task_t* task);
+
+void af_deschedule(af_global_t* global, af_task_t* task);
+
+void af_interpret(af_global_t* global, af_task_t* task);
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task);
 
