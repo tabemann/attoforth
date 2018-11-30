@@ -1048,7 +1048,7 @@ af_bool_t af_parse_name_available(af_global_t* global, af_task_t* task) {
   buffer = task->current_input->buffer;
   current_char = *(buffer + current_index);
   while(current_index < count &&
-	(current_char == ' ' || current_char == '\n')) {
+	(current_char == ' ' || current_char == '\t' || current_char == '\n')) {
     current_char = *(buffer + ++current_index);
   }
   if(current_index == count) {
@@ -1056,7 +1056,8 @@ af_bool_t af_parse_name_available(af_global_t* global, af_task_t* task) {
   }
   if(!task->current_input->is_closed) {
     while(current_index < count &&
-	  (current_char != ' ' && current_char != '\n')) {
+	  (current_char != ' ' && current_char != '\t' &&
+	   current_char != '\n')) {
       current_char = *(buffer + ++current_index);
     }
     return current_index < count;
@@ -1082,7 +1083,7 @@ af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
   buffer = task->current_input->buffer;
   current_char = *(buffer + current_index);
   while(current_index < count &&
-	(current_char == ' ' || current_char == '\n')) {
+	(current_char == ' ' || current_char == '\t' || current_char == '\n')) {
     current_char = *(buffer + ++current_index);
   }
   if(current_index == count) {
@@ -1091,7 +1092,7 @@ af_byte_t* af_parse_name(af_global_t* global, af_task_t* task,
   }
   start_index = current_index;
   while(current_index < count &&
-	(current_char != ' ' && current_char != '\n')) {
+	(current_char != ' ' && current_char != '\t' && current_char != '\n')) {
     current_char = *(buffer + ++current_index);
   }
   if(!task->current_input->is_closed && current_index == count) {
