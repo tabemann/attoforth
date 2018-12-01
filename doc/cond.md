@@ -1,8 +1,10 @@
-# Condition variables
+# Condition Variables
 
 These are made available by executing:
 
     REQUIRE src/forth/cond.fs
+
+The following words are in the `task-wordlist` wordlist.
 
 `NEW-COND` ( lock -- cond )
 
