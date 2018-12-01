@@ -23,18 +23,18 @@ These provide escaped strings, which are similar to strings in C. After the init
 * `\\`, i.e. backslash, ASCII 92
 * `\x<hexdigit><hexdigit>`, i.e. the result of parsing two hexadecimal digits
 
-`S\"` ( compile-time: "ccc<quote>" -- ) ( runtime: -- c-addr u )
+`S\"` ( compile-time: "ccc\<quote>" -- ) ( runtime: -- c-addr u )
 
 This starts an embedded escaped string within a compiled word.
 
-`C\"` ( compile-time: "ccc<quote>" -- ) ( runtime: -- c-addr )
+`C\"` ( compile-time: "ccc\<quote>" -- ) ( runtime: -- c-addr )
 
 This starts an embedded escaped counted string within a compiled word.
 
-`.\"` ( compile-time: "ccc<quote>" -- ) ( runtime: -- )
+`.\"` ( compile-time: "ccc\<quote>" -- ) ( runtime: -- )
 
 This starts a printed escaped string within a compiled word.
 
-`.\(` ( immediate: "ccc<close-paren>" -- )
+`.\(` ( immediate: "ccc\<close-paren>" -- )
 
 This starts an immediate printed escaped string.
