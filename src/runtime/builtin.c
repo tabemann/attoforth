@@ -256,7 +256,7 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     "  THEN ; "
     "FORTH-WORDLIST SET-CURRENT "
     ": TYPE THIS-TASK OUTPUT> DUP IF "
-    "    DUP OUTPUT-WRITE @ ?EXECUTE1 "
+    "    DUP OUTPUT-WRITE @ DUP IF EXECUTE ELSE 2DROP 2DROP THEN "
     "  ELSE "
     "    DROP "
     "  THEN ; "
