@@ -595,7 +595,7 @@ ssize_t af_io_read_nonblock(int fd, af_byte_t* buffer, af_io_size_t count,
 			  errno == EINTR) ? TRUE : FALSE;
   *error = size != -1 || (size == -1 && (errno == EAGAIN ||
 					 errno == EWOULDBLOCK ||
-					 errno == EINTER)) ? 0 : errno;
+					 errno == EINTR)) ? 0 : errno;
   return size;
 }
 
@@ -609,7 +609,7 @@ ssize_t af_io_write_nonblock(int fd, af_byte_t* buffer, af_io_size_t count,
 			  errno == EINTR) ? TRUE : FALSE;
   *error = size != -1 || (size == -1 && (errno == EAGAIN ||
 					 errno == EWOULDBLOCK ||
-					 errno == EINTER)) ? 0 : errno;
+					 errno == EINTR)) ? 0 : errno;
   return size;
 }
 
