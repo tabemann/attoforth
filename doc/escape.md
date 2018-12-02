@@ -4,7 +4,7 @@ These are made available by executing:
 
     REQUIRE src/forth/escape.fs
 
-The following words are in the `forth-wordlist` wordlist.
+The following words are in the `FORTH-WORDLIST` wordlist.
 
 These provide escaped strings, which are similar to strings in C. After the initial whitespace which is skipped over after the introducing word, the continue until an unescaped `"`, or in the case of `.\(`, `)` character is reached. The allowed escape sequences are:
 

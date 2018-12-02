@@ -4,7 +4,7 @@ These are made available by executing:
 
     REQUIRE src/forth/bchan.fs
 
-These following words are in the `task-wordlist` wordlist.
+These following words are in the `TASK-WORDLIST` wordlist.
 
 `BCHAN.` ( chan -- )
 

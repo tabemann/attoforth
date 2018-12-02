@@ -1,6 +1,6 @@
 # Tasks
 
-These are available built into attoforth. The following words are in the `task-wordlist` wordlist.
+These are available built into attoforth. The following words are in the `TASK-WORDLIST` wordlist.
 
 `THIS-TASK` ( -- task )
 

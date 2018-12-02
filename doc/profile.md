@@ -4,11 +4,11 @@ This is made available by executing:
 
     REQUIRE src/forth/profile.fs
 
-The following words are in the `forth-wordlist` wordlist.
+The following words are in the `FORTH-WORDLIST` wordlist.
 
 `SET-PROFILE-INSTRUMENT-ENABLE` ( enable -- )
 
-Set whether to instrument words created after this point for profiling. Note that this instrumentation does come with a performance hit, as it requires adding code to each word to carry out profiling. Also, this does not retroactively instrument words created before this is executed.
+Set whether to instrument words created after this point for profiling. Note that this instrumentation does come with a performance hit, as it requires adding code to each word to carry out profiling. Also, this does not retroactively instrument words created before this is executed. Additionally, this does not instrument words created with `CREATE` and `DOES>`.
 
 `GET-PROFILE-INSTRUMENT-ENABLE` ( -- enable )
 
