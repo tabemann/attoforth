@@ -34,6 +34,6 @@ Set whether to carry out global tracing, i.e. for all words in every task.
 
 `TASK-TRACE` ( enable task -- )
 
-Set whether to carry out tracing for a particular task, i.e. for all words in that particulr task.
+Set whether to carry out tracing for a particular task, i.e. for all words in that particular task.
 
 These two tracers have a far more substantial performance hit than the `src/forth/trace.fs` tracer because they trace every single word executed. They also circumvent the terminal control mechanisms involving normal standard output IO, and thus interfere with the user input mechanism; it may not be possible for the user to control attoforth once these are enabled, and thus it is recommended that the user write code for automatically turning off debugging mode tracing once it is not needed since the user may not be able to turn it off manually.
