@@ -14,7 +14,7 @@ Begin a closureless lambda, returning an execution token for the lambda within t
 
 End a closureless lambda.
 
-`<:` ( x*count count -- xt ) ( in lambda: -- x*count )
+`<:` ( x\*count count -- xt ) ( in lambda: -- x\*count )
 
 Begin a lambda with a closure; take a given number of cells off of the data stack, and put them on the data stack when the lambda is executed, and return an execution token for the lambda in the word the lambda is nested within. Note that the lambda needs to be freed with `FREE-LAMBDA` or else memory may be leaked.
 
@@ -22,7 +22,7 @@ Begin a lambda with a closure; take a given number of cells off of the data stac
 
 End a lambda with a closure.
 
-`F<:` ( x*count1 count1 count2 -- xt ) ( F: r*count2 -- ) ( in lambda: -- x*count1 ) ( in lambda: F: -- r*count2 )
+`F<:` ( x\*count1 count1 count2 -- xt ) ( F: r\*count2 -- ) ( in lambda: -- x\*count1 ) ( in lambda: F: -- r\*count2 )
 
 Begin a lambda with a closure that encloses values from both the data and float stacks; take a given number of cells off of the data stack and a given number of floats off of the float stack, and put them on the data and float stacks when the lambda is executed, and return an execution token for the lambda in the word the lambda is nested within. Note that the lambda needs to be freed with `FREE-LAMBDA` or else memory may be leaked.
 
