@@ -4,7 +4,7 @@ This non-debugging mode tracer is made available by executing:
 
     REQUIRE src/forth/trace.fs
 
-The following words are in the `forth-wordlist` wordlist.
+The following words are in the `FORTH-WORDLIST` wordlist.
 
 `SET-TRACE-INSTRUMENT-ENABLE` ( enable -- )
 
