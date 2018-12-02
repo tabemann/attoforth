@@ -587,23 +587,29 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
 
 /* Carry out non-blocking read */
 ssize_t af_io_read_nonblock(int fd, af_byte_t* buffer, af_io_size_t count,
-			    af_bool_t* again) {
+			    af_bool_t* again, af_io_error_t* error) {
   ssize_t size;
   af_fd_set_blocking(fd, FALSE);
   size = read(fd, buffer, sizeof(af_byte_t) * count);
   *again = size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
 			  errno == EINTR) ? TRUE : FALSE;
+  *error = size != -1 || (size == -1 && (errno == EAGAIN ||
+					 errno == EWOULDBLOCK ||
+					 errno == EINTER)) ? 0 : errno;
   return size;
 }
 
 /* Carry out non-blocking read */
 ssize_t af_io_write_nonblock(int fd, af_byte_t* buffer, af_io_size_t count,
-			     af_bool_t* again) {
+			     af_bool_t* again, af_io_error_t* error) {
   ssize_t size;
   af_fd_set_blocking(fd, FALSE);
   size = write(fd, buffer, sizeof(af_byte_t) * count);
   *again = size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
 			  errno == EINTR) ? TRUE : FALSE;
+  *error = size != -1 || (size == -1 && (errno == EAGAIN ||
+					 errno == EWOULDBLOCK ||
+					 errno == EINTER)) ? 0 : errno;
   return size;
 }
 

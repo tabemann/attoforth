@@ -4280,30 +4280,32 @@ void af_prim_io_write_async(af_global_t* global, af_task_t* task) {
 /* IO-READ-NONBLOCK primitive */
 void af_prim_io_read_nonblock(af_global_t* global, af_task_t* task) {
   af_bool_t again;
+  af_io_error_t error;
   ssize_t size;
   AF_VERIFY_DATA_STACK_READ(global, task, 3);
   size = af_io_read_nonblock((af_io_fd_t)(*task->data_stack_current),
 			     (af_byte_t*)(*(task->data_stack_current + 2)),
 			     *(task->data_stack_current + 1),
-			     &again);
-  task->data_stack_current++;
-  *(af_sign_cell_t*)(task->data_stack_current + 1) = (af_sign_cell_t)size;
-  *(af_bool_t*)task->data_stack_current = again;
+			     &again, &error);
+  *(af_sign_cell_t*)(task->data_stack_current + 2) = (af_sign_cell_t)size;
+  *(af_bool_t*)(task->data_stack_current + 1) = again;
+  *task->data_stack_current = error;
   AF_ADVANCE_IP(task, 1);
 }
 
 /* IO-WRITE-NONBLOCK primitive */
 void af_prim_io_write_nonblock(af_global_t* global, af_task_t* task) {
   af_bool_t again;
+  af_io_error_t error;
   ssize_t size;
   AF_VERIFY_DATA_STACK_READ(global, task, 3);
   size = af_io_write_nonblock((af_io_fd_t)(*task->data_stack_current),
 			      (af_byte_t*)(*(task->data_stack_current + 2)),
 			      *(task->data_stack_current + 1),
-			      &again);
-  task->data_stack_current++;
-  *(af_sign_cell_t*)(task->data_stack_current + 1) = (af_sign_cell_t)size;
-  *(af_bool_t*)task->data_stack_current = again;
+			      &again, &error);
+  *(af_sign_cell_t*)(task->data_stack_current + 2) = (af_sign_cell_t)size;
+  *(af_bool_t*)(task->data_stack_current + 1) = again;
+  *task->data_stack_current = error;
   AF_ADVANCE_IP(task, 1);
 }
 

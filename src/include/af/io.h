@@ -176,10 +176,12 @@ af_io_action_t* af_io_write_async(af_io_t* io, af_io_fd_t fd, af_byte_t* buffer,
 
 /* Carry out non-blocking read */
 ssize_t af_io_read_nonblock(af_io_fd_t fd, af_byte_t* buffer,
-			    af_io_size_t count, af_bool_t* again);
+			    af_io_size_t count, af_bool_t* again,
+			    af_io_error_t* error);
 
 /* Carry out non-blocking read */
 ssize_t af_io_write_nonblock(af_io_fd_t fd, af_byte_t* buffer,
-			     af_io_size_t count, af_bool_t* again);
+			     af_io_size_t count, af_bool_t* again,
+			     af_io_error_t* error);
 
 #endif /* AF_IO_H */
