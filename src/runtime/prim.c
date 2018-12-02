@@ -488,6 +488,9 @@ void af_prim_from_input(af_global_t* global, af_task_t* task);
 /* >DATA primitive */
 void af_prim_to_data(af_global_t* global, af_task_t* task);
 
+/* >FLOAT primitive */
+void af_prim_to_float(af_global_t* global, af_task_t* task);
+
 /* >RETURN primitive */
 void af_prim_to_return(af_global_t* global, af_task_t* task);
 
@@ -1173,6 +1176,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "INPUT>", af_prim_from_input, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, ">DATA", af_prim_to_data, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, ">FLOAT", af_prim_to_float, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, ">RETURN", af_prim_to_return, FALSE,
 		   global->forth_wordlist);
@@ -3160,11 +3165,23 @@ void af_prim_from_input(af_global_t* global, af_task_t* task) {
 /* >DATA primitive */
 void af_prim_to_data(af_global_t* global, af_task_t* task) {
   af_task_t* target_task;
-  af_cell_t data;
+  af_cell_t value;
   AF_VERIFY_DATA_STACK_READ(global, task, 2);
   target_task = (af_task_t*)(*task->data_stack_current++);
-  data = *task->data_stack_current++;
-  af_push_data(global, target_task, data);
+  value = *task->data_stack_current++;
+  af_push_data(global, target_task, value);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* >FLOAT primitive */
+void af_prim_to_float(af_global_t* global, af_task_t* task) {
+  af_task_t* target_task;
+  af_float_t value;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  value = *task->float_stack_current++;
+  af_push_float(global, target_task, value);
   AF_ADVANCE_IP(task, 1);
 }
 

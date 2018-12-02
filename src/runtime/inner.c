@@ -501,9 +501,14 @@ void af_set_init_word(af_global_t* global, af_task_t* task,
 }
 
 
-void af_push_data(af_global_t* global, af_task_t* task, af_cell_t data) {
+void af_push_data(af_global_t* global, af_task_t* task, af_cell_t value) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
-  *(--task->data_stack_current) = data;
+  *(--task->data_stack_current) = value;
+}
+
+void af_push_float(af_global_t* global, af_task_t* task, af_float_t value) {
+  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  *(--task->float_stack_current) = value;
 }
 
 void af_push_return(af_global_t* global, af_task_t* task,

@@ -267,7 +267,9 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task);
 void af_set_init_word(af_global_t* global, af_task_t* task,
 		      af_word_t* word);
 
-void af_push_data(af_global_t* global, af_task_t* task, af_cell_t data);
+void af_push_data(af_global_t* global, af_task_t* task, af_cell_t value);
+
+void af_push_float(af_global_t* global, af_task_t* task, af_float_t value);
 
 void af_push_return(af_global_t* global, af_task_t* task,
 		    af_compiled_t* pointer);
