@@ -443,6 +443,12 @@ void af_prim_t_fetch(af_global_t* global, af_task_t* task);
 /* T! primitive */
 void af_prim_t_store(af_global_t* global, af_task_t* task);
 
+/* CT@ primitive */
+void af_prim_ct_fetch(af_global_t* global, af_task_t* task);
+
+/* CT! primitive */
+void af_prim_ct_store(af_global_t* global, af_task_t* task);
+
 /* TASK-LOCAL primitive */
 void af_prim_task_local(af_global_t* global, af_task_t* task);
 
@@ -1146,6 +1152,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "T@", af_prim_t_fetch, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "T!", af_prim_t_store, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "CT@", af_prim_ct_fetch, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "CT!", af_prim_ct_store, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "TASK-LOCAL",
 		   af_prim_task_local, FALSE, global->task_wordlist);
@@ -2984,6 +2994,31 @@ void af_prim_t_store(af_global_t* global, af_task_t* task) {
   offset = *task->data_stack_current++;
   value = *task->data_stack_current++;
   *(af_cell_t*)(target_task->task_local_space_base + offset) = value;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* CT@ primitive */
+void af_prim_ct_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  offset = *(task->data_stack_current + 1);
+  target_task = (af_task_t*)(*task->data_stack_current);
+  *(++task->data_stack_current) =
+    *(af_byte_t*)(target_task->task_local_space_base + offset);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* CT! primitive */
+void af_prim_ct_store(af_global_t* global, af_task_t* task) {
+  af_cell_t value;
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 3);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *task->data_stack_current++;
+  value = *task->data_stack_current++;
+  *(af_byte_t*)(target_task->task_local_space_base + offset) = value & 0xFF;
   AF_ADVANCE_IP(task, 1);
 }
 

@@ -73,3 +73,23 @@ Kill a task. Note that any further use of the word's task address are undefined,
 `SLEEP` ( secs nsecs -- )
 
 Put the current task to sleep for a given number of seconds and nanoseconds.
+
+`TASK-LOCAL` ( addr bytes -- offset )
+
+Allocate a given number of bytes of task-local space with the given address containing the beginning of a buffer containing the initial state of this task-local space in each task, and return the offset of the task-local space.
+
+`T@` ( offset task -- x )
+
+Fetch a cell for the given task at a given offset in its task-local space.
+
+`T!` ( x offset task -- )
+
+Store a cell for the given task at a given offset in its task-local space.
+
+`CT@` ( offset task -- c )
+
+Fetch a byte for the given task at a given offset in its task-local space.
+
+`CT!` ( c offset task -- )
+
+Store a byte for the given task at a given offset in its task-local space.
