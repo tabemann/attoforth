@@ -14,23 +14,23 @@ Create a new, stopped task. No initial word is set for this task, but standard o
 
 Create a new, stopped task *without* a data space or configured standard output or standard error. No initial word is set for this task, but standard output and standard error are set up. Note that the user needs to execute `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
 
-`SPAWN-SIMPLE` ( x*count count xt -- task )
+`SPAWN-SIMPLE` ( x\*count count xt -- task )
 
 Create a new task, with configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup.
 
-`SPAWN-SIMPLE-FREE-DATA-ON-EXIT` ( x*count count xt -- task )
+`SPAWN-SIMPLE-FREE-DATA-ON-EXIT` ( x\*count count xt -- task )
 
 Create a new task, with configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. This differs from `SPAWN-SIMPLE` in that the data space it allocates will be freed upon termination, to prevent memory leakage. Note however this means that no words may be created within this task, and no memory allocated in this task's data space may be referenced after termination.
 
-`SPAWN-SIMPLE-NO-IO` ( x*count count xt -- task )
+`SPAWN-SIMPLE-NO-IO` ( x\*count count xt -- task )
 
 Create a new task, *without* configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup.
 
-`SPAWN-SIMPLE-NO-IO-FREE-DATA-ON-EXIT` ( x*count count xt -- task )
+`SPAWN-SIMPLE-NO-IO-FREE-DATA-ON-EXIT` ( x\*count count xt -- task )
 
 Create a new task, *without* configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. This differs from `SPAWN-SIMPLE-NO-IO` in that the data space it allocates will be freed upon termination, to prevent memory leakage. Note however this means that no words may be created within this task, and no memory allocated in this task's data space may be referenced after termination.
 
-`SPAWN-SIMPLE-NO-DATA` ( x*count count xt -- task )
+`SPAWN-SIMPLE-NO-DATA` ( x\*count count xt -- task )
 
 Create a new task, *without* an allocated data space or configured standard output or standard error, which will cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. Note that it is imperative that no words that reference the data space, including words such as `EMIT`, are executed, because no data space exists for tasks created with this word.
 
