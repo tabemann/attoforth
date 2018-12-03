@@ -855,7 +855,7 @@ void af_compile_builtin(af_global_t* global, af_task_t* task) {
     "FORTH-WORDLIST (WORDLIST) FORTH "
     "IO-WORDLIST (WORDLIST) IO "
     "TASK-WORDLIST (WORDLIST) TASK "
-    " : ONLY ( -- ) -1 SET-ORDER ; "
+    ": ONLY ( -- ) -1 SET-ORDER ; "
     ": PREVIOUS ( -- ) GET-ORDER NIP 1- SET-ORDER ; "
     ": ORDER ( -- ) GET-ORDER 0 ?DO 16 BASE. SPACE LOOP ; "
     "IO-WORDLIST SET-CURRENT "

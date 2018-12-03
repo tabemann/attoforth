@@ -1,4 +1,4 @@
-# Output
+# Output Implementation
 
 This is available built into attoforth. The following words are in the `IO-WORDLIST` wordlist.
 
