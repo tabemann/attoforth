@@ -96,7 +96,7 @@ Store a byte for the given task at a given offset in its task-local space.
 
 `ATEXIT` ( xt task -- )
 
-Register an execution token as an at exit handler for a given task. Note that at exit handlers are executed in the opposite order of that in which they are registered when `EXECUTE-ATEXIT` is executed (which is done automatically for any tasks spawned with the `SPAWN-SIMPLE-*` words.
+Register an execution token as an at exit handler for a given task. Note that at exit handlers are executed in the opposite order of that in which they are registered when `EXECUTE-ATEXIT` is executed (which is done automatically for any tasks spawned with the `SPAWN-SIMPLE-*` words).
 
 `INIT-ATEXIT` ( -- )
 
