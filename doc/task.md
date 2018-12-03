@@ -8,31 +8,31 @@ Get the current task.
 
 `SPAWN` ( -- task )
 
-Create a new, stopped task. No initial word is set for this task, but standard output and standard error are set up. Note that the user needs to execute `CLEANUP-FULL` to cleanup IO and then `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
+Create a new, stopped task. No initial word is set for this task, but standard output and standard error are set up. Note that the user needs on task spawning execute `INIT-ATEXIT` initialize at exit handling (or otherwise attempting to register an at exit handler will cause attoforth to crash. On task exit the user needs to execute `EXECUTE-ATEXIT` to execute any at exit handlers, `THIS-TASK CLEANUP-FULL` to cleanup IO, `EXECUTE-ATEXIT` again to execute any exit handlers registered by IO cleanup words, `DESTROY-ATEXIT` to free storage allocated by at exit to avoid memory leakage, and then `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
 
 `SPAWN-NO-DATA` ( -- task )
 
-Create a new, stopped task *without* a data space or configured standard output or standard error. No initial word is set for this task, but standard output and standard error are set up. Note that the user needs to execute `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
+Create a new, stopped task *without* a data space, configured standard output or standard error, or confingured at exit handling. No initial word is set for this task. Note that the user needs to execute `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
 
 `SPAWN-SIMPLE` ( x\*count count xt -- task )
 
-Create a new task, with configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup.
+Create a new task, with configured standard output, standard error, and at exit handling, which will execute at exit handlers and clean up after at exit handling, clean up IO, cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup.
 
 `SPAWN-SIMPLE-FREE-DATA-ON-EXIT` ( x\*count count xt -- task )
 
-Create a new task, with configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. This differs from `SPAWN-SIMPLE` in that the data space it allocates will be freed upon termination, to prevent memory leakage. Note however this means that no words may be created within this task, and no memory allocated in this task's data space may be referenced after termination.
+Create a new task, with configured standard output, standard error, and at exit handling, which will execute at exit handlers and clean up after at exit handling, clean up IO, cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. This differs from `SPAWN-SIMPLE` in that the data space it allocates will be freed upon termination, to prevent memory leakage. Note however this means that no words may be created within this task, and no memory allocated in this task's data space may be referenced after termination.
 
 `SPAWN-SIMPLE-NO-IO` ( x\*count count xt -- task )
 
-Create a new task, *without* configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup.
+Create a new task, *without* configured standard output and standard error, but with configured at exit handling, which will execute at exit handlers and clean up after at exit handling, and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup.
 
 `SPAWN-SIMPLE-NO-IO-FREE-DATA-ON-EXIT` ( x\*count count xt -- task )
 
-Create a new task, *without* configured standard output and standard error, which will clean up IO and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. This differs from `SPAWN-SIMPLE-NO-IO` in that the data space it allocates will be freed upon termination, to prevent memory leakage. Note however this means that no words may be created within this task, and no memory allocated in this task's data space may be referenced after termination.
+Create a new task, *without* configured standard output and standard error, but with configured at exit handling, which will execute at exit handlers and clean up after at exit handling, and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. This differs from `SPAWN-SIMPLE-NO-IO` in that the data space it allocates will be freed upon termination, to prevent memory leakage. Note however this means that no words may be created within this task, and no memory allocated in this task's data space may be referenced after termination.
 
 `SPAWN-SIMPLE-NO-DATA` ( x\*count count xt -- task )
 
-Create a new task, *without* an allocated data space or configured standard output or standard error, which will cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. Note that it is imperative that no words that reference the data space, including words such as `EMIT`, are executed, because no data space exists for tasks created with this word.
+Create a new task, *without* an allocated data space or configured standard output or standard error, but with configured at exit handling, which will execute at exit handlers and cleanly kill itself upon exit. The count is the number of arguments on the data stack to push onto the initial data stack of the executed word upon startup. Note that it is imperative that no words that reference the data space, including words such as `EMIT`, are executed, because no data space exists for tasks created with this word.
 
 `>INIT-WORD` ( xt task -- )
 
@@ -93,3 +93,19 @@ Fetch a byte for the given task at a given offset in its task-local space.
 `CT!` ( c offset task -- )
 
 Store a byte for the given task at a given offset in its task-local space.
+
+`ATEXIT` ( xt task -- )
+
+Register an execution token as an at exit handler for a given task. Note that at exit handlers are executed in the opposite order of that in which they are registered when `EXECUTE-ATEXIT` is executed (which is done automatically for any tasks spawned with the `SPAWN-SIMPLE-*` words.
+
+`INIT-ATEXIT` ( -- )
+
+Initialize at exit handling for the current task. If `ATEXIT` is called for the current task and this has not been called, attoforth will crash. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words.
+
+`EXECUTE-ATEXIT` ( -- )
+
+Execute and remove all the at exit handlers for the current task, in the order opposite to that in which they were registered. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words.
+
+`DESTROY-ATEXIT` ( -- )
+
+Destroy the allocated dat for at exit handling for the current task. If `ATEXIT` is called for the current task after this has been called, and before `INIT-ATEXIT` is called again, attoforth will crash. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words.
