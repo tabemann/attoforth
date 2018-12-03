@@ -31,4 +31,4 @@ The line editor used for input by attoforth has the following commands:
 * alt-\<forward> or alt-F: Move to the end of the next word
 * alt-\<backward> or alt-B: Move to the start of the previous word
 * alt-D: Kill text from the cursor to the end of the next word and put it in the kill ring
-* alt-Y: If the last command was a yank, replace the yanked text with the next text in the kill ring
+* alt-Y: If the last command was a yank, replace the yanked text with the previous text in the kill ring, moving the last yanked text to the end of the kill ring
