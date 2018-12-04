@@ -184,4 +184,7 @@ ssize_t af_io_write_nonblock(af_io_fd_t fd, af_byte_t* buffer,
 			     af_io_size_t count, af_bool_t* again,
 			     af_io_error_t* error);
 
+/* Cleanup stdin */
+af_bool_t af_io_cleanup_stdin(void);
+
 #endif /* AF_IO_H */

@@ -506,6 +506,12 @@ void af_prim_to_abort(af_global_t* global, af_task_t* task);
 /* ABORT> primitive */
 void af_prim_from_abort(af_global_t* global, af_task_t* task);
 
+/* >BYE primitive */
+void af_prim_to_bye(af_global_t* global, af_task_t* task);
+
+/* BYE> primitive */
+void af_prim_from_bye(af_global_t* global, af_task_t* task);
+
 /* >DEFAULT-ABORT primitive */
 void af_prim_to_default_abort(af_global_t* global, af_task_t* task);
 
@@ -595,6 +601,9 @@ void af_prim_to_init_word(af_global_t* global, af_task_t* task);
 
 /* START primitive */
 void af_prim_start(af_global_t* global, af_task_t* task);
+
+/* BYE primitive */
+void af_prim_bye(af_global_t* global, af_task_t* task);
 
 /* KILL primitive */
 void af_prim_kill(af_global_t* global, af_task_t* task);
@@ -1195,6 +1204,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "ABORT>", af_prim_from_abort, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, ">BYE", af_prim_to_bye, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "BYE>", af_prim_from_bye, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, ">DEFAULT-ABORT",
 		   af_prim_to_default_abort, FALSE,
 		   global->forth_wordlist);
@@ -1261,6 +1274,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "START", af_prim_start, FALSE,
 		   global->task_wordlist);
+  af_register_prim(global, task, "BYE", af_prim_bye, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "KILL", af_prim_kill, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "YIELD", af_prim_yield, FALSE,
@@ -3251,6 +3266,26 @@ void af_prim_from_abort(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* >BYE primitive */
+void af_prim_to_bye(af_global_t* global, af_task_t* task) {
+  af_task_t* target_task;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  target_task->bye = (af_word_t*)(*task->data_stack_current++);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* BYE> primitive */
+void af_prim_from_bye(af_global_t* global, af_task_t* task) {
+  af_task_t* target_task;
+  af_word_t* word;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current);
+  *task->data_stack_current = (af_cell_t)target_task->bye;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* >DEFAULT-ABORT primitive */
 void af_prim_to_default_abort(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
@@ -3755,6 +3790,11 @@ void af_prim_start(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* BYE primitive */
+void af_prim_bye(af_global_t* global, af_task_t* task) {
+  af_bye(global);
+  AF_ADVANCE_IP(task, 1);
+}
 /* KILL primitive */
 void af_prim_kill(af_global_t* global, af_task_t* task) {
   af_task_t* target_task;

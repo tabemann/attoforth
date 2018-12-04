@@ -129,6 +129,24 @@ af_bool_t af_io_prepare_stdin(void) {
   return TRUE;
 }
 
+/* Cleanup stdin */
+af_bool_t af_io_cleanup_stdin(void) {
+  struct termios tp;
+  af_fd_set_blocking(STDIN_FILENO, TRUE);
+  if(isatty(STDIN_FILENO)) {
+    if(tcgetattr(STDIN_FILENO, &tp) == -1) {
+      return FALSE;      
+    }
+    if(!(tp.c_lflag & ECHO) || !(tp.c_lflag & ICANON)) {
+      tp.c_lflag |= ECHO | ICANON;
+      if(tcsetattr(STDIN_FILENO, TCSANOW, &tp) == -1) {
+	return FALSE;
+      }
+    }
+  }
+  return TRUE;
+}
+
 /* Destroy IO manager */
 void af_io_destroy(af_io_t* io) {
   io->to_be_destroyed = TRUE;

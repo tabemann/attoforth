@@ -201,6 +201,7 @@ typedef struct af_task_t {
   af_cell_t base;
   af_word_t* current_word;
   af_word_t* abort;
+  af_word_t* bye;
   af_word_t* drop_input;
   af_bool_t free_data_on_exit;
   void* task_local_space_base;

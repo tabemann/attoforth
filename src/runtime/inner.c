@@ -142,6 +142,7 @@ void af_global_execute(af_global_t* global) {
   task->interpreter_pointer = &global->base_interpreter_code[0];
   af_start(global, task);
   af_task_loop(global);
+  af_io_cleanup_stdin();
 }
 
 void af_task_loop(af_global_t* global) {
@@ -239,6 +240,18 @@ void af_lock(af_global_t* global) {
 
 void af_unlock(af_global_t* global) {
   pthread_mutex_unlock(&global->mutex);
+}
+
+void af_bye(af_global_t* global) {
+  af_task_t* task = global->first_task;
+  while(task) {
+    if(task->bye) {
+      AF_WORD_EXECUTE(global, task, task->bye);
+    } else {
+      af_kill(global, task);
+    }
+    task = task->next_task;
+  }
 }
 
 void af_print_state(af_global_t* global, af_task_t* task) {
@@ -390,6 +403,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->init_word = NULL;
   task->current_word = NULL;
   task->abort = global->default_abort;
+  task->bye = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
   return task;
@@ -488,6 +502,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->init_word = NULL;
   task->current_word = NULL;
   task->abort = global->default_abort;
+  task->bye = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
   return task;

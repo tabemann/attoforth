@@ -258,6 +258,8 @@ void af_lock(af_global_t* global);
 
 void af_unlock(af_global_t* global);
 
+void af_bye(af_global_t* global);
+
 void af_print_state(af_global_t* global, af_task_t* task);
 
 af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task);

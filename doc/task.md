@@ -58,6 +58,10 @@ Initially start a new, stopped task.
 
 Yield control of the processor for the current task. Note that extra cycles assigned to the current task are discarded.
 
+`DIE` ( -- )
+
+Cleanly terminate the current task, after executing at exit handlers.
+
 `WAIT` ( task -- )
 
 Put a task into a waiting state. Note that unused cycles, up to a limit, are saved so they can be assigned to the task upon being woken up.
@@ -96,16 +100,12 @@ Store a byte for the given task at a given offset in its task-local space.
 
 `ATEXIT` ( xt task -- )
 
-Register an execution token as an at exit handler for a given task. Note that at exit handlers are executed in the opposite order of that in which they are registered when `EXECUTE-ATEXIT` is executed (which is done automatically for any tasks spawned with the `SPAWN-SIMPLE-*` words).
-
-`INIT-ATEXIT` ( -- )
-
-Initialize at exit handling for the current task. If `ATEXIT` is called for the current task and this has not been called, attoforth will crash. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words.
+Register an execution token as an at exit handler for a given task. Note that at exit handlers are executed in the opposite order of that in which they are registered when `EXECUTE-ATEXIT` is executed (which is done automatically for any tasks spawned with the `SPAWN-SIMPLE-*` words or when `DIE` is called).
 
 `EXECUTE-ATEXIT` ( -- )
 
-Execute and remove all the at exit handlers for the current task, in the order opposite to that in which they were registered. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words.
+Execute and remove all the at exit handlers for the current task, in the order opposite to that in which they were registered. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words when the task is not terminated with `DIE`.
 
 `DESTROY-ATEXIT` ( -- )
 
-Destroy the allocated dat for at exit handling for the current task. If `ATEXIT` is called for the current task after this has been called, and before `INIT-ATEXIT` is called again, attoforth will crash. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words.
+Destroy the allocated data for at exit handling for the current task. If `ATEXIT` is called for the current task after this has been called, and before `INIT-ATEXIT` is called again, attoforth will crash. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words when the task is not terminated with `DIE`.
