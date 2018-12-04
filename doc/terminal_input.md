@@ -23,6 +23,7 @@ The line editor used for input by attoforth has the following commands:
 * \<backspace>: Delete a character before the cursor
 * \<delete>: Delete a character at the cursor
 * control-A: Move to the start of the line
+* control-D: Exit attoforth
 * control-E: Move to the back of the line
 * control-K: Kill text from the cursor to the end of the line and put it in the kill ring
 * control-L: Refresh the terminal
