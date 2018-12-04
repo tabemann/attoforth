@@ -245,10 +245,17 @@ void af_unlock(af_global_t* global) {
 void af_bye(af_global_t* global) {
   af_task_t* task = global->first_task;
   while(task) {
-    if(task->bye) {
-      AF_WORD_EXECUTE(global, task, task->bye);
-    } else {
-      af_kill(global, task);
+    if(!task->is_to_be_freed) {
+      if(task->bye) {
+	if(!task->current_cycles_before_yield) {
+	  task->current_cycles_before_yield =
+	    global->default_cycles_before_yield;
+	  af_schedule(global, task);
+	}
+	AF_WORD_EXECUTE(global, task, task->bye);
+      } else {
+	af_kill(global, task);
+      }
     }
     task = task->next_task;
   }
