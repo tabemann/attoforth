@@ -8,11 +8,15 @@ Get the current task.
 
 `SPAWN` ( -- task )
 
-Create a new, stopped task. No initial word is set for this task, but standard output and standard error are set up. Note that the user needs on task spawning execute `INIT-ATEXIT` initialize at exit handling (or otherwise attempting to register an at exit handler will cause attoforth to crash. On task exit the user needs to execute `EXECUTE-ATEXIT` to execute any at exit handlers, `THIS-TASK CLEANUP-FULL` to cleanup IO, `EXECUTE-ATEXIT` again to execute any exit handlers registered by IO cleanup words, `DESTROY-ATEXIT` to free storage allocated by at exit to avoid memory leakage, and then `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
+Create a new, stopped task. No initial word is set for this task, but standard output, standard error, and at exit handling are set up. On task exit the user needs to execute `DIE` to execute at exit handlers, including one to clean up standard output and standard error, clean up after at exit handling, and cleanly kill the task.
+
+`SPAWN-NO-IO` ( -- task )
+
+Create a new, stopped task. No initial word is set for this task, and standard output and standard error are not set up, but at exit handling is set up. On task exit the user needs to execute `DIE` to execute at exit handlers, clean up after at exit handling, and cleanly kill the task.
 
 `SPAWN-NO-DATA` ( -- task )
 
-Create a new, stopped task *without* a data space, configured standard output or standard error, or confingured at exit handling. No initial word is set for this task. Note that the user needs to execute `THIS-TASK KILL` to terminate the task manually; if the task is not killed when it terminates then Forth will crash.
+Create a new, stopped task *without* a data space, or configured standard output or standard error, but with configured exit handling. No initial word is set for this task. Note that the user needs to execute `DIE` to execute at exit handlers, clean up after at exit handling, and cleanly kill the task.
 
 `SPAWN-SIMPLE` ( x\*count count xt -- task )
 
