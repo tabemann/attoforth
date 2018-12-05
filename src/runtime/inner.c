@@ -245,18 +245,7 @@ void af_unlock(af_global_t* global) {
 void af_bye(af_global_t* global) {
   af_task_t* task = global->first_task;
   while(task) {
-    if(!task->is_to_be_freed) {
-      if(task->bye) {
-	if(!task->current_cycles_before_yield) {
-	  task->current_cycles_before_yield =
-	    global->default_cycles_before_yield;
-	  af_schedule(global, task);
-	}
-	AF_WORD_EXECUTE(global, task, task->bye);
-      } else {
-	af_kill(global, task);
-      }
-    }
+    af_terminate(global, task);
     task = task->next_task;
   }
 }
@@ -410,7 +399,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->init_word = NULL;
   task->current_word = NULL;
   task->abort = global->default_abort;
-  task->bye = NULL;
+  task->terminate = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
   return task;
@@ -509,7 +498,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->init_word = NULL;
   task->current_word = NULL;
   task->abort = global->default_abort;
-  task->bye = NULL;
+  task->terminate = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
   return task;
@@ -544,6 +533,21 @@ void af_start(af_global_t* global, af_task_t* task) {
     task->base_cycles_before_yield = task->current_cycles_before_yield =
       task->current_cycles_left = global->default_cycles_before_yield;
     af_schedule(global, task);
+  }
+}
+
+void af_terminate(af_global_t* global, af_task_t* task) {
+  if(!task->is_to_be_freed) {
+    if(task->terminate) {
+      if(!task->current_cycles_before_yield) {
+	task->current_cycles_before_yield =
+	  global->default_cycles_before_yield;
+	af_schedule(global, task);
+      }
+      AF_WORD_EXECUTE(global, task, task->terminate);
+    } else {
+      af_kill(global, task);
+    }
   }
 }
 

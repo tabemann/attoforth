@@ -78,6 +78,10 @@ Wake up a task from a waiting state. Note that cycles that were unused when the 
 
 Kill a task. Note that any further use of the word's task address are undefined, as killing a task frees it to be deallocated. Do not execute this word on a task when it is waiting on a lock, condition variable, or channel.
 
+`TERMINATE` ( task -- )
+
+Activate a termination handler for a task, or kill the task if no termination handler is set. Note however that most tasks by default have a termination handler that calls `DIE`, so as to enable executing exit handlers and then killing themselves cleanly.
+
 `SLEEP` ( secs nsecs -- )
 
 Put the current task to sleep for a given number of seconds and nanoseconds.
@@ -113,3 +117,11 @@ Execute and remove all the at exit handlers for the current task, in the order o
 `DESTROY-ATEXIT` ( -- )
 
 Destroy the allocated data for at exit handling for the current task. If `ATEXIT` is called for the current task after this has been called, and before `INIT-ATEXIT` is called again, attoforth will crash. Calling this manually is only necessary for tasks not spawned with the `SPAWN-SIMPLE-*` words when the task is not terminated with `DIE`.
+
+`>TERMINATE` ( xt task -- )
+
+Set a termination handler for a task.
+
+`TERMINATE>` ( task -- xt )
+
+Get a termination handler for a task.

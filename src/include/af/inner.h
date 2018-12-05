@@ -278,6 +278,8 @@ void af_push_return(af_global_t* global, af_task_t* task,
 
 void af_start(af_global_t* global, af_task_t* task);
 
+void af_terminate(af_global_t* global, af_task_t* task);
+
 void af_kill(af_global_t* global, af_task_t* task);
 
 void af_yield(af_global_t* global, af_task_t* task);
