@@ -728,6 +728,9 @@ void af_prim_io_rename(af_global_t* global, af_task_t* task);
 /* IO-GET-MONOTONIC-TIME primitive */
 void af_prim_io_get_monotonic_time(af_global_t* global, af_task_t* task);
 
+/* IO-GET-REAL-TIME primitive */
+void af_prim_io_get_real_time(af_global_t* global, af_task_t* task);
+
 /* IO-SLEEP primitive */
 void af_prim_io_sleep(af_global_t* global, af_task_t* task);
 
@@ -1376,6 +1379,9 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-GET-MONOTONIC-TIME",
 		   af_prim_io_get_monotonic_time, FALSE,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-GET-REAL-TIME",
+		   af_prim_io_get_real_time, FALSE,
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-SLEEP", af_prim_io_sleep, FALSE,
 		   global->io_wordlist);
@@ -4197,6 +4203,16 @@ void af_prim_io_get_monotonic_time(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* IO-GET-REAL-TIME primitive */
+void af_prim_io_get_real_time(af_global_t* global, af_task_t* task) {
+  af_time_t real_time;
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 2);
+  af_io_get_real_time(&real_time);
+  *(--task->data_stack_current) = real_time.sec;
+  *(--task->data_stack_current) = real_time.nsec;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* IO-SLEEP primitive */
 void af_prim_io_sleep(af_global_t* global, af_task_t* task) {
   af_time_t sleep_until;
@@ -4675,6 +4691,11 @@ void af_prim_base_interpreter(af_global_t* global, af_task_t* task) {
     char* print_text = malloc(length + 1);
     memcpy(print_text, text, length);
     print_text[length] = '\0';
+    /* if(task->is_compiling) { */
+    /*   printf("Compiling name: %s\n", print_text) */
+    /* } else { */
+    /*   printf("Evaluating name: %s\n", print_text); */
+    /* } */
     af_word_t* word = af_lookup(global, task, text, length);
     if(word) {
       if(task->is_compiling && !(word->flags & AF_WORD_IMMEDIATE)) {

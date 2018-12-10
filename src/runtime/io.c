@@ -324,6 +324,14 @@ void af_io_get_monotonic_time(af_time_t* monotonic_time) {
   monotonic_time->nsec = time.tv_nsec;
 }
 
+/* Get real time */
+void af_io_get_real_time(af_time_t* monotonic_time) {
+  struct timespec time;
+  clock_gettime(CLOCK_REALTIME, &time);
+  monotonic_time->sec = time.tv_sec;
+  monotonic_time->nsec = time.tv_nsec;
+}
+
 /* Sleep */
 af_io_action_t* af_io_sleep(af_io_t* io, af_time_t* sleep_until,
 			    af_task_t* task_to_wake) {

@@ -134,6 +134,9 @@ af_bool_t af_io_rename(af_byte_t* path1, af_io_size_t count1,
 /* Get monotonic time */
 void af_io_get_monotonic_time(af_time_t* monotonic_time);
 
+/* Get real time */
+void af_io_get_real_time(af_time_t* monotonic_time);
+
 /* Sleep */
 af_io_action_t* af_io_sleep(af_io_t* io, af_time_t* sleep_until,
 			    af_task_t* task_to_wake);
