@@ -326,6 +326,24 @@ void af_prim_store(af_global_t* global, af_task_t* task);
 /* +! primitive */
 void af_prim_add_store(af_global_t* global, af_task_t* task);
 
+/* W@ primitive */
+void af_prim_w_fetch(af_global_t* global, af_task_t* task);
+
+/* W! primitive */
+void af_prim_w_store(af_global_t* global, af_task_t* task);
+
+/* H@ primitive */
+void af_prim_h_fetch(af_global_t* global, af_task_t* task);
+
+/* H! primitive */
+void af_prim_h_store(af_global_t* global, af_task_t* task);
+
+/* C@ primitive */
+void af_prim_c_fetch(af_global_t* global, af_task_t* task);
+
+/* C! primitive */
+void af_prim_c_store(af_global_t* global, af_task_t* task);
+
 /* C@ primitive */
 void af_prim_c_fetch(af_global_t* global, af_task_t* task);
 
@@ -443,11 +461,41 @@ void af_prim_t_fetch(af_global_t* global, af_task_t* task);
 /* T! primitive */
 void af_prim_t_store(af_global_t* global, af_task_t* task);
 
+/* WT@ primitive */
+void af_prim_wt_fetch(af_global_t* global, af_task_t* task);
+
+/* WT! primitive */
+void af_prim_wt_store(af_global_t* global, af_task_t* task);
+
+/* HT@ primitive */
+void af_prim_ht_fetch(af_global_t* global, af_task_t* task);
+
+/* HT! primitive */
+void af_prim_ht_store(af_global_t* global, af_task_t* task);
+
 /* CT@ primitive */
 void af_prim_ct_fetch(af_global_t* global, af_task_t* task);
 
 /* CT! primitive */
 void af_prim_ct_store(af_global_t* global, af_task_t* task);
+
+/* FT@ primitive */
+void af_prim_ft_fetch(af_global_t* global, af_task_t* task);
+
+/* FT! primitive */
+void af_prim_ft_store(af_global_t* global, af_task_t* task);
+
+/* SFT@ primitive */
+void af_prim_sft_fetch(af_global_t* global, af_task_t* task);
+
+/* SFT! primitive */
+void af_prim_sft_store(af_global_t* global, af_task_t* task);
+
+/* DFT@ primitive */
+void af_prim_dft_fetch(af_global_t* global, af_task_t* task);
+
+/* DFT! primitive */
+void af_prim_dft_store(af_global_t* global, af_task_t* task);
 
 /* TASK-LOCAL primitive */
 void af_prim_task_local(af_global_t* global, af_task_t* task);
@@ -1090,6 +1138,14 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "+!", af_prim_add_store, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "W@", af_prim_w_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "W!", af_prim_w_store, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "H@", af_prim_h_fetch, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "H!", af_prim_h_store, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "C@", af_prim_c_fetch, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "C!", af_prim_c_store, FALSE,
@@ -1168,9 +1224,29 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "T!", af_prim_t_store, FALSE,
 		   global->task_wordlist);
+  af_register_prim(global, task, "WT@", af_prim_wt_fetch, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "WT!", af_prim_wt_store, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "HT@", af_prim_ht_fetch, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "HT!", af_prim_ht_store, FALSE,
+		   global->task_wordlist);
   af_register_prim(global, task, "CT@", af_prim_ct_fetch, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "CT!", af_prim_ct_store, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "FT@", af_prim_ft_fetch, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "FT!", af_prim_ft_store, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "SFT@", af_prim_sft_fetch, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "SFT!", af_prim_sft_store, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "DFT@", af_prim_dft_fetch, FALSE,
+		   global->task_wordlist);
+  af_register_prim(global, task, "DFT!", af_prim_dft_store, FALSE,
 		   global->task_wordlist);
   af_register_prim(global, task, "TASK-LOCAL",
 		   af_prim_task_local, FALSE, global->task_wordlist);
@@ -2700,6 +2776,38 @@ void af_prim_add_store(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* W@ primitive */
+void af_prim_w_fetch(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current = *(uint32_t*)(*task->data_stack_current);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* W! primitive */
+void af_prim_w_store(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  *(uint32_t*)(*task->data_stack_current) =
+    *(task->data_stack_current + 1) & 0xFFFFFFFF;
+  task->data_stack_current += 2;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* H@ primitive */
+void af_prim_h_fetch(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current = *(uint16_t*)(*task->data_stack_current);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* H! primitive */
+void af_prim_h_store(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  *(uint16_t*)(*task->data_stack_current) =
+    *(task->data_stack_current + 1) & 0xFFFF;
+  task->data_stack_current += 2;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* C@ primitive */
 void af_prim_c_fetch(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
@@ -3023,6 +3131,58 @@ void af_prim_t_store(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* WT@ primitive */
+void af_prim_wt_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  offset = *(task->data_stack_current + 1);
+  target_task = (af_task_t*)(*task->data_stack_current);
+  *(++task->data_stack_current) =
+    *(uint32_t*)(target_task->task_local_space_base + offset);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* WT! primitive */
+void af_prim_wt_store(af_global_t* global, af_task_t* task) {
+  af_cell_t value;
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 3);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *task->data_stack_current++;
+  value = *task->data_stack_current++;
+  *(uint32_t*)(target_task->task_local_space_base + offset) =
+    value & 0xFFFFFFFF;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* HT@ primitive */
+void af_prim_ht_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  offset = *(task->data_stack_current + 1);
+  target_task = (af_task_t*)(*task->data_stack_current);
+  *(++task->data_stack_current) =
+    *(uint16_t*)(target_task->task_local_space_base + offset);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* HT! primitive */
+void af_prim_ht_store(af_global_t* global, af_task_t* task) {
+  af_cell_t value;
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 3);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *task->data_stack_current++;
+  value = *task->data_stack_current++;
+  *(uint16_t*)(target_task->task_local_space_base + offset) =
+    value & 0xFFFF;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* CT@ primitive */
 void af_prim_ct_fetch(af_global_t* global, af_task_t* task) {
   af_cell_t offset;
@@ -3045,6 +3205,87 @@ void af_prim_ct_store(af_global_t* global, af_task_t* task) {
   offset = *task->data_stack_current++;
   value = *task->data_stack_current++;
   *(af_byte_t*)(target_task->task_local_space_base + offset) = value & 0xFF;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* FT@ primitive */
+void af_prim_ft_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *(task->data_stack_current++);
+  *(--task->float_stack_current) =
+    *(af_float_t*)(target_task->task_local_space_base + offset);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* FT! primitive */
+void af_prim_ft_store(af_global_t* global, af_task_t* task) {
+  af_float_t value;
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *task->data_stack_current++;
+  value = *task->float_stack_current++;
+  *(af_float_t*)(target_task->task_local_space_base + offset) = value;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SFT@ primitive */
+void af_prim_sft_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *(task->data_stack_current++);
+  *(--task->float_stack_current) =
+    *(af_sfloat_t*)(target_task->task_local_space_base + offset);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* SFT! primitive */
+void af_prim_sft_store(af_global_t* global, af_task_t* task) {
+  af_float_t value;
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *task->data_stack_current++;
+  value = *task->float_stack_current++;
+  *(af_sfloat_t*)(target_task->task_local_space_base + offset) = value;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* DFT@ primitive */
+void af_prim_dft_fetch(af_global_t* global, af_task_t* task) {
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *(task->data_stack_current++);
+  *(--task->float_stack_current) =
+    *(af_dfloat_t*)(target_task->task_local_space_base + offset);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* DFT! primitive */
+void af_prim_dft_store(af_global_t* global, af_task_t* task) {
+  af_float_t value;
+  af_cell_t offset;
+  af_task_t* target_task;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_FLOAT_STACK_READ(global, task, 1);
+  target_task = (af_task_t*)(*task->data_stack_current++);
+  offset = *task->data_stack_current++;
+  value = *task->float_stack_current++;
+  *(af_dfloat_t*)(target_task->task_local_space_base + offset) = value;
   AF_ADVANCE_IP(task, 1);
 }
 
