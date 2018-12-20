@@ -3396,6 +3396,14 @@ void af_prim_bracket_tick(af_global_t* global, af_task_t* task) {
   }
   name = af_parse_name(global, task, &name_length);
   if(!(word = af_lookup(global, task, name, name_length))) {
+#ifdef DEBUG
+    af_byte_t* buffer = malloc(name_length + 1);
+    memcpy(buffer, name, name_length);
+    buffer[name_length] = 0;
+    fprintf(stderr, "Got name: \"%s\"\n", buffer);
+    free(buffer);
+#endif
+
     af_handle_word_not_found(global, task);
     return;
   }
