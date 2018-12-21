@@ -40,6 +40,7 @@
 
 #define AF_WORD_IMMEDIATE (1)
 #define AF_WORD_HIDDEN (2)
+#define AF_WORD_SMART (4)
 
 /* Macros */
 

@@ -77,11 +77,17 @@ void af_prim_semi(af_global_t* global, af_task_t* task);
 /* IMMEDIATE primitive */
 void af_prim_immediate(af_global_t* global, af_task_t* task);
 
+/* SMART primitive */
+void af_prim_smart(af_global_t* global, af_task_t* task);
+
 /* IS-IMMEDIATE primitive */
 void af_prim_is_immediate(af_global_t* global, af_task_t* task);
 
 /* IS-HIDDEN primitive */
 void af_prim_is_hidden(af_global_t* global, af_task_t* task);
+
+/* IS-SMART primitive */
+void af_prim_is_smart(af_global_t* global, af_task_t* task);
 
 /* DUP primitive */
 void af_prim_dup(af_global_t* global, af_task_t* task);
@@ -972,9 +978,13 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "IMMEDIATE", af_prim_immediate, FALSE,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "SMART", af_prim_smart, FALSE,
+		   global->forth_wordlist);
   af_register_prim(global, task, "IS-IMMEDIATE", af_prim_is_immediate, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "IS-HIDDEN", af_prim_is_hidden, FALSE,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "IS-SMART", af_prim_is_smart, FALSE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "DUP", af_prim_dup, FALSE,
 		   global->forth_wordlist);
@@ -1372,7 +1382,7 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "[", af_prim_open_bracket, TRUE,
 		   global->forth_wordlist);
-  af_register_prim(global, task, "]", af_prim_close_bracket, FALSE,
+  af_register_prim(global, task, "]", af_prim_close_bracket, TRUE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "BRANCH", af_prim_branch, FALSE,
 		   global->forth_wordlist);
@@ -1819,6 +1829,13 @@ void af_prim_immediate(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* SMART primitive */
+void af_prim_smart(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_WORD_CREATED(global, task);
+  task->most_recent_word->flags |= AF_WORD_SMART;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* IS-IMMEDIATE primitive */
 void af_prim_is_immediate(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
@@ -1836,6 +1853,16 @@ void af_prim_is_hidden(af_global_t* global, af_task_t* task) {
     (af_cell_t)(((af_word_t*)
 		 (*task->data_stack_current))->flags
 		& AF_WORD_HIDDEN ? TRUE : FALSE);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IS-SMART primitive */
+void af_prim_is_smart(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  *task->data_stack_current =
+    (af_cell_t)(((af_word_t*)
+		 (*task->data_stack_current))->flags
+		& AF_WORD_SMART ? TRUE : FALSE);
   AF_ADVANCE_IP(task, 1);
 }
 
