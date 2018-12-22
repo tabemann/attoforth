@@ -10,8 +10,8 @@ The following words are in the `LAMBDA-WORDLIST` wordlist.
 
 Note that all the following examples are executed preceded by:
 
-    REQUIRE src/forth/control.fs
-    FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER
+    REQUIRE src/forth/control.fs  ok
+    FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER  ok
 
 `OPTION` ( ... flag true-xt -- ... )
 

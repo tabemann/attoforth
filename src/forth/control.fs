@@ -55,7 +55,7 @@ LAMBDA-WORDLIST SET-CURRENT
 : COUNT-LOOP ( ... limit init xt -- ... )
   ROT ROT ?DO I SWAP DUP >R EXECUTE R> LOOP DROP ;
 
-: COUNt+LOOP ( ... limit init xt -- ... )
+: COUNT+LOOP ( ... limit init xt -- ... )
   ROT ROT ?DO I SWAP DUP >R EXECUTE R> SWAP +LOOP DROP ;
 
 BASE ! SET-CURRENT SET-ORDER
