@@ -1276,7 +1276,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "'", af_prim_tick, 0,
 		   global->forth_wordlist);
-  af_register_prim(global, task, "[']", af_prim_bracket_tick, AF_WORD_IMMEDIATE,
+  af_register_prim(global, task, "[']", af_prim_bracket_tick,
+		   AF_WORD_IMMEDIATE | AF_WORD_COMPILE_ONLY,
 		   global->forth_wordlist);
   af_register_prim(global, task, "EXECUTE", af_prim_execute, 0,
 		   global->forth_wordlist);

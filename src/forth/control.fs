@@ -29,48 +29,33 @@
 
 GET-ORDER GET-CURRENT BASE @
 
+REQUIRE src/forth/lambda.fs
+
 DECIMAL
 FORTH-WORDLIST 1 SET-ORDER
 FORTH-WORDLIST SET-CURRENT
 
-WORDLIST CONSTANT LAMBDA-WORDLIST
-LAMBDA-WORDLIST (WORDLIST) LAMBDA
+REQUIRE src/forth/lambda.fs
 
 FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER
 LAMBDA-WORDLIST SET-CURRENT
 
-: [: ( -- xt) ( in xt: -- )
-  & BRANCH HERE 0 , 0 , LATESTXT :NONAME ; IMMEDIATE
+: OPTION ( ... flag true-xt -- ... )
+  SWAP IF EXECUTE ELSE DROP THEN ;
 
-: ;] ( -- ) ( in xt: -- )
-  & EXIT 0 , ROT HERE SWAP ! & (LITERAL) , >LATESTXT ; IMMEDIATE
+: CHOOSE ( ... flag true-xt false-xt -- ... )
+  ROT IF DROP EXECUTE ELSE NIP EXECUTE THEN ;
 
-: <: ( x*u u -- xt ) ( in xt: -- x*u )
-  & DUP & (LITERAL) 2 , & + & CELLS & HEADER-SIZE & + & ALLOCATE!
-  & DUP & >R & CELL+ & HEADER-SIZE & + & 2DUP & ! & CELL+ & SWAP
-  & MOVE-FROM-STACK & R> & CREATE-NONAME-AT
-  & DOES-AT> HERE 4 CELLS + , & BRANCH HERE 0 , 0 ,
-  & DUP & @ & SWAP & CELL+ & SWAP & MOVE-TO-STACK ; IMMEDIATE
+: LOOP-UNTIL ( ... xt -- ... )
+  >R BEGIN R@ EXECUTE UNTIL R> DROP ;
 
-: ;> ( -- ) ( in xt: -- ) & EXIT 0 , HERE SWAP ! ; IMMEDIATE
+: WHILE-LOOP ( ... while-xt body-xt -- ... )
+  2>R BEGIN 2R@ DROP EXECUTE WHILE R@ EXECUTE REPEAT 2R> 2DROP ;
 
-: FREE-LAMBDA ( xt -- ) 1 CELLS - FREE! ;
+: COUNT-LOOP ( ... limit init xt -- ... )
+  ROT ROT ?DO I SWAP DUP >R EXECUTE R> LOOP DROP ;
 
-: 3DUP ( x1 x2 x3 -- x1 x2 x3 x1 x2 x3 ) 2 PICK 2 PICK 2 PICK ;
-
-: F<: ( x*u1 u1 u2 -- xt ) ( F: r*u2 -- ) ( in xt: -- x*u1 )
-  ( in xt: F: -- r*u2 )
-  & 2DUP & SWAP & (LITERAL) 3 , & + & CELLS & SWAP & FLOATS & +
-  & HEADER-SIZE & + & ALLOCATE!
-  & DUP & >R & CELL+ & HEADER-SIZE & + & (LITERAL) 2 , & PICK & OVER & !
-  & 2DUP & CELL+ & ! & (LITERAL) 2 ,
-  & CELLS & + & 3DUP & >R & >R & >R & NIP & SWAP & MOVE-FROM-STACK
-  & R> & R> & R> & ROT & CELLS & + & SWAP & MOVE-FROM-FLOAT-STACK
-  & R> & CREATE-NONAME-AT
-  & DOES-AT> HERE 4 CELLS + , & BRANCH HERE 0 , 0 ,
-  & DUP & DUP & >R & @ & DUP & >R & SWAP & (LITERAL) 2 , & CELLS & +
-  & SWAP & MOVE-TO-STACK
-  & R> & R> & DUP & CELL+ & @ & SWAP & (LITERAL) 2 , & CELLS & +
-  & ROT & CELLS & + & SWAP & MOVE-TO-FLOAT-STACK ; IMMEDIATE
+: COUNt+LOOP ( ... limit init xt -- ... )
+  ROT ROT ?DO I SWAP DUP >R EXECUTE R> SWAP +LOOP DROP ;
 
 BASE ! SET-CURRENT SET-ORDER

@@ -98,6 +98,22 @@ Fetch a cell for the given task at a given offset in its task-local space.
 
 Store a cell for the given task at a given offset in its task-local space.
 
+`WT@` ( offset task -- x )
+
+Fetch a 32-bit value for the given task at a given offset in its task-local space.
+
+`WT!` ( x offset task -- )
+
+Store a 32-bit value for the given task at a given offset in its task-local space.
+
+`HT@` ( offset task -- x )
+
+Fetch a 16-bit value for the given task at a given offset in its task-local space.
+
+`HT!` ( x offset task -- )
+
+Store a 16-bit value for the given task at a given offset in its task-local space.
+
 `CT@` ( offset task -- c )
 
 Fetch a byte for the given task at a given offset in its task-local space.
@@ -105,6 +121,86 @@ Fetch a byte for the given task at a given offset in its task-local space.
 `CT!` ( c offset task -- )
 
 Store a byte for the given task at a given offset in its task-local space.
+
+`FT@` ( offset task -- ) ( F: -- r )
+
+Fetch a native floating point value for the given task at a given offset in its task-local space.
+
+`FT!` ( offset task -- ) ( F: r -- )
+
+Store a native floating point value for the given task at a given offset in its task-local space.
+
+`SFT@` ( offset task -- ) ( F: -- r )
+
+Fetch a single-precision floating point value for the given task at a given offset in its task-local space.
+
+`SFT!` ( offset task -- ) ( F: r -- )
+
+Store a single-precision floating point value for the given task at a given offset in its task-local space.
+
+`DFT@` ( offset task -- ) ( F: -- r )
+
+Fetch a double-precision floating point value for the given task at a given offset in its task-local space.
+
+`DFT!` ( offset task -- ) ( F: r -- )
+
+Store a double-precision floating point value for the given task at a given offset in its task-local space.
+
+`TT@` ( offset -- x )
+
+Fetch a cell for the current task at a given offset in its task-local space.
+
+`TT!` ( x offset -- )
+
+Store a cell for the current task at a given offset in its task-local space.
+
+`TWT@` ( offset -- x )
+
+Fetch a 32-bit value for the current task at a given offset in its task-local space.
+
+`TWT!` ( x offset -- )
+
+Store a 32-bit value for the current task at a given offset in its task-local space.
+
+`THT@` ( offset -- x )
+
+Fetch a 16-bit value for the current task at a given offset in its task-local space.
+
+`THT!` ( x offset -- )
+
+Store a 16-bit value for the current task at a given offset in its task-local space.
+
+`TCT@` ( offset -- c )
+
+Fetch a byte for the current task at a given offset in its task-local space.
+
+`TCT!` ( c offset -- )
+
+Store a byte for the current task at a given offset in its task-local space.
+
+`TFT@` ( offset -- ) ( F: -- r )
+
+Fetch a native floating point value for the current task at a given offset in its task-local space.
+
+`TFT!` ( offset -- ) ( F: r -- )
+
+Store a native floating point value for the current task at a given offset in its task-local space.
+
+`TSFT@` ( offset -- ) ( F: -- r )
+
+Fetch a single-precision floating point value for the current task at a given offset in its task-local space.
+
+`TSFT!` ( offset -- ) ( F: r -- )
+
+Store a single-precision floating point value for the current task at a given offset in its task-local space.
+
+`TDFT@` ( offset -- ) ( F: -- r )
+
+Fetch a double-precision floating point value for the current task at a given offset in its task-local space.
+
+`TDFT!` ( offset -- ) ( F: r -- )
+
+Store a double-precision floating point value for the current task at a given offset in its task-local space.
 
 `ATEXIT` ( xt task -- )
 
