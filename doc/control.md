@@ -29,4 +29,5 @@ Repeatedly execute *while-xt* followed by *body-xt* until the value popped from 
 For values starting from *init* and ending at *limit* minus one, if *init* does not equal *limit*, place the current value on the top of the data stack and execute *xt*..
 
 `COUNT+LOOP` ( ... limit init xt -- ... )
+
 For values starting with *init* and continuing until the transition between the current value and the next value breaks the boundary between *limit* minus one and *limit*, if *init* does not equal *limit*, place the current value on the top of the data stack and execute *xt*, afterwards taking a value off the top of the stack and adding it to the current value.
