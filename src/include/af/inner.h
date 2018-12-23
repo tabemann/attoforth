@@ -250,7 +250,7 @@
 
 /* Function declarations */
 
-af_global_t* af_global_init(void);
+af_global_t* af_global_init(int argc, char** argv);
 
 void af_global_execute(af_global_t* global);
 

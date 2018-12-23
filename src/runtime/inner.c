@@ -52,7 +52,7 @@ void af_print_current_return_stack(af_global_t* global, af_task_t* task);
 
 /* Definitions */
 
-af_global_t* af_global_init(void) {
+af_global_t* af_global_init(int argc, char** argv) {
   af_global_t* global = malloc(sizeof(af_global_t));
   if(!global) {
     return NULL;
@@ -129,6 +129,8 @@ af_global_t* af_global_init(void) {
     free(global);
     return NULL;
   }
+  global->argc = argc;
+  global->argv = (af_byte_t**)argv;
   return global;
 }
 

@@ -39,7 +39,7 @@
 
 /* Main function */
 int main(int argc, char** argv) {
-  af_global_t* global = af_global_init();
+  af_global_t* global = af_global_init(argc, argv);
   if(!global) {
     abort();
   }

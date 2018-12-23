@@ -737,6 +737,12 @@ void af_prim_set_order(af_global_t* global, af_task_t* task);
 /* WORDLIST primitive */
 void af_prim_wordlist(af_global_t* global, af_task_t* task);
 
+/* ARGC primitive */
+void af_prim_argc(af_global_t* global, af_task_t* task);
+
+/* ARGV primitive */
+void af_prim_argv(af_global_t* global, af_task_t* task);
+
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_task_t* task);
 
@@ -1420,6 +1426,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "SET-ORDER", af_prim_set_order, 0,
 		   global->forth_wordlist);
   af_register_prim(global, task, "WORDLIST", af_prim_wordlist, 0,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ARGC", af_prim_argc, 0,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "ARGV", af_prim_argv, 0,
 		   global->forth_wordlist);
   af_register_prim(global, task, "IO-ACTION-DESTROY",
 		   af_prim_io_action_destroy, 0, global->io_wordlist);
@@ -4299,6 +4309,20 @@ void af_prim_wordlist(af_global_t* global, af_task_t* task) {
   }
   wordlist->first_word = NULL;
   *(--task->data_stack_current) = (af_cell_t)wordlist;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* ARGC primitive */
+void af_prim_argc(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = global->argc;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* ARGV primitive */
+void af_prim_argv(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)global->argv;
   AF_ADVANCE_IP(task, 1);
 }
 

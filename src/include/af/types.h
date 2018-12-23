@@ -167,6 +167,8 @@ typedef struct af_global_t {
   void* default_task_local_space_base;
   af_compiled_t base_interpreter_code[2];
   af_bool_t do_trace;
+  af_cell_t argc;
+  af_byte_t** argv;
 } af_global_t;
 
 typedef struct af_task_t {
