@@ -2,7 +2,7 @@
 
 These are made available by executing:
 
-    REQUIRE src/forth/escape.fs
+    REQUIRE escape.fs
 
 The following words are in the `FORTH-WORDLIST` wordlist.
 

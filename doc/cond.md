@@ -2,7 +2,7 @@
 
 These are made available by executing:
 
-    REQUIRE src/forth/cond.fs
+    REQUIRE cond.fs
 
 The following words are in the `TASK-WORDLIST` wordlist.
 

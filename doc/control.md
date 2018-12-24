@@ -2,15 +2,15 @@
 
 These are made available by executing:
 
-    REQUIRE src/forth/control.fs
+    REQUIRE control.fs
 
-Loading this source file automatically loads `src/forth/lambda.fs`.
+Loading this source file automatically loads `lambda.fs`.
 
 The following words are in the `LAMBDA-WORDLIST` wordlist.
 
 Note that all the following examples are executed preceded by:
 
-    REQUIRE src/forth/control.fs  ok
+    REQUIRE control.fs  ok
     FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER  ok
 
 `OPTION` ( ... flag true-xt -- ... )

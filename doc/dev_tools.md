@@ -2,7 +2,7 @@
 
 These are made available by executing:
 
-    REQUIRE src/forth/dev_tools.fs
+    REQUIRE dev_tools.fs
 
 The following words are in the `FORTH-WORDLIST` wordlist.
 

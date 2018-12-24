@@ -1,6 +1,6 @@
 # Terminal Input
 
-This is available in `src/forth/init.fs`, which is automatically loaded upon attoforth startup. The following words are in the `FORTH-WORDLIST` wordlist.
+This is available in `init.fs`, which is automatically loaded upon attoforth startup. The following words are in the `FORTH-WORDLIST` wordlist.
 
 `KEY?` ( -- pressed )
 
@@ -33,3 +33,5 @@ The line editor used for input by attoforth has the following commands:
 * alt-\<backward> or alt-B: Move to the start of the previous word
 * alt-D: Kill text from the cursor to the end of the next word and put it in the kill ring
 * alt-Y: If the last command was a yank, replace the yanked text with the previous text in the kill ring, moving the last yanked text to the end of the kill ring
+
+The line editor when used for the REPL also has autocomplete, where a prefix can be entered followed by a tab, and if the prefix has one unique completion that completion is inserted after the prefix, and otherwise all of the possible completions are listed.

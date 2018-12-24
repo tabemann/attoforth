@@ -2,13 +2,13 @@
 
 These are made available by executing:
 
-    REQUIRE src/forth/lambda.fs
+    REQUIRE lambda.fs
 
 The following words are in the `LAMBDA-WORDLIST` wordlist.
 
 Note that all the following examples are executed preceded by:
 
-    REQUIRE src/forth/control.fs  ok
+    REQUIRE lambda.fs  ok
     FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER  ok
 
 `[:` ( -- xt ) ( in lambda: -- )

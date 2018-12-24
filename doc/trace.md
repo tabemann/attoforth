@@ -2,7 +2,7 @@
 
 This non-debugging mode tracer is made available by executing:
 
-    REQUIRE src/forth/trace.fs
+    REQUIRE trace.fs
 
 The following words are in the `FORTH-WORDLIST` wordlist.
 

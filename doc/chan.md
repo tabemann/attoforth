@@ -2,7 +2,7 @@
 
 These are made available by executing:
 
-    REQUIRE src/forth/chan.fs
+    REQUIRE chan.fs
 
 These following words are in the `TASK-WORDLIST` wordlist.
 
