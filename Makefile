@@ -30,6 +30,7 @@
 IDIR =src/include
 CC=gcc
 CFLAGS=-O2
+PREFIX=/usr/local
 
 ODIR=obj
 
@@ -49,7 +50,17 @@ $(ODIR)/%.o: src/runtime/%.c $(DEPS)
 attoforth: $(OBJ)
 	$(CC) -o $@ $^ -I$(IDIR) $(CFLAGS) $(LIBS)
 
-.PHONY: clean
+.PHONY: install clean
+
+install:
+	mkdir -p $(PREFIX)/bin
+	mkdir -p $(PREFIX)/share/attoforth/src
+	rm -f $(PREFIX)/share/attoforth/src/*
+	mkdir -p $(PREFIX)/share/attoforth/doc
+	rm -f $(PREFIX)/share/attoforth/doc/*
+	cp attoforth $(PREFIX)/bin
+	cp src/forth/*.fs $(PREFIX)/share/attoforth/src
+	cp doc/*.md $(PREFIX)/share/attoforth/doc
 
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ 
