@@ -164,11 +164,11 @@ Allot space for a single-precision floating point value in the current thread's 
 
 `SFALIGN` ( -- )
 
-Single-Precision floating point-align the current thread's data space pointer.
+Single-precision floating point-align the current thread's data space pointer.
 
 `SFALIGNED` ( addr -- addr )
 
-Single-Precision floating point-align a pointer.
+Single-precision floating point-align a pointer.
 
 `SFLOAT-SIZE` ( -- bytes )
 
@@ -196,11 +196,11 @@ Allot space for a double-precision floating point value in the current thread's 
 
 `DFALIGN` ( -- )
 
-Double-Precision floating point-align the current thread's data space pointer.
+Double-precision floating point-align the current thread's data space pointer.
 
 `DFALIGNED` ( addr -- addr )
 
-Double-Precision floating point-align a pointer.
+Double-precision floating point-align a pointer.
 
 `DFLOAT-SIZE` ( -- bytes )
 
