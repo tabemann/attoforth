@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <math.h>
+#include <errno.h>
 #include "af/common.h"
 #include "af/types.h"
 #include "af/inner.h"
@@ -743,6 +744,15 @@ void af_prim_argc(af_global_t* global, af_task_t* task);
 /* ARGV primitive */
 void af_prim_argv(af_global_t* global, af_task_t* task);
 
+/* GETENV primitive */
+void af_prim_getenv(af_global_t* global, af_task_t* task);
+
+/* SETENV primitive */
+void af_prim_setenv(af_global_t* global, af_task_t* task);
+
+/* UNSETENV primitive */
+void af_prim_unsetenv(af_global_t* global, af_task_t* task);
+
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_task_t* task);
 
@@ -1430,6 +1440,12 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
   af_register_prim(global, task, "ARGC", af_prim_argc, 0,
 		   global->forth_wordlist);
   af_register_prim(global, task, "ARGV", af_prim_argv, 0,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "GETENV", af_prim_getenv, 0,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "SETENV", af_prim_setenv, 0,
+		   global->forth_wordlist);
+  af_register_prim(global, task, "UNSETENV", af_prim_unsetenv, 0,
 		   global->forth_wordlist);
   af_register_prim(global, task, "IO-ACTION-DESTROY",
 		   af_prim_io_action_destroy, 0, global->io_wordlist);
@@ -4323,6 +4339,90 @@ void af_prim_argc(af_global_t* global, af_task_t* task) {
 void af_prim_argv(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = (af_cell_t)global->argv;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* GETENV primitive */
+void af_prim_getenv(af_global_t* global, af_task_t* task) {
+  char* name;
+  char* value;
+  af_byte_t* name_addr;
+  af_cell_t name_len;
+  int error = 0;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  name_len = *task->data_stack_current++;
+  name_addr = (af_byte_t*)(*task->data_stack_current);
+  if(!(name = malloc(name_len + 1))) {
+    af_handle_out_of_memory(global, task);
+    return;
+  }
+  memcpy(name, name_addr, name_len);
+  name[name_len] = 0;
+  value = getenv(name);
+  free(name);
+  *task->data_stack_current = (af_cell_t)value;
+  AF_ADVANCE_IP(task, 1);  
+}
+
+/* SETENV primitive */
+void af_prim_setenv(af_global_t* global, af_task_t* task) {
+  char* value;
+  char* name;
+  af_byte_t* value_addr;
+  af_cell_t value_len;
+  af_byte_t* name_addr;
+  af_cell_t name_len;
+  int overwrite;
+  int error = 0;
+  AF_VERIFY_DATA_STACK_READ(global, task, 5);
+  overwrite = *task->data_stack_current++ ? 1 : 0;
+  name_len = *task->data_stack_current++;
+  name_addr = (af_byte_t*)(*task->data_stack_current++);
+  value_len = *task->data_stack_current++;
+  value_addr = (af_byte_t*)(*task->data_stack_current);
+  if(!(name = malloc(name_len + 1))) {
+    af_handle_out_of_memory(global, task);
+    return;
+  }
+  memcpy(name, name_addr, name_len);
+  name[name_len] = 0;
+  if(!(value = malloc(value_len + 1))) {
+    free(name);
+    af_handle_out_of_memory(global, task);
+    return;
+  }
+  memcpy(value, value_addr, value_len);
+  value[value_len] = 0;
+  if(setenv(name, value, overwrite)) {
+    error = errno;
+  }
+  free(value);
+  free(name);
+  *task->data_stack_current = error;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* UNSETENV primitive */
+void af_prim_unsetenv(af_global_t* global, af_task_t* task) {
+  char* name;
+  af_byte_t* name_addr;
+  af_cell_t name_len;
+  int error = 0;
+  AF_VERIFY_DATA_STACK_READ(global, task, 2);
+  name_len = *task->data_stack_current++;
+  name_addr = (af_byte_t*)(*task->data_stack_current);
+  if(!(name = malloc(name_len + 1))) {
+    af_handle_out_of_memory(global, task);
+    return;
+  }
+  memcpy(name, name_addr, name_len);
+  name[name_len] = 0;
+  if(unsetenv(name)) {
+    error = errno;
+  }
+  free(name);
+  *task->data_stack_current = error;
   AF_ADVANCE_IP(task, 1);
 }
 
