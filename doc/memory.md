@@ -1,4 +1,4 @@
-# Memory access
+# Memory Access
 
 These are available built into attoforth. The following words are in the `FORTH-WORDLIST` wordlist.
 
@@ -237,3 +237,23 @@ Store two values in two successive native floating point-sized locations; the to
 `F2,` ( F: r2 r1 -- )
 
 Allot space for two native floating point-sized locations in the current thread's data space and store two values into it; the top value on the floating point stack will take up the first native floating point-sized location and the next value on the floating point stack will take up the second native floating point-sized location.
+
+`ALLOT` ( bytes -- )
+
+Advance the current task's data space pointer by *bytes* bytes. Note that negative values are permitted and have the expected result.
+
+`ALLOCATE` ( bytes -- addr wor )
+
+Allocate a block of memory and return an address on the heap followed by zero, unless allocation fails where then null followed by a non-zero value are returned.
+
+`FREE` ( addr -- wor )
+
+Free a heap-allocated block of memory. Returns zero (a non-zero value would indicate that it failed, but it does not fail except by exiting attoforth abnormally in reality).
+
+`ALLOCATE!` ( bytes -- addr )
+
+Allocate a block of memory and return an address on the heap, unless allocation fails where then an abort takes place.
+
+`FREE!` ( addr -- )
+
+Free a heap-allocated block of memory. It would abort if free could fail, but in the current implementation that is not possible except through exiting attoforth abnormally.
