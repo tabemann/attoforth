@@ -70,6 +70,7 @@ af_global_t* af_global_init(int argc, char** argv) {
     return NULL;
   }
   global->first_task = NULL;
+  global->current_task = NULL;
   global->tasks_active_count = 0;
   global->task_count = 0;
   if(!af_cond_init(&global->cond)) {
@@ -132,6 +133,8 @@ af_global_t* af_global_init(int argc, char** argv) {
   }
   global->argc = argc;
   global->argv = (af_byte_t**)argv;
+  global->atomic_task = NULL;
+  global->handler_task = NULL;
   return global;
 }
 
@@ -163,11 +166,16 @@ void af_task_loop(af_global_t* global) {
 	  } else {
 	    global->first_task = task;
 	  }
+	  if(global->atomic_task == old_task) {
+	    global->atomic_task = NULL;
+	  }
 	  af_free_task(old_task);
 	} else {
-	  pthread_mutex_unlock(&global->mutex);
-	  pthread_mutex_lock(&global->mutex);
-	  af_inner_loop(global, task);
+	  if(!global->atomic_task || global->atomic_task == task) {
+	    pthread_mutex_unlock(&global->mutex);
+	    pthread_mutex_lock(&global->mutex);
+	    af_inner_loop(global, task);
+	  }
 	  prev_task = task;
 	  task = task->next_task;
 	}
@@ -182,6 +190,9 @@ void af_task_loop(af_global_t* global) {
 	    prev_task->next_task = task;
 	  } else {
 	    global->first_task = task;
+	  }
+	  if(global->atomic_task == old_task) {
+	    global->atomic_task = NULL;
 	  }
 	  af_free_task(old_task);
 	} else {
@@ -203,6 +214,7 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
   if(!task->current_cycles_before_yield) {
     return;
   }
+  global->current_task = task;
   task->current_cycles_left =
     task->current_cycles_before_yield + task->extra_cycles;
   if(task->current_cycles_left > global->max_cycles_before_yield) {
@@ -223,6 +235,7 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
     AF_WORD_EXECUTE(global, task, word);
   }
   task->yields++;
+  global->current_task = NULL;
 }
 
 void af_free_task(af_task_t* task) {
@@ -406,6 +419,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
   global->task_count++;
+  af_handle_spawn(global, task);
   return task;
 }
 
@@ -506,6 +520,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
   global->task_count++;
+  af_handle_spawn(global, task);
   return task;
 }
 
@@ -562,6 +577,7 @@ void af_kill(af_global_t* global, af_task_t* task) {
   task->is_to_be_freed = TRUE;
   global->task_count--;
   af_deschedule(global, task);
+  af_handle_kill(global, task);
 }
 
 void af_yield(af_global_t* global, af_task_t* task) {
@@ -579,10 +595,27 @@ void af_wait(af_global_t* global, af_task_t* task) {
   af_deschedule(global, task);
 }
 
+void af_end_atomic_and_wait(af_global_t* global, af_task_t* task) {
+  af_end_atomic(global, task);
+  af_wait(global, task);
+}
+
 void af_wake(af_global_t* global, af_task_t* task) {
   if(!task->current_cycles_before_yield && !task->is_to_be_freed) {
     task->current_cycles_before_yield = task->base_cycles_before_yield;
     af_schedule(global, task);
+  }
+}
+
+void af_begin_atomic(af_global_t* global, af_task_t* task) {
+  if(!global->atomic_task) {
+    global->atomic_task = task;
+  }
+}
+
+void af_end_atomic(af_global_t* global, af_task_t* task) {
+  if(task == global->atomic_task) {
+    global->atomic_task = NULL;
   }
 }
 
@@ -600,11 +633,7 @@ void af_reset(af_global_t* global, af_task_t* task) {
   if(task->abort) {
     AF_WORD_EXECUTE(global, task, task->abort);
   } else {
-    task->current_cycles_before_yield = 0;
-    task->current_cycles_left = 0;
-    task->is_to_be_freed = TRUE;
-    global->task_count--;
-    af_deschedule(global, task);
+    af_kill(global, task);
   }
 }
 
@@ -622,6 +651,30 @@ void af_deschedule(af_global_t* global, af_task_t* task) {
 
 void af_interpret(af_global_t* global, af_task_t* task) {
   task->interpreter_pointer = global->base_interpreter_code;
+}
+
+void af_handle_spawn(af_global_t* global, af_task_t* task) {
+  if(global->handler_task && !global->handler_task->is_to_be_freed) {
+    AF_VERIFY_DATA_STACK_EXPAND(global, global->handler_task, 3);
+    af_begin_atomic(global, global->handler_task);
+    *(--global->handler_task->data_stack_current) =
+      (af_cell_t)global->current_task;
+    *(--global->handler_task->data_stack_current) = (af_cell_t)task;
+    *(--global->handler_task->data_stack_current) = 0;
+    af_wake(global, global->handler_task);
+  }
+}
+
+void af_handle_kill(af_global_t* global, af_task_t* task) {
+  if(global->handler_task && !global->handler_task->is_to_be_freed) {
+    AF_VERIFY_DATA_STACK_EXPAND(global, global->handler_task, 3);
+    af_begin_atomic(global, global->handler_task);
+    *(--global->handler_task->data_stack_current) =
+      (af_cell_t)global->current_task;
+    *(--global->handler_task->data_stack_current) = (af_cell_t)task;
+    *(--global->handler_task->data_stack_current) = 1;
+    af_wake(global, global->handler_task);
+  }
 }
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task) {

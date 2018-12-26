@@ -681,11 +681,23 @@ void af_prim_wait(af_global_t* global, af_task_t* task);
 /* WAKE primitive */
 void af_prim_wake(af_global_t* global, af_task_t* task);
 
+/* BEGIN-ATOMIC primitive */
+void af_prim_begin_atomic(af_global_t* global, af_task_t* task);
+
+/* END-ATOMIC primitive */
+void af_prim_end_atomic(af_global_t* global, af_task_t* task);
+
 /* YIELDS primitive */
 void af_prim_yields(af_global_t* global, af_task_t* task);
 
 /* TASKS primitive */
 void af_prim_tasks(af_global_t* global, af_task_t* task);
+
+/* >HANDLER-TASK primitive */
+void af_prim_to_handler_task(af_global_t* global, af_task_t* task);
+
+/* HANDLER-TASK> primitive */
+void af_prim_from_handler_task(af_global_t* global, af_task_t* task);
 
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_task_t* task);
@@ -1408,10 +1420,20 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "WAKE", af_prim_wake, 0,
 		   global->task_wordlist);
+  af_register_prim(global, task, "BEGIN-ATOMIC", af_prim_begin_atomic, 0,
+		   global->task_wordlist);
+  af_register_prim(global, task, "END-ATOMIC", af_prim_end_atomic, 0,
+		   global->task_wordlist);
+  af_register_prim(global, task, "END-ATOMIC-AND-WAIT",
+		   af_end_atomic_and_wait, 0, global->task_wordlist);
   af_register_prim(global, task, "YIELDS", af_prim_yields, 0,
 		   global->task_wordlist);
   af_register_prim(global, task, "TASKS", af_prim_tasks, 0,
 		   global->task_wordlist);
+  af_register_prim(global, task, ">HANDLER-TASK",
+		   af_prim_to_handler_task, 0, global->task_wordlist);
+  af_register_prim(global, task, "HANDLER-TASK>",
+		   af_prim_from_handler_task, 0, global->task_wordlist);
   af_register_prim(global, task, "[", af_prim_open_bracket, AF_WORD_IMMEDIATE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "]", af_prim_close_bracket, AF_WORD_IMMEDIATE,
@@ -4146,12 +4168,30 @@ void af_prim_wait(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* END-ATOMIC-AND-WAIT primitive */
+void af_prim_end_atomic_and_wait(af_global_t* global, af_task_t* task) {
+  af_end_atomic_and_wait(global, task);
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* WAKE primitive */
 void af_prim_wake(af_global_t* global, af_task_t* task) {
   af_task_t* target_task;
   AF_VERIFY_DATA_STACK_READ(global, task, 1);
   target_task = (af_task_t*)(*task->data_stack_current++);
   af_wake(global, target_task);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* BEGIN-ATOMIC primitive */
+void af_prim_begin_atomic(af_global_t* global, af_task_t* task) {
+  af_begin_atomic(global, task);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* END-ATOMIC primitive */
+void af_prim_end_atomic(af_global_t* global, af_task_t* task) {
+  af_end_atomic(global, task);
   AF_ADVANCE_IP(task, 1);
 }
 
@@ -4167,6 +4207,20 @@ void af_prim_yields(af_global_t* global, af_task_t* task) {
 void af_prim_tasks(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
   *(--task->data_stack_current) = global->task_count;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* >HANDLER-TASK primitive */
+void af_prim_to_handler_task(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  global->handler_task = (af_task_t*)(*task->data_stack_current++);
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* HANDLER-TASK> primitive */
+void af_prim_from_handler_task(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = (af_cell_t)global->handler_task;
   AF_ADVANCE_IP(task, 1);
 }
 

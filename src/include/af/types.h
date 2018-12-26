@@ -137,6 +137,7 @@ typedef struct af_wordlist_t {
 
 typedef struct af_global_t {
   af_task_t* first_task;
+  af_task_t* current_task;
   af_cell_t tasks_active_count;
   af_cell_t task_count;
   af_cond_t cond;
@@ -171,6 +172,8 @@ typedef struct af_global_t {
   af_bool_t do_trace;
   af_cell_t argc;
   af_byte_t** argv;
+  af_task_t* atomic_task;
+  af_task_t* handler_task;
 } af_global_t;
 
 typedef struct af_task_t {

@@ -288,7 +288,13 @@ void af_yield(af_global_t* global, af_task_t* task);
 
 void af_wait(af_global_t* global, af_task_t* task);
 
+void af_end_atomic_and_wait(af_global_t* global, af_task_t* task);
+
 void af_wake(af_global_t* global, af_task_t* task);
+
+void af_begin_atomic(af_global_t* global, af_task_t* task);
+
+void af_end_atomic(af_global_t* global, af_task_t* task);
 
 void af_reset(af_global_t* global, af_task_t* task);
 
@@ -297,6 +303,10 @@ void af_schedule(af_global_t* global, af_task_t* task);
 void af_deschedule(af_global_t* global, af_task_t* task);
 
 void af_interpret(af_global_t* global, af_task_t* task);
+
+void af_handle_spawn(af_global_t* global, af_task_t* task);
+
+void af_handle_kill(af_global_t* global, af_task_t* task);
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task);
 
