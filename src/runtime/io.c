@@ -173,6 +173,15 @@ void af_io_action_destroy(af_io_action_t* action) {
   pthread_mutex_unlock(&io->mutex);
 }
 
+/* Get pending write count */
+af_cell_t af_io_get_pending_write_count(af_io_t* io) {
+  af_cell_t pending_write_count;
+  pthread_mutex_lock(&io->mutex);
+  pending_write_count = io->pending_write_count;
+  pthread_mutex_unlock(&io->mutex);
+  return pending_write_count;
+}
+
 /* Get IO action state */
 void af_io_action_get_state(af_io_action_t* action, af_io_state_t* state) {
   pthread_mutex_lock(&action->io->mutex);
@@ -313,6 +322,20 @@ af_bool_t af_io_rename(af_byte_t* path1, af_io_size_t count1,
     free(path_buffer1);
     free(path_buffer2);
     return TRUE;
+  }
+}
+
+/* Detect whether a file descriptor is a terminal */
+af_bool_t af_io_isatty(af_io_fd_t fd, af_io_error_t* error) {
+  if(isatty(fd)) {
+    *error = 0;
+    return TRUE;
+  } else if(errno == EINVAL || errno == ENOTTY) {
+    *error = 0;
+    return FALSE;
+  } else {
+    *error = errno;
+    return FALSE;
   }
 }
 
@@ -678,6 +701,9 @@ void af_io_add(af_io_t* io, af_io_action_t* action) {
   af_bool_t wake = FALSE;
   pthread_mutex_lock(&io->mutex);
   action->io = io;
+  if(action->type == AF_IO_TYPE_WRITE) {
+    io->pending_write_count++;
+  }
   if(action->type != AF_IO_TYPE_SLEEP && af_io_is_active(io, action->fd)) {
     action->prev_action = io->last_waiting_action;
     action->next_action = NULL;
@@ -943,6 +969,9 @@ void af_io_remove_done(af_io_t* io) {
     if(current_action->is_done) {
       af_io_action_t* current_waiting_action = io->first_waiting_action;
       af_bool_t found = FALSE;
+      if(current_action->type == AF_IO_TYPE_WRITE) {
+	io->pending_write_count--;
+      }
       if(current_action->prev_action) {
 	current_action->prev_action->next_action =
 	  current_action->next_action;

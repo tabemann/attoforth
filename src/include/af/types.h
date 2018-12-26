@@ -107,6 +107,7 @@ typedef struct af_io_t {
   int break_fd_in;
   int break_fd_out;
   af_cell_t active_action_count;
+  af_cell_t pending_write_count;
   af_io_action_t* first_active_action;
   af_io_action_t* first_waiting_action;
   af_io_action_t* last_waiting_action;
@@ -137,6 +138,7 @@ typedef struct af_wordlist_t {
 typedef struct af_global_t {
   af_task_t* first_task;
   af_cell_t tasks_active_count;
+  af_cell_t task_count;
   af_cond_t cond;
   pthread_mutex_t mutex;
   af_io_t io;

@@ -81,8 +81,11 @@ af_bool_t af_io_init(af_io_t* io, af_global_t* global);
 /* Destroy IO manager */
 void af_io_destroy(af_io_t* io);
 
-/* Marky IO action to be destroyed */
+/* Mark IO action to be destroyed */
 void af_io_action_destroy(af_io_action_t* action);
+
+/* Get pending write count */
+af_cell_t af_io_get_pending_write_count(af_io_t* io);
 
 /* Get IO action state */
 void af_io_action_get_state(af_io_action_t* action, af_io_state_t* state);
@@ -130,6 +133,9 @@ af_bool_t af_io_delete_dir(af_byte_t* path, af_io_size_t count,
 af_bool_t af_io_rename(af_byte_t* path1, af_io_size_t count1,
 		       af_byte_t* path2, af_io_size_t count2,
 		       af_io_error_t* error);
+
+/* Detect whether a file descriptor is a terminal */
+af_bool_t af_io_isatty(af_io_fd_t fd, af_io_error_t* error);
 
 /* Get monotonic time */
 void af_io_get_monotonic_time(af_time_t* monotonic_time);

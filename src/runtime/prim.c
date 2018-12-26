@@ -684,6 +684,9 @@ void af_prim_wake(af_global_t* global, af_task_t* task);
 /* YIELDS primitive */
 void af_prim_yields(af_global_t* global, af_task_t* task);
 
+/* TASKS primitive */
+void af_prim_tasks(af_global_t* global, af_task_t* task);
+
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_task_t* task);
 
@@ -800,6 +803,12 @@ void af_prim_io_delete_dir(af_global_t* global, af_task_t* task);
 
 /* IO-RENAME primitive */
 void af_prim_io_rename(af_global_t* global, af_task_t* task);
+
+/* IO-ISATTY primitive */
+void af_prim_io_isatty(af_global_t* global, af_task_t* task);
+
+/* IO-GET-PENDING-WRITE-COUNT primitive */
+void af_prim_io_get_pending_write_count(af_global_t* global, af_task_t* task);
 
 /* IO-GET-MONOTONIC-TIME primitive */
 void af_prim_io_get_monotonic_time(af_global_t* global, af_task_t* task);
@@ -1401,6 +1410,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "YIELDS", af_prim_yields, 0,
 		   global->task_wordlist);
+  af_register_prim(global, task, "TASKS", af_prim_tasks, 0,
+		   global->task_wordlist);
   af_register_prim(global, task, "[", af_prim_open_bracket, AF_WORD_IMMEDIATE,
 		   global->forth_wordlist);
   af_register_prim(global, task, "]", af_prim_close_bracket, AF_WORD_IMMEDIATE,
@@ -1479,6 +1490,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->io_wordlist);
   af_register_prim(global, task, "IO-RENAME", af_prim_io_rename, 0,
 		   global->io_wordlist);
+  af_register_prim(global, task, "IO-ISATTY", af_prim_io_isatty, 0,
+		   global->io_wordlist);
+  af_register_prim(global, task, "IO-GET-PENDING-WRITE-COUNT",
+		   af_prim_io_get_pending_write_count, 0, global->io_wordlist);
   af_register_prim(global, task, "IO-GET-MONOTONIC-TIME",
 		   af_prim_io_get_monotonic_time, 0, global->io_wordlist);
   af_register_prim(global, task, "IO-GET-REAL-TIME",
@@ -4148,6 +4163,13 @@ void af_prim_yields(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* TASKS primitive */
+void af_prim_tasks(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = global->task_count;
+  AF_ADVANCE_IP(task, 1);
+}
+
 /* [ primitive - immediate */
 void af_prim_open_bracket(af_global_t* global, af_task_t* task) {
   task->is_compiling = FALSE;
@@ -4579,6 +4601,23 @@ void af_prim_io_rename(af_global_t* global, af_task_t* task) {
 	       *task->data_stack_current, &error);
   task->data_stack_current += 3;
   *task->data_stack_current = (af_cell_t)error;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-ISATTY primitive */
+void af_prim_io_isatty(af_global_t* global, af_task_t* task) {
+  af_io_error_t error;
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *task->data_stack_current = af_io_isatty(*task->data_stack_current, &error);
+  *(--task->data_stack_current) = error;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-GET-PENDING-WRITE-COUNT primitive */
+void af_prim_io_get_pending_write_count(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) = af_io_get_pending_write_count(&global->io);
   AF_ADVANCE_IP(task, 1);
 }
 

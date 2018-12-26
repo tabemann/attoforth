@@ -71,6 +71,7 @@ af_global_t* af_global_init(int argc, char** argv) {
   }
   global->first_task = NULL;
   global->tasks_active_count = 0;
+  global->task_count = 0;
   if(!af_cond_init(&global->cond)) {
     free(global->task_wordlist);
     free(global->io_wordlist);
@@ -404,6 +405,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->terminate = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
+  global->task_count++;
   return task;
 }
 
@@ -503,6 +505,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->terminate = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
+  global->task_count++;
   return task;
 }
 
@@ -557,6 +560,7 @@ void af_kill(af_global_t* global, af_task_t* task) {
   task->current_cycles_before_yield = 0;
   task->current_cycles_left = 0;
   task->is_to_be_freed = TRUE;
+  global->task_count--;
   af_deschedule(global, task);
 }
 
@@ -599,6 +603,7 @@ void af_reset(af_global_t* global, af_task_t* task) {
     task->current_cycles_before_yield = 0;
     task->current_cycles_left = 0;
     task->is_to_be_freed = TRUE;
+    global->task_count--;
     af_deschedule(global, task);
   }
 }
