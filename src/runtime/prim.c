@@ -678,6 +678,9 @@ void af_prim_yield(af_global_t* global, af_task_t* task);
 /* WAIT primitive */
 void af_prim_wait(af_global_t* global, af_task_t* task);
 
+/* END-ATOMIC-AND-WAIT primitive */
+void af_prim_end_atomic_and_wait(af_global_t* global, af_task_t* task);
+
 /* WAKE primitive */
 void af_prim_wake(af_global_t* global, af_task_t* task);
 
@@ -767,6 +770,12 @@ void af_prim_setenv(af_global_t* global, af_task_t* task);
 
 /* UNSETENV primitive */
 void af_prim_unsetenv(af_global_t* global, af_task_t* task);
+
+/* >IO-HANDLER-TASK primitive */
+void af_prim_to_io_handler_task(af_global_t* global, af_task_t* task);
+
+/* IO-HANDLER-TASK> primitive */
+void af_prim_from_io_handler_task(af_global_t* global, af_task_t* task);
 
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_task_t* task);
@@ -1418,14 +1427,14 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->task_wordlist);
   af_register_prim(global, task, "WAIT", af_prim_wait, 0,
 		   global->task_wordlist);
+  af_register_prim(global, task, "END-ATOMIC-AND-WAIT",
+		   af_prim_end_atomic_and_wait, 0, global->task_wordlist);
   af_register_prim(global, task, "WAKE", af_prim_wake, 0,
 		   global->task_wordlist);
   af_register_prim(global, task, "BEGIN-ATOMIC", af_prim_begin_atomic, 0,
 		   global->task_wordlist);
   af_register_prim(global, task, "END-ATOMIC", af_prim_end_atomic, 0,
 		   global->task_wordlist);
-  af_register_prim(global, task, "END-ATOMIC-AND-WAIT",
-		   af_end_atomic_and_wait, 0, global->task_wordlist);
   af_register_prim(global, task, "YIELDS", af_prim_yields, 0,
 		   global->task_wordlist);
   af_register_prim(global, task, "TASKS", af_prim_tasks, 0,
@@ -1480,6 +1489,10 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		   global->forth_wordlist);
   af_register_prim(global, task, "UNSETENV", af_prim_unsetenv, 0,
 		   global->forth_wordlist);
+  af_register_prim(global, task, ">IO-HANDLER-TASK",
+		   af_prim_to_io_handler_task, 0, global->io_wordlist);
+  af_register_prim(global, task, "IO-HANDLER-TASK>",
+		   af_prim_from_io_handler_task, 0, global->io_wordlist);
   af_register_prim(global, task, "IO-ACTION-DESTROY",
 		   af_prim_io_action_destroy, 0, global->io_wordlist);
   af_register_prim(global, task, "IO-ACTION-GET-STATE",
@@ -4502,6 +4515,21 @@ void af_prim_unsetenv(af_global_t* global, af_task_t* task) {
   AF_ADVANCE_IP(task, 1);
 }
 
+/* >IO-HANDLER-TASK primitive */
+void af_prim_to_io_handler_task(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_READ(global, task, 1);
+  af_io_set_handler_task(&global->io,
+			 (af_task_t*)(*task->data_stack_current++));
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* IO-HANDLER-TASK> primitive */
+void af_prim_from_io_handler_task(af_global_t* global, af_task_t* task) {
+  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  *(--task->data_stack_current) =
+    (af_cell_t)af_io_get_handler_task(&global->io);
+  AF_ADVANCE_IP(task, 1);
+}
 /* IO-ACTION-DESTROY primitive */
 void af_prim_io_action_destroy(af_global_t* global, af_task_t* task) {
   AF_VERIFY_DATA_STACK_READ(global, task, 1);

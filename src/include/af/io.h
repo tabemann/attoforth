@@ -87,6 +87,12 @@ void af_io_action_destroy(af_io_action_t* action);
 /* Get pending write count */
 af_cell_t af_io_get_pending_write_count(af_io_t* io);
 
+/* Set IO handler task */
+void af_io_set_handler_task(af_io_t* io, af_task_t* task);
+
+/* Get IO handler taks */
+af_task_t* af_io_get_handler_task(af_io_t* io);
+
 /* Get IO action state */
 void af_io_action_get_state(af_io_action_t* action, af_io_state_t* state);
 

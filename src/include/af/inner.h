@@ -308,6 +308,10 @@ void af_handle_spawn(af_global_t* global, af_task_t* task);
 
 void af_handle_kill(af_global_t* global, af_task_t* task);
 
+af_task_t* af_get_nested_task(af_global_t* global);
+
+af_sign_cell_t af_get_nesting_level(af_global_t* global);
+
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task);
 
 void af_handle_float_stack_overflow(af_global_t* global, af_task_t* task);

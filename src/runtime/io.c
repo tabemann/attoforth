@@ -97,6 +97,7 @@ af_bool_t af_io_init(af_io_t* io, af_global_t* global) {
   io->last_waiting_action = NULL;
   io->first_done_action = NULL;
   io->to_be_destroyed = FALSE;
+  io->handler_task = NULL;
   if(!af_io_prepare_stdin()) {
     close(io->break_fd_out);
     close(io->break_fd_in);
@@ -180,6 +181,18 @@ af_cell_t af_io_get_pending_write_count(af_io_t* io) {
   pending_write_count = io->pending_write_count;
   pthread_mutex_unlock(&io->mutex);
   return pending_write_count;
+}
+
+/* Set IO handler task */
+void af_io_set_handler_task(af_io_t* io, af_task_t* task) {
+  pthread_mutex_lock(&io->mutex);
+  io->handler_task = task;
+  pthread_mutex_unlock(&io->mutex);
+}
+
+/* Get IO handler taks */
+af_task_t* af_io_get_handler_task(af_io_t* io) {
+  return io->handler_task;
 }
 
 /* Get IO action state */
@@ -1024,6 +1037,18 @@ void af_io_remove_done(af_io_t* io) {
 	pthread_mutex_unlock(&io->mutex);
 	af_lock(io->global);
 	af_wake(io->global, current_action->task_to_wake);
+	if(io->handler_task) {
+	  af_begin_atomic(io->global, io->handler_task);
+	}
+	af_unlock(io->global);
+	af_cond_signal(&io->global->cond);
+	pthread_mutex_lock(&io->mutex);
+      } else if(io->handler_task) {
+	pthread_mutex_unlock(&io->mutex);
+	af_lock(io->global);
+	if(io->handler_task) {
+	  af_begin_atomic(io->global, io->handler_task);
+	}
 	af_unlock(io->global);
 	af_cond_signal(&io->global->cond);
 	pthread_mutex_lock(&io->mutex);

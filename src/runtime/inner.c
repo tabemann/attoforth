@@ -418,6 +418,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   task->terminate = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
+  task->nesting_level = -1;
   global->task_count++;
   af_handle_spawn(global, task);
   return task;
@@ -519,6 +520,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   task->terminate = NULL;
   task->free_data_on_exit = FALSE;
   task->do_trace = FALSE;
+  task->nesting_level = -1;
   global->task_count++;
   af_handle_spawn(global, task);
   return task;
@@ -609,13 +611,31 @@ void af_wake(af_global_t* global, af_task_t* task) {
 
 void af_begin_atomic(af_global_t* global, af_task_t* task) {
   if(!global->atomic_task) {
+    task->nesting_level = -1;
     global->atomic_task = task;
+    if(global->current_task != global->atomic_task) {
+      af_yield(global, global->current_task);
+      af_wake(global, global->atomic_task);
+    }
+  } else if(task->nesting_level < 0 && task != global->atomic_task) {
+    af_sign_cell_t level = af_get_nesting_level(global);
+    level = level < 0 ? 0 : level + 1;
+    task->nesting_level = level;
   }
 }
 
 void af_end_atomic(af_global_t* global, af_task_t* task) {
+  af_task_t* next_atomic_task;
   if(task == global->atomic_task) {
-    global->atomic_task = NULL;
+    next_atomic_task = af_get_nested_task(global);
+    if(next_atomic_task && global->current_task != next_atomic_task) {
+      next_atomic_task->nesting_level = -1;
+      global->atomic_task = next_atomic_task;
+      af_yield(global, global->current_task);
+      af_wake(global, global->atomic_task);
+    } else {
+      global->atomic_task = NULL;
+    }
   }
 }
 
@@ -639,14 +659,10 @@ void af_reset(af_global_t* global, af_task_t* task) {
 
 void af_schedule(af_global_t* global, af_task_t* task) {
   global->tasks_active_count++;
-  /*  fprintf(stderr, "SCHEDULED task: %lld count: %lld\n",
-      (af_cell_t)task, global->tasks_active_count); */
 }
 
 void af_deschedule(af_global_t* global, af_task_t* task) {
   global->tasks_active_count--;
-  /*  fprintf(stderr, "DESCHEDULED task: %lld count: %lld\n",
-      (af_cell_t)task, global->tasks_active_count); */
 }
 
 void af_interpret(af_global_t* global, af_task_t* task) {
@@ -655,26 +671,43 @@ void af_interpret(af_global_t* global, af_task_t* task) {
 
 void af_handle_spawn(af_global_t* global, af_task_t* task) {
   if(global->handler_task && !global->handler_task->is_to_be_freed) {
-    AF_VERIFY_DATA_STACK_EXPAND(global, global->handler_task, 3);
     af_begin_atomic(global, global->handler_task);
-    *(--global->handler_task->data_stack_current) =
-      (af_cell_t)global->current_task;
-    *(--global->handler_task->data_stack_current) = (af_cell_t)task;
-    *(--global->handler_task->data_stack_current) = 0;
-    af_wake(global, global->handler_task);
   }
 }
 
 void af_handle_kill(af_global_t* global, af_task_t* task) {
   if(global->handler_task && !global->handler_task->is_to_be_freed) {
-    AF_VERIFY_DATA_STACK_EXPAND(global, global->handler_task, 3);
     af_begin_atomic(global, global->handler_task);
-    *(--global->handler_task->data_stack_current) =
-      (af_cell_t)global->current_task;
-    *(--global->handler_task->data_stack_current) = (af_cell_t)task;
-    *(--global->handler_task->data_stack_current) = 1;
-    af_wake(global, global->handler_task);
   }
+}
+
+af_task_t* af_get_nested_task(af_global_t* global) {
+  af_task_t* current_task = global->first_task;
+  af_task_t* nested_task = NULL;
+  af_sign_cell_t level = current_task->nesting_level;
+  while(current_task) {
+    if(!current_task->is_to_be_freed) {
+      if(((level > -1) && (current_task->nesting_level < level)) ||
+	 ((level < 0) && (current_task->nesting_level > -1))) {
+	nested_task = current_task;
+	level = current_task->nesting_level;
+      }
+    }
+    current_task = current_task->next_task;
+  }
+  return nested_task;
+}
+
+af_sign_cell_t af_get_nesting_level(af_global_t* global) {
+  af_task_t* current_task = global->first_task;
+  af_sign_cell_t level = current_task->nesting_level;
+  while(current_task) {
+    if(!current_task->is_to_be_freed && level < current_task->nesting_level ) {
+      level = current_task->nesting_level;
+    }
+    current_task = current_task->next_task;
+  }
+  return level;
 }
 
 void af_handle_data_stack_overflow(af_global_t* global, af_task_t* task) {

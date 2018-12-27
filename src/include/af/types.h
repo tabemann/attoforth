@@ -113,7 +113,7 @@ typedef struct af_io_t {
   af_io_action_t* last_waiting_action;
   af_io_action_t* first_done_action;
   af_bool_t to_be_destroyed;
-  af_bool_t ready_for_destruction;
+  af_task_t* handler_task;
 } af_io_t;
 
 typedef union af_compiled_t {
@@ -213,6 +213,7 @@ typedef struct af_task_t {
   af_bool_t free_data_on_exit;
   void* task_local_space_base;
   af_bool_t do_trace;
+  af_sign_cell_t nesting_level;
 } af_task_t;
 
 typedef struct af_input_t {
