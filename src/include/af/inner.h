@@ -54,131 +54,131 @@
 #ifdef DEBUG
 
 /* Verify data stack has room to read */
-#define AF_VERIFY_DATA_STACK_READ(global, task, cells) \
+#define AF_VERIFY_DATA_STACK_READ(task, cells) \
   { af_task_t* _task_ = (task); \
     if(_task_->data_stack_current >=		    \
        (_task_->data_stack_base - ((cells) - 1))) { \
-      af_handle_data_stack_underflow((global), _task_);	\
+      af_handle_data_stack_underflow(_task_->global, _task_);	\
       return; \
     } }
 
 /* Verify data stack has room to expand */
-#define AF_VERIFY_DATA_STACK_EXPAND(global, task, cells) \
+#define AF_VERIFY_DATA_STACK_EXPAND(task, cells) \
   { af_task_t* _task_ = (task); \
     if(_task_->data_stack_current <=		    \
        (_task_->data_stack_top + ((cells) - 1))) {  \
-      af_handle_data_stack_overflow((global), _task_);	\
+      af_handle_data_stack_overflow(_task_->global, _task_);	\
       return; \
     } }
 
 /* Verify float stack has room to read */
-#define AF_VERIFY_FLOAT_STACK_READ(global, task, cells) \
+#define AF_VERIFY_FLOAT_STACK_READ(task, cells) \
   { af_task_t* _task_ = (task); \
     if(_task_->float_stack_current >=		     \
        (_task_->float_stack_base - ((cells) - 1))) { \
-      af_handle_float_stack_underflow((global), _task_);	\
+      af_handle_float_stack_underflow(_task_->global, _task_);	\
       return; \
     } }
 
 /* Verify float stack has room to expand */
-#define AF_VERIFY_FLOAT_STACK_EXPAND(global, task, cells) \
+#define AF_VERIFY_FLOAT_STACK_EXPAND(task, cells) \
   { af_task_t* _task_ = (task); \
     if(_task_->float_stack_current <=		     \
        (_task_->float_stack_top + ((cells) - 1))) {  \
-      af_handle_float_stack_overflow((global), _task_);	\
+      af_handle_float_stack_overflow(_task_->global, _task_);	\
       return; \
     } }
 
 /* Verify return stack has room to read */
-#define AF_VERIFY_RETURN_STACK_READ(global, task, cells) \
+#define AF_VERIFY_RETURN_STACK_READ(task, cells) \
   { af_task_t* _task_ = (task); \
     if(_task_->return_stack_current >=		      \
        (_task_->return_stack_base - ((cells) - 1))) { \
-      af_handle_return_stack_underflow((global), _task_);	\
+      af_handle_return_stack_underflow(_task_->global, _task_);	\
       return; \
     } }
 
 /* Verify return stack has room to expand */
-#define AF_VERIFY_RETURN_STACK_EXPAND(global, task, cells) \
+#define AF_VERIFY_RETURN_STACK_EXPAND(task, cells) \
   { af_task_t* _task_ = (task); \
     if(_task_->return_stack_current <=		      \
        (_task_->return_stack_top + ((cells) - 1))) {  \
-      af_handle_return_stack_overflow((global), _task_);	\
+      af_handle_return_stack_overflow(_task_->global, _task_);	\
       return; \
     } }
 
 /* Verify that a task is compiling */
-#define AF_VERIFY_COMPILING(global, task) \
+#define AF_VERIFY_COMPILING(task) \
   { af_task_t* _task_ = (task); \
     if(!_task_->is_compiling) {			\
-      af_handle_compile_only((global), _task_); \
+      af_handle_compile_only(_task_->global, _task_); \
       return; \
     } }
 
 /* Verify that a task is interpreting */
-#define AF_VERIFY_INTERPRETING(global, task) \
+#define AF_VERIFY_INTERPRETING(task) \
   { af_task_t* _task_ = (task); \
     if(!_task_->is_compiling) {			  \
-      af_handle_interpret_only((global), _task_); \
+      af_handle_interpret_only(_task_->global, _task_); \
       return; \
     } }
 
 /* Verify that a task is not interactive */
-#define AF_VERIFY_NOT_INTERACTIVE(global, task) \
+#define AF_VERIFY_NOT_INTERACTIVE(task) \
   { af_task_t* _task_ = (task); \
     if(!_task_->interpreter_pointer) {		\
-      af_handle_compile_only((global), _task_); \
+      af_handle_compile_only(_task_->global, _task_); \
       return; \
     } }
 
 /* Verify that a word has been created in the current task */
-#define AF_VERIFY_WORD_CREATED(global, task) \
+#define AF_VERIFY_WORD_CREATED(task) \
   { af_task_t* _task_ = (task); \
     if(!_task_->most_recent_word) {		   \
-      af_handle_no_word_created((global), _task_); \
+      af_handle_no_word_created(_task_->global, _task_); \
       return; \
     } }
 
 #else /* DEBUG */
 
 /* Verify data stack has room to read */
-#define AF_VERIFY_DATA_STACK_READ(global, task, cells) \
+#define AF_VERIFY_DATA_STACK_READ(task, cells) \
   {  }
 
 /* Verify data stack has room to expand */
-#define AF_VERIFY_DATA_STACK_EXPAND(global, task, cells) \
+#define AF_VERIFY_DATA_STACK_EXPAND(task, cells) \
   {  }
 
 /* Verify float stack has room to read */
-#define AF_VERIFY_FLOAT_STACK_READ(global, task, cells) \
+#define AF_VERIFY_FLOAT_STACK_READ(task, cells) \
   {  }
 
 /* Verify float stack has room to expand */
-#define AF_VERIFY_FLOAT_STACK_EXPAND(global, task, cells) \
+#define AF_VERIFY_FLOAT_STACK_EXPAND(task, cells) \
   {  }
 
 /* Verify return stack has room to read */
-#define AF_VERIFY_RETURN_STACK_READ(global, task, cells) \
+#define AF_VERIFY_RETURN_STACK_READ(task, cells) \
   {  }
 
 /* Verify return stack has room to expand */
-#define AF_VERIFY_RETURN_STACK_EXPAND(global, task, cells) \
+#define AF_VERIFY_RETURN_STACK_EXPAND(task, cells) \
   {  }
 
 /* Verify that a task is compiling */
-#define AF_VERIFY_COMPILING(global, task) \
+#define AF_VERIFY_COMPILING(task) \
   {  }
 
 /* Verify that a task is interpreting */
-#define AF_VERIFY_INTERPRETING(global, task) \
+#define AF_VERIFY_INTERPRETING(task) \
   {  }
 
 /* Verify that a task is not interactive */
-#define AF_VERIFY_NOT_INTERACTIVE(global, task) \
+#define AF_VERIFY_NOT_INTERACTIVE(task) \
   {  }
 
 /* Verify that a word has been created in the current task */
-#define AF_VERIFY_WORD_CREATED(global, task) \
+#define AF_VERIFY_WORD_CREATED(task) \
   {  }
 
 #endif /* DEBUG */
@@ -226,25 +226,23 @@
 #ifdef DEBUG
 
 /* Macro to execute word */
-#define AF_WORD_EXECUTE(global, task, word) \
+#define AF_WORD_EXECUTE(task, word) \
   { af_word_t* _word_ = (word); \
     af_task_t* _task_ = (task);	      \
-    af_global_t* _global_ = (global); \
-    (_task_)->current_word = (_word_);	      \
-    if(_task_->do_trace || _global_->do_trace) { \
-      af_print_state((_global_), (_task_));	 \
+    _task_->current_word = _word_;	      \
+    if(_task_->do_trace || _task_->global->do_trace) { \
+      af_print_state(_task_->global, _task_);	 \
     }					 \
-    (_word_)->code((_global_), (_task_)); }
+    _word_->code(_task_); }
 
 #else /* DEBUG */
 
 /* Macro to execute word */
-#define AF_WORD_EXECUTE(global, task, word) \
+#define AF_WORD_EXECUTE(task, word) \
   { af_word_t* _word_ = (word); \
     af_task_t* _task_ = (task);	      \
-    af_global_t* _global_ = (global); \
-    (_task_)->current_word = (_word_);	      \
-    (_word_)->code((_global_), (_task_)); }
+    _task_->current_word = _word_;	      \
+    _word_->code(_task_); }
 
 #endif /* DEBUG */
 

@@ -226,13 +226,13 @@ void af_inner_loop(af_global_t* global, af_task_t* task) {
     }
   }
   if(task->init_word) {
-    AF_WORD_EXECUTE(global, task, task->init_word);
+    AF_WORD_EXECUTE(task, task->init_word);
   }
   task->init_word = NULL;
   while(task->current_cycles_left--) {
     af_compiled_t* interpreter_pointer = task->interpreter_pointer;
     af_word_t* word = interpreter_pointer->compiled_call;
-    AF_WORD_EXECUTE(global, task, word);
+    AF_WORD_EXECUTE(task, word);
   }
   task->yields++;
   global->current_task = NULL;
@@ -370,6 +370,7 @@ af_task_t* af_spawn(af_global_t* global, af_task_t* parent_task) {
   }
   memcpy(task_local_space_base, global->default_task_local_space_base,
 	 global->task_local_space_size * sizeof(af_byte_t));
+  task->global = global;
   task->next_task = global->first_task;
   global->first_task = task;
   task->base_cycles_before_yield = 0;
@@ -473,6 +474,7 @@ af_task_t* af_spawn_no_data(af_global_t* global, af_task_t* parent_task) {
   }
   memcpy(task_local_space_base, global->default_task_local_space_base,
 	 global->task_local_space_size * sizeof(af_byte_t));
+  task->global = global;
   task->next_task = global->first_task;
   global->first_task = task;
   task->base_cycles_before_yield = 0;
@@ -535,18 +537,18 @@ void af_set_init_word(af_global_t* global, af_task_t* task,
 
 
 void af_push_data(af_global_t* global, af_task_t* task, af_cell_t value) {
-  AF_VERIFY_DATA_STACK_EXPAND(global, task, 1);
+  AF_VERIFY_DATA_STACK_EXPAND(task, 1);
   *(--task->data_stack_current) = value;
 }
 
 void af_push_float(af_global_t* global, af_task_t* task, af_float_t value) {
-  AF_VERIFY_FLOAT_STACK_EXPAND(global, task, 1);
+  AF_VERIFY_FLOAT_STACK_EXPAND(task, 1);
   *(--task->float_stack_current) = value;
 }
 
 void af_push_return(af_global_t* global, af_task_t* task,
 		    af_compiled_t* pointer) {
-  AF_VERIFY_RETURN_STACK_EXPAND(global, task, 1);
+  AF_VERIFY_RETURN_STACK_EXPAND(task, 1);
   *(--task->return_stack_current) = pointer;
 }
 
@@ -566,7 +568,7 @@ void af_terminate(af_global_t* global, af_task_t* task) {
 	  global->default_cycles_before_yield;
 	af_schedule(global, task);
       }
-      AF_WORD_EXECUTE(global, task, task->terminate);
+      AF_WORD_EXECUTE(task, task->terminate);
     } else {
       af_kill(global, task);
     }
@@ -651,7 +653,7 @@ void af_reset(af_global_t* global, af_task_t* task) {
   task->most_recent_word = NULL;
   task->base = 10;
   if(task->abort) {
-    AF_WORD_EXECUTE(global, task, task->abort);
+    AF_WORD_EXECUTE(task, task->abort);
   } else {
     af_kill(global, task);
   }

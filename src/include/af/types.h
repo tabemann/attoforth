@@ -87,7 +87,7 @@ typedef int af_io_whence_t;
 
 typedef int af_io_error_t;
 
-typedef void (*af_prim_t)(af_global_t* global, af_task_t* task);
+typedef void (*af_prim_t)(af_task_t* task);
 
 typedef struct af_cond_t {
   pthread_mutex_t mutex;
@@ -177,6 +177,7 @@ typedef struct af_global_t {
 } af_global_t;
 
 typedef struct af_task_t {
+  af_global_t* global;
   af_task_t* next_task;
   af_cell_t base_cycles_before_yield;
   af_cell_t extra_cycles;
