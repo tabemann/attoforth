@@ -68,3 +68,27 @@ An example of this in action:
 
     : FOOBAR -9 0 [: . -1 ;] COUNT+LOOP ;  ok
     FOOBAR 0 -1 -2 -3 -4 -5 -6 -7 -8 -9  ok
+
+`MAP` ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
+
+Apply *xt* to the value of each cell of the *count1* cells starting from *a-addr1* and write the results in order into an equal number of cells starting from *a-addr2* and return *a-addr2* followed by this count. Note that the two buffers may overlap if *a-addr2* is an equal or lower address relative to *a-addr1*.
+
+    : PRINT-ARRAY 0 [: CELLS OVER + @ . ;] COUNT-LOOP DROP ;  ok
+    : WRITE-ARRAY 0 [: CELLS OVER + ROT SWAP ! ;] COUNT-LOOP DROP ;  ok
+    10 CELLS BUFFER: TEST-BUFFER  ok
+    : MAP-TEST
+      0 1 2 3 4 5 6 7 8 9 TEST-BUFFER 10 WRITE-ARRAY
+      TEST-BUFFER 10 TEST-BUFFER [: 2 * ;] MAP PRINT-ARRAY ;  ok
+    MAP-TEST 18 16 14 12 10 8 6 4 2 0  ok
+
+`FILTER` ( a-addr1 count1 a-addr2 xt - a-addr2 count2 )
+
+Apply *xt* to the value of each cell of the *count1* cells starting from *a-addr1* and, if the value returned is non-zero, and write the value in order into a number of cells less than or equal to *count1* starting from *a-addr2* and return *a-addr2* followed by the total number of cells written. Note that the two buffers may overlap if *a-addr2* is an equal or lower address relative to *a-addr1*.
+
+    : PRINT-ARRAY 0 [: CELLS OVER + @ . ;] COUNT-LOOP DROP ;  ok
+    : WRITE-ARRAY 0 [: CELLS OVER + ROT SWAP ! ;] COUNT-LOOP DROP ;  ok
+    10 CELLS BUFFER: TEST-BUFFER  ok
+    : FILTER-TEST
+      0 1 2 3 4 5 6 7 8 9 TEST-BUFFER 10 WRITE-ARRAY
+      TEST-BUFFER 10 TEST-BUFFER [: 1 AND 0= ;] FILTER PRINT-ARRAY ;  ok
+    FILTER-TEST 8 6 4 2 0  ok
