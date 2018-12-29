@@ -81,4 +81,28 @@ LAMBDA-WORDLIST SET-CURRENT
     ROT ROT ?DO I SWAP DUP >R EXECUTE R> SWAP +LOOP DROP
   THEN ; IMMEDIATE SMART
 
+: FETCH-ADVANCE ( a-addr1 count1 -- a-addr2 count2 x )
+  SWAP DUP @ ROT 1- ROT CELL+ SWAP ROT ;
+
+: (MAP) ( a-addr1 count1 a-addr2 xt -- count2 )
+  0
+  [: 3 PICK 0> ;]
+  [: 4 ROLL 4 ROLL FETCH-ADVANCE 4 PICK EXECUTE
+     5 ROLL TUCK ! CELL+ 3 ROLL 1+ 4 ROLL SWAP ;] WHILE-LOOP
+  ROT ROT 2DROP ROT ROT 2DROP ;
+
+: MAP ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
+  3 ROLL 3 ROLL 3 PICK 3 ROLL (MAP) ;
+
+: (FILTER) ( a-addr1 count1 a-addr2 xt -- count2 )
+  0
+  [: 3 PICK 0> ;]
+  [: 4 ROLL 4 ROLL FETCH-ADVANCE DUP 5 PICK EXECUTE
+     [: ( a2 xt c2 a1 c1 x ) 5 ROLL TUCK ! CELL+ 3 ROLL 1+ 4 ROLL SWAP ;]
+     [: DROP 4 ROLL 4 ROLL 4 ROLL ;] CHOOSE ;] WHILE-LOOP
+  ROT ROT 2DROP ROT ROT 2DROP ;
+
+: FILTER ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
+  3 ROLL 3 ROLL 3 PICK 3 ROLL (FILTER) ;
+
 BASE ! SET-CURRENT SET-ORDER

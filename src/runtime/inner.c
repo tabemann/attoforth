@@ -616,7 +616,9 @@ void af_begin_atomic(af_global_t* global, af_task_t* task) {
     task->nesting_level = -1;
     global->atomic_task = task;
     if(global->current_task != global->atomic_task) {
-      af_yield(global, global->current_task);
+      if(global->current_task) {
+	af_yield(global, global->current_task);
+      }
       af_wake(global, global->atomic_task);
     }
   } else if(task->nesting_level < 0 && task != global->atomic_task) {
@@ -633,7 +635,9 @@ void af_end_atomic(af_global_t* global, af_task_t* task) {
     if(next_atomic_task && global->current_task != next_atomic_task) {
       next_atomic_task->nesting_level = -1;
       global->atomic_task = next_atomic_task;
-      af_yield(global, global->current_task);
+      if(global->current_task) {
+	af_yield(global, global->current_task);
+      }
       af_wake(global, global->atomic_task);
     } else {
       global->atomic_task = NULL;
