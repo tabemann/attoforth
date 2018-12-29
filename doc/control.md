@@ -13,6 +13,8 @@ Note that all the following examples are executed preceded by:
     REQUIRE control.fs  ok
     FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER  ok
 
+It should be noted that words passed to these following words can access the stack outside the words to which they are passed, that the internal state of the words to which they are passed are hidden from these words.
+
 `OPTION` ( ... flag true-xt -- ... )
 
 Execute *true-xt* if *flag* is non-zero.
