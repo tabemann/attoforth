@@ -92,3 +92,15 @@ Apply *xt* to the value of each cell of the *count1* cells starting from *a-addr
       0 1 2 3 4 5 6 7 8 9 TEST-BUFFER 10 WRITE-ARRAY
       TEST-BUFFER 10 TEST-BUFFER [: 1 AND 0= ;] FILTER PRINT-ARRAY ;  ok
     FILTER-TEST 8 6 4 2 0  ok
+
+`FILTER-MAP` ( a-addr1 count1 addr-2 xt-filter xt-map a-addr2 count2 )
+
+Apply *xt-filter* to the value of each cell of the *count1* cells starting from *a-addr1* and, if the value returned is non-zero, and write the value with *xt-map* applied to it in order into a number of cells less than or equal to *count1* starting from *a-addr2* and return *a-addr2* followed by the total number of cells written. Note that the two buffers may overlap if *a-addr2* is an equal or lower address relative to *a-addr1*.
+
+    : PRINT-ARRAY 0 [: CELLS OVER + @ . ;] COUNT-LOOP DROP ;  ok
+    : WRITE-ARRAY 0 [: CELLS OVER + ROT SWAP ! ;] COUNT-LOOP DROP ;  ok
+    10 CELLS BUFFER: TEST-BUFFER  ok
+    : FILTER-MAP-TEST
+      0 1 2 3 4 5 6 7 8 9 TEST-BUFFER 10 WRITE-ARRAY
+      TEST-BUFFER 10 TEST-BUFFER [: 1 AND 0= ;] [: 2 * ;] FILTER-MAP PRINT-ARRAY ;  ok
+    FILTER-MAP-TEST 16 12 8 4 0  ok

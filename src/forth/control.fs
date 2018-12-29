@@ -105,4 +105,15 @@ LAMBDA-WORDLIST SET-CURRENT
 : FILTER ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
   3 ROLL 3 ROLL 3 PICK 3 ROLL (FILTER) ;
 
+: (FILTER-MAP) ( a-addr1 count1 a-addr2 xt-filter xt-map -- count2 )
+  0
+  [: 4 PICK 0> ;]
+  [: 5 ROLL 5 ROLL FETCH-ADVANCE DUP 6 PICK EXECUTE
+     [: 4 PICK EXECUTE 6 ROLL TUCK ! CELL+ 3 ROLL 1+ 5 ROLL 5 ROLL ROT ;]
+     [: DROP 5 ROLL 5 ROLL 5 ROLL 5 ROLL ;] CHOOSE ;] WHILE-LOOP
+  ROT ROT 2DROP ROT ROT 2DROP NIP ;
+
+: FILTER-MAP ( a-addr1 count1 a-addr2 xt-filter xt-map -- a-addr2 count2 )
+  4 ROLL 4 ROLL 4 PICK 4 ROLL 4 ROLL (FILTER-MAP) ;
+
 BASE ! SET-CURRENT SET-ORDER
