@@ -766,6 +766,16 @@ void* af_io_main(void* arg) {
 	  current_action->is_done = TRUE;
 	  close(current_action->fd);
 	  still_looping = TRUE;
+	} else if(current_action->type == AF_IO_TYPE_READ) {
+	  if(!current_action->count) {
+	    current_action->is_done = TRUE;
+	    still_looping = TRUE;
+	  }
+	} else if(current_action->type == AF_IO_TYPE_WRITE) {
+	  if(!current_action->count) {
+	    current_action->is_done = TRUE;
+	    still_looping = TRUE;
+	  }
 	} else if(current_action->type == AF_IO_TYPE_SEEK) {
 	  current_action->is_done = TRUE;
 	  if((lseek(current_action->fd, current_action->offset,

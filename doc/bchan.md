@@ -4,7 +4,7 @@ These are made available by executing:
 
     REQUIRE bchan.fs
 
-These following words are in the `TASK-WORDLIST` wordlist.
+The following words are in the `TASK-WORDLIST` wordlist.
 
 `BCHAN.` ( chan -- )
 

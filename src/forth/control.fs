@@ -108,21 +108,20 @@ LAMBDA-WORDLIST SET-CURRENT
      SHOW-4 3 ROLL 3 ROLL 1+ ;] WHILE-LOOP
   2DROP 2DROP ;
 
-: HIDE-5-BELOW-2 ( x1 x2 x3 x4 x5 x6 x7 -- x6 x7 ) ( R: -- x5 x4 x3 x2 x1 )
-  & ROT & >R & ROT & >R & ROT & >R & ROT & >R & ROT & >R ; IMMEDIATE
+: HIDE-4-BELOW-2 ( x1 x2 x3 x4 x5 x6 -- x5 x6 ) ( R: -- x4 x3 x2 x1 )
+  & ROT & >R & ROT & >R & ROT & >R & ROT & >R ; IMMEDIATE
 
-: SHOW-5-BELOW-1 ( x6 -- x1 x2 x3 x4 x5 x6 ) ( R: x5 x4 x3 x2 x1 -- )
-  & R> & R> & R> & R> & R> & (LITERAL) 5 , & ROLL ; IMMEDIATE
+: SHOW-4-BELOW-1 ( x5 -- x1 x2 x3 x4 x5 ) ( R: x4 x3 x2 x1 -- )
+  & R> & R> & R> & R> & (LITERAL) 4 , & ROLL ; IMMEDIATE
 
 : (MAP) ( a-addr1 count1 a-addr2 xt -- count2 )
-  0
-  [: 3 PICK 0> ;]
-  [: 4 ROLL 4 ROLL FETCH-ADVANCE 4 PICK HIDE-5-BELOW-2 EXECUTE
-     SHOW-5-BELOW-1 5 ROLL TUCK ! CELL+ 3 ROLL 1+ 4 ROLL SWAP ;] WHILE-LOOP
-  ROT ROT 2DROP ROT ROT 2DROP ;
+  [: 2 PICK 0> ;]
+  [: 3 ROLL 3 ROLL FETCH-ADVANCE 3 PICK HIDE-4-BELOW-2 EXECUTE
+     SHOW-4-BELOW-1 4 ROLL TUCK ! CELL+ 3 ROLL ;] WHILE-LOOP
+  2DROP 2DROP ;
 
 : MAP ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
-  SWAP >R R@ SWAP (MAP) R> SWAP ;
+  ROT ROT 2>R 2R@ ROT (MAP) 2R> SWAP ;
 
 : HIDE-6-BELOW-2 ( x1 x2 x3 x4 x5 x6 x7 x8 -- x7 x8 )
   ( R: -- x6 x5 x4 x3 x2 x1 )
