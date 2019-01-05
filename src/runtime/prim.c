@@ -63,6 +63,9 @@ void af_prim_f_literal_runtime(af_task_t* task);
 /* CREATE primitive */
 void af_prim_create(af_task_t* task);
 
+/* CREATE-WITH-NAME primitive */
+void af_prim_create_with_name(af_task_t* task);
+
 /* : primitive */
 void af_prim_colon(af_task_t* task);
 
@@ -1018,6 +1021,8 @@ void af_register_prims(af_global_t* global, af_task_t* task) {
 		     global->forth_wordlist);
   af_register_prim(global, task, "CREATE", af_prim_create, 0,
 		   global->forth_wordlist);
+  af_register_prim(global, task, "CREATE-WITH-NAME", af_prim_create_with_name,
+		   0, global->forth_wordlist);
   af_register_prim(global, task, ":", af_prim_colon, 0,
 		   global->forth_wordlist);
   af_register_prim(global, task, ":NONAME", af_prim_colon_noname, 0,
@@ -1754,6 +1759,42 @@ void af_prim_create(af_task_t* task) {
   }
   name = af_parse_name(global, task, &name_length);
   name_length = name_length < 256 ? name_length : 255;
+  name_size = (name_length + 1) * sizeof(af_byte_t);
+  pad_size = ((data_space_current + name_size) % sizeof(af_cell_t)) == 0 ?
+    0 * sizeof(af_byte_t) :
+    sizeof(af_cell_t) - ((data_space_current + name_size) % sizeof(af_cell_t));
+  if(!(word_space = af_allocate(global, task,
+				sizeof(af_word_t) + name_size + pad_size))) {
+    return;
+  }
+  word = word_space + name_size + pad_size;
+  AF_WORD_NAME_LEN(word) = (af_byte_t)name_length;
+  memmove(AF_WORD_NAME_DATA(word), name, name_length);
+  word->flags = 0;
+  word->code = af_prim_push_data;
+  word->secondary = NULL;
+  word->next_of_all_words = global->first_of_all_words;
+  global->first_of_all_words = word;
+  task->most_recent_word = word;
+  word->next_word = task->current_wordlist->first_word;
+  task->current_wordlist->first_word = word;
+  AF_ADVANCE_IP(task, 1);
+}
+
+/* CREATE-WITH-NAME primitive */
+void af_prim_create_with_name(af_task_t* task) {
+  af_global_t* global = task->global;
+  af_byte_t* name;
+  af_cell_t name_length;
+  size_t data_space_current = (size_t)task->data_space_current;
+  size_t name_size;
+  size_t pad_size;
+  void* word_space;
+  af_word_t* word;
+  af_compiled_t* secondary;
+  AF_VERIFY_DATA_STACK_READ(task, 2);
+  name_length = *task->data_stack_current++;
+  name = (af_byte_t*)(*task->data_stack_current++);
   name_size = (name_length + 1) * sizeof(af_byte_t);
   pad_size = ((data_space_current + name_size) % sizeof(af_cell_t)) == 0 ?
     0 * sizeof(af_byte_t) :
